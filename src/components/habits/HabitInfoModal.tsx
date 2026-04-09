@@ -33,7 +33,7 @@ export default function HabitInfoModal({ habitName, onClose }: Props) {
       return;
     }
 
-    fetch('/anthropic/v1/messages', {
+    fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
