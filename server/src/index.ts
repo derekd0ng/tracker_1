@@ -12,14 +12,16 @@ import wellbeingRouter  from './routes/wellbeing';
 const app = express();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigins = [
-  process.env.FRONTEND_URL ?? 'http://localhost:5173',
-  'http://localhost:5173',
-];
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (mobile, curl, etc.)
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    // Allow requests with no origin (curl, mobile apps, etc.)
+    if (!origin) return cb(null, true);
+    // Allow localhost in dev
+    if (origin.startsWith('http://localhost')) return cb(null, true);
+    // Allow any Vercel deployment (including preview URLs)
+    if (origin.endsWith('.vercel.app')) return cb(null, true);
+    // Allow explicitly configured frontend URL
+    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
