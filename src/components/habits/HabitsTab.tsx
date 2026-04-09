@@ -326,6 +326,18 @@ export default function HabitsTab() {
           </div>
         </section>
 
+        {showForm && (
+          <div className="overlay" onClick={e => { if (e.target === e.currentTarget) closeForm(); }}>
+            <div className="modal">
+              <div className="modal-header">
+                <p className="modal-title">Add Habit</p>
+                <button className="btn btn-ghost" onClick={closeForm}>✕</button>
+              </div>
+              <HabitForm onSaved={handleSaved} onCancel={closeForm} initial={formInitial} />
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
