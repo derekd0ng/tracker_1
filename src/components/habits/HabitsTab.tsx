@@ -198,8 +198,8 @@ export default function HabitsTab() {
 
         {/* ── Form card ── */}
         <div style={{
-          background: '#131b2e',
-          border: '1px solid rgba(59,130,246,0.2)',
+          background: 'linear-gradient(135deg, #1e3a5f 0%, #1a2f52 100%)',
+          border: '1px solid rgba(59,130,246,0.35)',
           borderRadius: 24,
           padding: 32,
         }}>
