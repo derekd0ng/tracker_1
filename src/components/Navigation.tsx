@@ -63,56 +63,76 @@ export default function Navigation({ activeTab, onChange, user, onLogout }: Prop
   }
 
   return (
-    <aside className="sidebar" data-active={activeTab}>
-      <div className="sidebar-logo">
-        <h1 className="sidebar-logo-title">Recovery</h1>
-        <p className="sidebar-logo-sub">Stay on track</p>
-      </div>
-      <nav className="sidebar-nav">
+    <>
+      {/* ── Sidebar (desktop) ── */}
+      <aside className="sidebar" data-active={activeTab}>
+        <div className="sidebar-logo">
+          <h1 className="sidebar-logo-title">Recovery</h1>
+          <p className="sidebar-logo-sub">Stay on track</p>
+        </div>
+        <nav className="sidebar-nav">
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                className={`sidebar-nav-item${isActive ? ' active' : ''}`}
+                onClick={() => onChange(tab.id)}
+              >
+                <span className="sidebar-nav-icon">
+                  {NAV_ICONS[tab.id]}
+                </span>
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="sidebar-backup">
+          <button className="sidebar-backup-btn" onClick={exportData}>
+            ↓ Export backup (JSON)
+          </button>
+          <button className="sidebar-backup-btn" onClick={() => exportAsXlsx()}>
+            ↓ Export as Excel
+          </button>
+          <button className="sidebar-backup-btn" onClick={() => fileRef.current?.click()}>
+            {importStatus === 'ok' ? '✓ Imported' : importStatus === 'err' ? '✕ Invalid file' : importStatus === 'loading' ? 'Importing…' : '↑ Import backup'}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={handleImportFile}
+          />
+          {user && onLogout && (
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email}
+              </p>
+              <button className="sidebar-backup-btn" onClick={onLogout}>
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* ── Bottom tab bar (mobile) ── */}
+      <nav className="bottom-tabbar" data-active={activeTab}>
         {TABS.map(tab => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
-              className={`sidebar-nav-item${isActive ? ' active' : ''}`}
+              className={`bottom-tab${isActive ? ' active' : ''}`}
               onClick={() => onChange(tab.id)}
             >
-              <span className="sidebar-nav-icon">
-                {NAV_ICONS[tab.id]}
-              </span>
-              {tab.label}
+              <span className="bottom-tab-icon">{NAV_ICONS[tab.id]}</span>
+              <span className="bottom-tab-label">{tab.label}</span>
             </button>
           );
         })}
       </nav>
-      <div className="sidebar-backup">
-        <button className="sidebar-backup-btn" onClick={exportData}>
-          ↓ Export backup (JSON)
-        </button>
-        <button className="sidebar-backup-btn" onClick={() => exportAsXlsx()}>
-          ↓ Export as Excel
-        </button>
-        <button className="sidebar-backup-btn" onClick={() => fileRef.current?.click()}>
-          {importStatus === 'ok' ? '✓ Imported' : importStatus === 'err' ? '✕ Invalid file' : importStatus === 'loading' ? 'Importing…' : '↑ Import backup'}
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".json"
-          style={{ display: 'none' }}
-          onChange={handleImportFile}
-        />
-        {user && onLogout && (
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.email}
-            </p>
-            <button className="sidebar-backup-btn" onClick={onLogout}>
-              Sign out
-            </button>
-          </div>
-        )}
-      </div>
-    </aside>
+    </>
   );
 }
