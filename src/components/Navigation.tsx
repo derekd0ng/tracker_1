@@ -5,6 +5,8 @@ import { exportData, exportAsXlsx, importData } from '../storage';
 interface Props {
   activeTab: TabId;
   onChange: (tab: TabId) => void;
+  user?: { id: string; email: string } | null;
+  onLogout?: () => void;
 }
 
 const NAV_ICONS: Record<TabId, React.ReactNode> = {
@@ -37,17 +39,18 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'habits',     label: 'Habits'     },
 ];
 
-export default function Navigation({ activeTab, onChange }: Props) {
+export default function Navigation({ activeTab, onChange, user, onLogout }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [importStatus, setImportStatus] = useState<'idle' | 'ok' | 'err'>('idle');
+  const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
+      setImportStatus('loading');
       try {
-        importData(reader.result as string);
+        await importData(reader.result as string);
         setImportStatus('ok');
         setTimeout(() => window.location.reload(), 800);
       } catch {
@@ -90,7 +93,7 @@ export default function Navigation({ activeTab, onChange }: Props) {
           ↓ Export as Excel
         </button>
         <button className="sidebar-backup-btn" onClick={() => fileRef.current?.click()}>
-          {importStatus === 'ok' ? '✓ Imported' : importStatus === 'err' ? '✕ Invalid file' : '↑ Import backup'}
+          {importStatus === 'ok' ? '✓ Imported' : importStatus === 'err' ? '✕ Invalid file' : importStatus === 'loading' ? 'Importing…' : '↑ Import backup'}
         </button>
         <input
           ref={fileRef}
@@ -99,6 +102,16 @@ export default function Navigation({ activeTab, onChange }: Props) {
           style={{ display: 'none' }}
           onChange={handleImportFile}
         />
+        {user && onLogout && (
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user.email}
+            </p>
+            <button className="sidebar-backup-btn" onClick={onLogout}>
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
