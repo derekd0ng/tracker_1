@@ -50,7 +50,9 @@ export function getWellbeingEntries(): WellbeingEntry[] {
 
 export function saveWellbeingEntry(entry: WellbeingEntry): void {
   const idx = cache.wellbeing.findIndex(e => e.id === entry.id);
-  if (idx >= 0) cache.wellbeing[idx] = entry; else cache.wellbeing.push(entry);
+  cache.wellbeing = idx >= 0
+    ? cache.wellbeing.map((e, i) => i === idx ? entry : e)
+    : [...cache.wellbeing, entry];
   api.put(`/api/wellbeing/${entry.id}`, entry).catch(e => console.error('saveWellbeingEntry:', e));
 }
 
@@ -67,7 +69,9 @@ export function getMedications(): Medication[] {
 
 export function saveMedication(med: Medication): void {
   const idx = cache.medications.findIndex(m => m.id === med.id);
-  if (idx >= 0) cache.medications[idx] = med; else cache.medications.push(med);
+  cache.medications = idx >= 0
+    ? cache.medications.map((m, i) => i === idx ? med : m)
+    : [...cache.medications, med];
   api.put(`/api/medications/${med.id}`, med).catch(e => console.error('saveMedication:', e));
 }
 
@@ -147,7 +151,9 @@ export function getHabits(): Habit[] {
 
 export function saveHabit(habit: Habit): void {
   const idx = cache.habits.findIndex(h => h.id === habit.id);
-  if (idx >= 0) cache.habits[idx] = habit; else cache.habits.push(habit);
+  cache.habits = idx >= 0
+    ? cache.habits.map((h, i) => i === idx ? habit : h)
+    : [...cache.habits, habit];
   api.put(`/api/habits/${habit.id}`, habit).catch(e => console.error('saveHabit:', e));
 }
 
