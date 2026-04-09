@@ -202,12 +202,16 @@ router.post('/import', async (req: AuthRequest, res) => {
       );
     }
     for (const l of medLogs ?? []) {
-      await pool.query(
-        `INSERT INTO medication_logs (user_id, medication_id, date, time_of_day, taken, taken_at, skipped, changed_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-         ON CONFLICT (medication_id, date, time_of_day) DO NOTHING`,
-        [req.userId, l.medicationId, l.date, l.timeOfDay, l.taken, l.takenAt ?? null, l.skipped ?? false, l.changedAt ?? null],
-      );
+      try {
+        await pool.query(
+          `INSERT INTO medication_logs (user_id, medication_id, date, time_of_day, taken, taken_at, skipped, changed_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+           ON CONFLICT (medication_id, date, time_of_day) DO NOTHING`,
+          [req.userId, l.medicationId, l.date, l.timeOfDay, l.taken, l.takenAt ?? null, l.skipped ?? false, l.changedAt ?? null],
+        );
+      } catch {
+        // Skip orphaned logs whose medication was deleted before the export
+      }
     }
     res.json({ ok: true });
   } catch (err) {
