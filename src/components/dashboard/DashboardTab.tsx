@@ -287,10 +287,8 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
               }}
             />
           ) : (
-            <span
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
-            >
-              {user?.name || 'User'}
+            <>
+              {user?.name || 'User'}.
               <button
                 onClick={startNameEdit}
                 title="Edit name"
@@ -299,18 +297,19 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                   color: user?.name ? 'rgba(255,255,255,0.25)' : '#22D3EE',
                   display: 'inline-flex', alignItems: 'center',
                   transition: 'color 0.15s',
+                  position: 'relative', top: -6, marginLeft: 6,
+                  verticalAlign: 'middle',
                 }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#22D3EE')}
                 onMouseLeave={e => (e.currentTarget.style.color = user?.name ? 'rgba(255,255,255,0.25)' : '#22D3EE')}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-            </span>
+            </>
           )}
-          .
         </h2>
         {overallTotal > 0 && (
           <p className="dash-greeting-sub">
