@@ -2553,6 +2553,12 @@ input[type='range'] {
   .vital-card-unit {
     font-size: 0.65rem;
   }
+
+  /* ── Habit rows: hide target column ── */
+  .habit-log-target { display: none; }
+  .habit-log-row {
+    grid-template-columns: 46px 1fr 1fr 80px;
+  }
 }
 
 

@@ -159,7 +159,7 @@ export default function DailyHabitLog({ habits }: Props) {
         </div>
 
         {/* Target */}
-        <div>
+        <div className="habit-log-target">
           <div className="habit-mgmt-meta-label">Target</div>
           <div className="habit-mgmt-meta-value">
             {isWeekly
