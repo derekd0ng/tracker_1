@@ -1,9 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { Habit, HabitLog } from '../../types';
-import { getHabits, deleteHabit, getHabitLogs } from '../../storage';
+import type { Habit, HabitLog, HabitType, HabitFrequency } from '../../types';
+import { getHabits, deleteHabit, getHabitLogs, saveHabit } from '../../storage';
 import DailyHabitLog from './DailyHabitLog';
 import HabitForm, { SUGGESTIONS } from './HabitForm';
 import BulkHabitInputModal from './BulkHabitInputModal';
+
+const ICON_OPTIONS = ['🏃', '🚶', '🏋️', '💤', '💧', '🥗', '📚', '🧘', '🎯', '🧠', '❤️', '🌿', '💊', '☀️', '🛁'];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -152,6 +154,220 @@ export default function HabitsTab() {
     }
     return true;
   })();
+
+  // ── Empty state ────────────────────────────────────────────────────────────
+
+  const [esName,        setEsName]        = useState('');
+  const [esType,        setEsType]        = useState<HabitType>('boolean');
+  const [esFrequency,   setEsFrequency]   = useState<HabitFrequency>('daily');
+  const [esIcon,        setEsIcon]        = useState('');
+  const [esUnit,        setEsUnit]        = useState('');
+  const [esTarget,      setEsTarget]      = useState('');
+  const [esWeeklyTarget,setEsWeeklyTarget]= useState('');
+
+  function esFillFromSuggestion(s: typeof SUGGESTIONS[0]) {
+    setEsName(s.name);
+    setEsIcon(s.icon);
+    setEsType(s.type);
+    setEsFrequency(s.frequency ?? 'daily');
+    setEsUnit(s.unit ?? '');
+    setEsTarget(s.target?.toString() ?? '');
+    setEsWeeklyTarget(s.weeklyTarget?.toString() ?? '');
+  }
+
+  function esHandleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!esName.trim()) return;
+    const habit: Habit = {
+      id: `habit_${Date.now()}`,
+      name: esName.trim(),
+      type: esType,
+      frequency: esFrequency,
+      icon: esIcon || undefined,
+      unit: esUnit.trim() || undefined,
+      target: esTarget !== '' ? parseFloat(esTarget.replace(',', '.')) : undefined,
+      weeklyTarget: esFrequency === 'weekly' && esWeeklyTarget !== '' ? parseInt(esWeeklyTarget) : undefined,
+    };
+    saveHabit(habit);
+    reload();
+  }
+
+  if (habits.length === 0) {
+    return (
+      <div className="hab-theme" style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div style={{
+          background: '#131b2e',
+          border: '1px solid rgba(59,130,246,0.2)',
+          borderRadius: 24,
+          padding: 32,
+        }}>
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+              Start tracking your habits
+            </h2>
+            <p style={{ color: 'var(--text-muted)', marginTop: 6, fontSize: '0.9rem' }}>
+              Build your first habit or pick one from the suggestions on the right.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'start' }}>
+
+            {/* ── Form ── */}
+            <form onSubmit={esHandleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="form-field">
+                <label>Name</label>
+                <input
+                  autoFocus
+                  value={esName}
+                  onChange={e => setEsName(e.target.value)}
+                  placeholder="e.g. Steps, Gym, Sleep"
+                  required
+                />
+              </div>
+
+              <div className="form-grid">
+                <div className="form-field">
+                  <label>Frequency</label>
+                  <select value={esFrequency} onChange={e => setEsFrequency(e.target.value as HabitFrequency)}>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label>Type</label>
+                  <select value={esType} onChange={e => setEsType(e.target.value as HabitType)}>
+                    <option value="boolean">Done / Not done</option>
+                    <option value="numeric">Numeric (with a value)</option>
+                  </select>
+                </div>
+              </div>
+
+              {esFrequency === 'weekly' && (
+                <div className="form-field">
+                  <label>Times per week</label>
+                  <input
+                    type="number" min="1" max="7"
+                    value={esWeeklyTarget}
+                    onChange={e => setEsWeeklyTarget(e.target.value)}
+                    placeholder="e.g. 3"
+                  />
+                </div>
+              )}
+
+              {esType === 'numeric' && (
+                <div className="form-grid">
+                  <div className="form-field">
+                    <label>Unit</label>
+                    <input value={esUnit} onChange={e => setEsUnit(e.target.value)} placeholder="steps, glasses, hours…" />
+                  </div>
+                  <div className="form-field">
+                    <label>{esFrequency === 'weekly' ? 'Per-session target' : 'Daily target'}</label>
+                    <input type="text" inputMode="decimal" value={esTarget} onChange={e => setEsTarget(e.target.value)} placeholder="e.g. 8000" />
+                  </div>
+                </div>
+              )}
+
+              {esType === 'boolean' && (
+                <div className="form-grid">
+                  <div className="form-field">
+                    <label>Unit (optional)</label>
+                    <input value={esUnit} onChange={e => setEsUnit(e.target.value)} placeholder="min, reps, km…" />
+                  </div>
+                  <div className="form-field">
+                    <label>Target (optional)</label>
+                    <input type="text" inputMode="decimal" value={esTarget} onChange={e => setEsTarget(e.target.value)} placeholder="e.g. 30" />
+                  </div>
+                </div>
+              )}
+
+              <div className="form-field">
+                <label>Icon (optional)</label>
+                <div className="icon-picker">
+                  {ICON_OPTIONS.map(em => (
+                    <button
+                      key={em} type="button"
+                      className={`icon-option${esIcon === em ? ' selected' : ''}`}
+                      onClick={() => setEsIcon(esIcon === em ? '' : em)}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ marginTop: 8, height: 44, fontSize: '0.95rem' }}
+              >
+                Add Habit
+              </button>
+            </form>
+
+            {/* ── Suggestions ── */}
+            <div>
+              <p style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 12 }}>
+                Suggestions
+              </p>
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: 8,
+                maxHeight: 480, overflowY: 'auto',
+                paddingRight: 4,
+              }}>
+                {SUGGESTIONS.map(s => (
+                  <button
+                    key={s.name}
+                    type="button"
+                    onClick={() => esFillFromSuggestion(s)}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 12,
+                      background: esName === s.name ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${esName === s.name ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                      borderRadius: 12, padding: '10px 14px',
+                      cursor: 'pointer', textAlign: 'left', width: '100%',
+                      transition: 'background 0.15s, border-color 0.15s',
+                    }}
+                    onMouseEnter={e => {
+                      if (esName !== s.name) {
+                        (e.currentTarget as HTMLElement).style.background = 'rgba(59,130,246,0.07)';
+                        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(59,130,246,0.2)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (esName !== s.name) {
+                        (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)';
+                        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: '1.3rem', lineHeight: 1.3, flexShrink: 0 }}>{s.icon}</span>
+                    <div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', marginBottom: 2 }}>{s.name}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{s.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Modals still available */}
+        {showForm && (
+          <div className="overlay" onClick={e => { if (e.target === e.currentTarget) closeForm(); }}>
+            <div className="modal">
+              <div className="modal-header">
+                <p className="modal-title">{editHabit ? 'Edit Habit' : 'Add Habit'}</p>
+                <button className="btn btn-ghost" onClick={closeForm}>✕</button>
+              </div>
+              <HabitForm onSaved={handleSaved} onCancel={closeForm} initial={formInitial} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
