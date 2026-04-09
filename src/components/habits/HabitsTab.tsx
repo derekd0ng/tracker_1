@@ -296,7 +296,7 @@ export default function HabitsTab() {
 
             <button
               type="submit"
-              className="habit-suggestion-add-btn"
+              className="btn btn-primary"
               style={{ marginTop: 8, height: 44, fontSize: '0.95rem' }}
             >
               Add Habit
