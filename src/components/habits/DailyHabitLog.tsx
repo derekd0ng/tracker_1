@@ -172,14 +172,14 @@ export default function DailyHabitLog({ habits }: Props) {
 
         {/* Streak (daily) or week count (weekly) */}
         {isWeekly ? (
-          <div>
+          <div className="habit-log-streak">
             <div className="habit-mgmt-meta-label">This week</div>
             <div className="habit-mgmt-meta-value" style={{ color: weekCount > 0 ? 'var(--accent)' : undefined }}>
               {weekCount}{h.weeklyTarget != null ? `/${h.weeklyTarget}` : ''} done
             </div>
           </div>
         ) : (
-          <div>
+          <div className="habit-log-streak">
             <div className="habit-mgmt-meta-label">Streak</div>
             <div className="habit-mgmt-meta-value" style={{ color: streak > 0 ? '#f59e0b' : undefined }}>
               {streak > 0 ? `🔥 ${streak} day${streak !== 1 ? 's' : ''}` : '—'}
