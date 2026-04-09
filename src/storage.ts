@@ -281,11 +281,10 @@ export async function importData(json: string): Promise<void> {
   const habitLogs   = data.habitLogs   ? JSON.parse(data.habitLogs)   : [];
   const wellbeing   = data.wellbeing   ? JSON.parse(data.wellbeing)   : [];
 
-  await Promise.all([
-    api.post('/api/medications/import', { medications, medLogs }),
-    api.post('/api/habits/import',      { habits, habitLogs }),
-    api.post('/api/wellbeing/import',   { wellbeing }),
-  ]);
+  // Sequential — logs depend on their parent records existing first
+  await api.post('/api/medications/import', { medications, medLogs });
+  await api.post('/api/habits/import',      { habits, habitLogs });
+  await api.post('/api/wellbeing/import',   { wellbeing });
 
   // Refresh cache after import
   await initStorage();
