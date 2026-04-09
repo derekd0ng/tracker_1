@@ -11,7 +11,7 @@ import type { TabId } from './types';
 
 type AuthState = 'checking' | 'unauthenticated' | 'loading' | 'ready';
 
-interface User { id: string; email: string; }
+interface User { id: string; email: string; name?: string | null; }
 
 export default function App() {
   const [activeTab, setActiveTab]   = useState<TabId>('dashboard');
@@ -84,7 +84,7 @@ export default function App() {
       <Navigation activeTab={activeTab} onChange={setActiveTab} user={user} onLogout={handleLogout} />
       <main className="app-main">
         <div className="content-center">
-          {activeTab === 'dashboard'  && <DashboardTab onNavigate={setActiveTab} />}
+          {activeTab === 'dashboard'  && <DashboardTab onNavigate={setActiveTab} user={user} onUserUpdate={u => setUser(u)} />}
           {activeTab === 'wellbeing'  && <div className="wb-theme"><WellbeingTab /></div>}
           {activeTab === 'medication' && <MedicationTab />}
           {activeTab === 'habits'     && <div className="hab-theme"><HabitsTab /></div>}

@@ -62,6 +62,7 @@ export const api = {
   get:    <T = any>(path: string)              => request<T>(path),
   post:   <T = any>(path: string, body?: unknown) => request<T>(path, { method: 'POST',   body: body !== undefined ? JSON.stringify(body) : undefined }),
   put:    <T = any>(path: string, body?: unknown) => request<T>(path, { method: 'PUT',    body: body !== undefined ? JSON.stringify(body) : undefined }),
+  patch:  <T = any>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH',  body: body !== undefined ? JSON.stringify(body) : undefined }),
   delete: <T = any>(path: string)              => request<T>(path, { method: 'DELETE' }),
 };
 

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { api } from '../../api';
 import WellbeingSnapshot from '../wellbeing/WellbeingSnapshot';
 import type { Medication, TimeOfDay, Habit, HabitLog } from '../../types';
 import { TIMES_OF_DAY } from '../../types';
@@ -31,11 +32,11 @@ function currentTimeSlot(): TimeOfDay {
   return 'night';
 }
 
-function greeting(): string {
+function greetingPrefix(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning, Kirill';
-  if (h < 17) return 'Good afternoon, Kirill';
-  return 'Good evening, Kirill';
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 function isHabitDone(habit: Habit, value: number | undefined): boolean {
@@ -86,7 +87,11 @@ function shortDate(dateStr: string): string {
 
 import type { TabId } from '../../types';
 
-interface Props { onNavigate: (tab: TabId) => void; }
+interface Props {
+  onNavigate: (tab: TabId) => void;
+  user?: { id: string; email: string; name?: string | null } | null;
+  onUserUpdate?: (user: { id: string; email: string; name?: string | null }) => void;
+}
 
 // Arrow-right icon for nav buttons
 function ArrowRight() {
@@ -103,9 +108,36 @@ const NAV_BTN_BASE: React.CSSProperties = {
   cursor: 'pointer', flexShrink: 0, transition: 'opacity 0.15s',
 };
 
-export default function DashboardTab({ onNavigate }: Props) {
+export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) {
   const today = localDateStr();
   const currentSlot = currentTimeSlot();
+
+  // ── Name editing ──
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput]     = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  function startNameEdit() {
+    setNameInput(user?.name ?? '');
+    setEditingName(true);
+    setTimeout(() => nameInputRef.current?.focus(), 0);
+  }
+
+  async function commitName() {
+    setEditingName(false);
+    const trimmed = nameInput.trim();
+    try {
+      const data = await api.patch('/api/auth/me', { name: trimmed || null });
+      onUserUpdate?.(data.user);
+    } catch (e) {
+      console.error('update name:', e);
+    }
+  }
+
+  function handleNameKey(e: React.KeyboardEvent) {
+    if (e.key === 'Enter')  commitName();
+    if (e.key === 'Escape') setEditingName(false);
+  }
 
   // ── Wellbeing ──
   const allWellbeing = getWellbeingEntries().sort(
@@ -234,7 +266,52 @@ export default function DashboardTab({ onNavigate }: Props) {
 
       {/* ── Greeting ── */}
       <section>
-        <h2 className="dash-greeting">{greeting()}.</h2>
+        <h2 className="dash-greeting">
+          {greetingPrefix()},{' '}
+          {editingName ? (
+            <input
+              ref={nameInputRef}
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={handleNameKey}
+              placeholder="Your name"
+              maxLength={60}
+              style={{
+                background: 'transparent', border: 'none',
+                borderBottom: '2px solid #22D3EE',
+                color: 'inherit', font: 'inherit',
+                fontSize: 'inherit', fontWeight: 'inherit',
+                outline: 'none', padding: '0 2px',
+                width: Math.max((nameInput.length || 6) + 2, 8) + 'ch',
+              }}
+            />
+          ) : (
+            <span
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+            >
+              {user?.name || 'User'}
+              <button
+                onClick={startNameEdit}
+                title="Edit name"
+                style={{
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  color: user?.name ? 'rgba(255,255,255,0.25)' : '#22D3EE',
+                  display: 'inline-flex', alignItems: 'center',
+                  transition: 'color 0.15s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#22D3EE')}
+                onMouseLeave={e => (e.currentTarget.style.color = user?.name ? 'rgba(255,255,255,0.25)' : '#22D3EE')}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </span>
+          )}
+          .
+        </h2>
         {overallTotal > 0 && (
           <p className="dash-greeting-sub">
             You've completed{' '}

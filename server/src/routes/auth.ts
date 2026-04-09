@@ -52,7 +52,7 @@ router.post('/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const { rows } = await pool.query(
-      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email',
+      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, name',
       [email.toLowerCase(), passwordHash],
     );
     const user = rows[0];
@@ -62,7 +62,7 @@ router.post('/register', async (req, res) => {
     await storeRefreshToken(user.id, refreshToken);
     setRefreshCookie(res, refreshToken);
 
-    res.json({ accessToken, user: { id: user.id, email: user.email } });
+    res.json({ accessToken, user: { id: user.id, email: user.email, name: user.name ?? null } });
   } catch (err) {
     console.error('register:', err);
     res.status(500).json({ error: 'Server error' });
@@ -76,7 +76,7 @@ router.post('/login', async (req, res) => {
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' }) as any;
 
     const { rows } = await pool.query(
-      'SELECT id, email, password_hash FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, name FROM users WHERE email = $1',
       [email.toLowerCase()],
     );
     if (rows.length === 0) return res.status(401).json({ error: 'Invalid email or password' }) as any;
@@ -90,7 +90,7 @@ router.post('/login', async (req, res) => {
     await storeRefreshToken(user.id, refreshToken);
     setRefreshCookie(res, refreshToken);
 
-    res.json({ accessToken, user: { id: user.id, email: user.email } });
+    res.json({ accessToken, user: { id: user.id, email: user.email, name: user.name ?? null } });
   } catch (err) {
     console.error('login:', err);
     res.status(500).json({ error: 'Server error' });
@@ -104,7 +104,7 @@ router.post('/refresh', async (req, res) => {
     if (!token) return res.status(401).json({ error: 'No refresh token' }) as any;
 
     const { rows } = await pool.query(
-      `SELECT rt.user_id, rt.expires_at, rt.token_hash, u.email
+      `SELECT rt.user_id, rt.expires_at, rt.token_hash, u.email, u.name
        FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id
        WHERE rt.token_hash = $1`,
       [hashToken(token)],
@@ -124,7 +124,7 @@ router.post('/refresh', async (req, res) => {
     setRefreshCookie(res, newRefreshToken);
 
     const accessToken = makeAccessToken(row.user_id);
-    res.json({ accessToken, user: { id: row.user_id, email: row.email } });
+    res.json({ accessToken, user: { id: row.user_id, email: row.email, name: row.name ?? null } });
   } catch (err) {
     console.error('refresh:', err);
     res.status(500).json({ error: 'Server error' });
@@ -149,11 +149,26 @@ router.post('/logout', async (req, res) => {
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 router.get('/me', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, email FROM users WHERE id = $1', [req.userId]);
+    const { rows } = await pool.query('SELECT id, email, name FROM users WHERE id = $1', [req.userId]);
     if (rows.length === 0) return res.status(404).json({ error: 'User not found' }) as any;
     res.json({ user: rows[0] });
   } catch (err) {
     console.error('me:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── PATCH /api/auth/me ────────────────────────────────────────────────────────
+router.patch('/me', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { name } = req.body;
+    const { rows } = await pool.query(
+      'UPDATE users SET name = $1 WHERE id = $2 RETURNING id, email, name',
+      [name?.trim() || null, req.userId],
+    );
+    res.json({ user: rows[0] });
+  } catch (err) {
+    console.error('update me:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { api, setAccessToken } from '../../api';
 
 interface Props {
-  onAuth: (user: { id: string; email: string }) => void;
+  onAuth: (user: { id: string; email: string; name?: string | null }) => void;
 }
 
-type Mode = 'login' | 'register';
+type Mode = 'login' | 'register' | 'onboarding';
 
 export default function AuthScreen({ onAuth }: Props) {
   const [mode, setMode]       = useState<Mode>('login');
@@ -14,6 +14,8 @@ export default function AuthScreen({ onAuth }: Props) {
   const [confirm, setConfirm] = useState('');
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
+  const [pendingUser, setPendingUser] = useState<{ id: string; email: string } | null>(null);
+  const [nameInput, setNameInput]     = useState('');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,7 +30,12 @@ export default function AuthScreen({ onAuth }: Props) {
     try {
       const data = await api.post(`/api/auth/${mode}`, { email: email.trim(), password });
       setAccessToken(data.accessToken);
-      onAuth(data.user);
+      if (mode === 'register') {
+        setPendingUser(data.user);
+        setMode('onboarding');
+      } else {
+        onAuth(data.user);
+      }
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong');
     } finally {
@@ -36,17 +43,71 @@ export default function AuthScreen({ onAuth }: Props) {
     }
   }
 
+  async function handleNameSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pendingUser) return;
+    const trimmed = nameInput.trim();
+    if (trimmed) {
+      try {
+        const data = await api.patch('/api/auth/me', { name: trimmed });
+        onAuth(data.user);
+      } catch {
+        onAuth({ ...pendingUser, name: null });
+      }
+    } else {
+      onAuth({ ...pendingUser, name: null });
+    }
+  }
+
+  const cardStyle: React.CSSProperties = {
+    width: '100%', maxWidth: 400,
+    background: '#131b2e', borderRadius: 24,
+    padding: '40px 36px', boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+    border: '1px solid rgba(255,255,255,0.06)',
+  };
+
+  // ── Onboarding: name step ─────────────────────────────────────────────────
+  if (mode === 'onboarding') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1424', padding: 24 }}>
+        <div style={cardStyle}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <div style={{ fontSize: '2rem', marginBottom: 12 }}>👋</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>
+              Welcome!
+            </div>
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: 8 }}>
+              What should we call you?
+            </div>
+          </div>
+          <form onSubmit={handleNameSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="form-field">
+              <label>Your name</label>
+              <input
+                type="text"
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                placeholder="e.g. Alex"
+                autoFocus
+                maxLength={60}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary" style={{ marginTop: 4, height: 44, fontSize: '0.95rem' }}>
+              {nameInput.trim() ? 'Continue' : 'Skip'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Login / Register ──────────────────────────────────────────────────────
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: '#0d1424', padding: 24,
     }}>
-      <div style={{
-        width: '100%', maxWidth: 400,
-        background: '#131b2e', borderRadius: 24,
-        padding: '40px 36px', boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
-        border: '1px solid rgba(255,255,255,0.06)',
-      }}>
+      <div style={cardStyle}>
         {/* Logo / title */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>
