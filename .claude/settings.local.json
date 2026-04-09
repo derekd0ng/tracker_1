@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(json|ts|js|md\\)$\")",
+      "Bash(ls:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(lsof -ti:5173)",
+      "Bash(xargs kill:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//Users/k.kocherov/project_1/**)",
+      "Bash(done)",
+      "Bash(node:*)",
+      "Bash(grep -o \"\"content\"\":\"\"[^\"\"]*renderHabitRow[^\"\"]*\"\" /Users/k.kocherov/.claude/projects/-Users-k-kocherov-project-1/efb62d2f-695e-4301-ace7-ced57ceda5c0.jsonl)",
+      "Bash(python3 -c \"import sys,json; [print\\(json.loads\\(''''{''''+l+''''}''''\\)[''''content''''][:2000]\\) for l in sys.stdin]\")",
+      "Bash(python3:*)",
+      "Bash(npx tsc:*)",
+      "Bash(head -20 grep -n \"icon-checked\\\\|icon-unchecked\\\\|icon-skipped\" /Users/k.kocherov/project_1/src/components/dashboard/DashboardTab.tsx)",
+      "Bash(grep -o \"className=[''''][-a-zA-Z0-9_ ]*['''']\" /Users/k.kocherov/project_1/src/**/*.tsx)",
+      "Bash(while read:*)",
+      "Bash(do if:*)",
+      "Bash(then echo:*)",
+      "Bash(grep -h \"^import\\\\|^export\" /Users/k.kocherov/project_1/src/**/*.tsx /Users/k.kocherov/project_1/src/**/*.ts)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)"
+    ]
+  }
+}

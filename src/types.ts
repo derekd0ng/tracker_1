@@ -1,0 +1,82 @@
+// ── Core data types for Recovery Tracker ──────────────────────────────────
+
+export interface WellbeingEntry {
+  id: string;
+  date: string;          // YYYY-MM-DD
+  time: string;          // HH:MM
+  heartRate?: number;    // bpm
+  systolicBP?: number;   // mmHg
+  diastolicBP?: number;  // mmHg
+  spo2?: number;         // %
+  overallFeel: number;   // 1–10
+  symptoms: SymptomEntry[];
+  notes?: string;
+}
+
+export interface SymptomEntry {
+  name: string;
+  intensity: number;     // 1–10
+  locations?: string[];  // headache zone ids
+}
+
+// Predefined symptom options (user selects which apply)
+export const SYMPTOM_OPTIONS = [
+  'Dizziness',
+  'Brain Fog',
+  'Headache',
+  'Fatigue',
+  'Nausea',
+  'Vision Problems',
+  'Weakness',
+  'Numbness',
+  'Ear Ringing',
+] as const;
+
+export interface Medication {
+  id: string;
+  name: string;
+  dose?: string;
+  startDate?: string;      // YYYY-MM-DD
+  durationDays?: number;
+  timesOfDay: TimeOfDay[];
+  purpose?: string;
+  prescribingDoctor?: string;
+  notes?: string;
+  active: boolean;
+}
+
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
+export const TIMES_OF_DAY: TimeOfDay[] = ['morning', 'afternoon', 'evening', 'night'];
+
+// One entry per medication × time-of-day × date
+export interface MedicationLog {
+  date: string;            // YYYY-MM-DD
+  medicationId: string;
+  timeOfDay: TimeOfDay;
+  taken: boolean;
+  takenAt?: string;        // HH:MM when taken
+  skipped?: boolean;       // intentionally skipped; extends the course by 1 day
+  changedAt?: number;      // Date.now() of last taken/skipped action, for sorting
+}
+
+export type TabId = 'dashboard' | 'wellbeing' | 'medication' | 'habits';
+
+export type HabitType = 'boolean' | 'numeric';
+export type HabitFrequency = 'daily' | 'weekly';
+
+export interface Habit {
+  id: string;
+  name: string;
+  type: HabitType;
+  frequency?: HabitFrequency;  // defaults to 'daily' when absent
+  icon?: string;
+  unit?: string;
+  target?: number;
+  weeklyTarget?: number;       // for weekly habits: how many times per week
+}
+
+export interface HabitLog {
+  date: string;       // YYYY-MM-DD
+  habitId: string;
+  value: number;      // boolean: 1=done 0=skipped; numeric: the recorded value
+}
