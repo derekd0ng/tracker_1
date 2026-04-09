@@ -2520,6 +2520,39 @@ input[type='range'] {
     margin-left: 0;
     padding: 20px 16px 80px;
   }
+
+  /* ── Well-being snapshot: vital cards ── */
+  .snapshot-ts { display: none; }
+
+  .vital-cards-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  /* All cards equal width — drop the wide variant */
+  .vital-card,
+  .vital-card--wide {
+    flex: unset;
+    padding: 10px 10px 14px;
+  }
+
+  .vital-card-value {
+    font-size: 1.5rem;
+    letter-spacing: -0.5px;
+  }
+
+  .vital-card-label {
+    font-size: 0.6rem;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vital-card-unit {
+    font-size: 0.65rem;
+  }
 }
 
 

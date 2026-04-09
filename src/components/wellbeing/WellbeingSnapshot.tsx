@@ -157,7 +157,7 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
           <div>
             <p className="section-title" style={{ marginBottom: 0 }}>Latest Well-being</p>
             {latestEntry && (
-              <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: 3, marginBottom: 0 }}>
+              <p className="text-muted snapshot-ts" style={{ fontSize: '0.8rem', marginTop: 3, marginBottom: 0 }}>
                 Last entry: {formatEntryDateTime(latestEntry)}
               </p>
             )}
