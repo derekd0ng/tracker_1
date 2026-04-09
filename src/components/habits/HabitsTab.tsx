@@ -198,16 +198,16 @@ export default function HabitsTab() {
 
         {/* ── Blue form card ── */}
         <div style={{
-          background: 'linear-gradient(135deg, #1e3a5f 0%, #1a2f52 100%)',
-          border: '1px solid rgba(59,130,246,0.35)',
+          background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+          boxShadow: '0 20px 60px rgba(59,130,246,0.25)',
           borderRadius: 24,
           padding: 32,
         }}>
           <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0f1e3c', margin: 0 }}>
               Add your first habit
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.55)', marginTop: 6, fontSize: '0.9rem' }}>
+            <p style={{ color: 'rgba(15,30,60,0.6)', marginTop: 6, fontSize: '0.9rem' }}>
               Build a consistent routine to support your recovery.
             </p>
           </div>
@@ -296,7 +296,7 @@ export default function HabitsTab() {
 
             <button
               type="submit"
-              className="btn btn-primary"
+              className="habit-suggestion-add-btn"
               style={{ marginTop: 8, height: 44, fontSize: '0.95rem' }}
             >
               Add Habit
