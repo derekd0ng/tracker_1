@@ -196,18 +196,18 @@ export default function HabitsTab() {
     return (
       <div className="hab-theme" style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
 
-        {/* ── Blue form card ── */}
+        {/* ── Form card ── */}
         <div style={{
-          background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-          boxShadow: '0 20px 60px rgba(59,130,246,0.25)',
+          background: '#131b2e',
+          border: '1px solid rgba(59,130,246,0.2)',
           borderRadius: 24,
           padding: 32,
         }}>
           <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0f1e3c', margin: 0 }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', margin: 0 }}>
               Add your first habit
             </h2>
-            <p style={{ color: 'rgba(15,30,60,0.6)', marginTop: 6, fontSize: '0.9rem' }}>
+            <p style={{ color: 'rgba(255,255,255,0.55)', marginTop: 6, fontSize: '0.9rem' }}>
               Build a consistent routine to support your recovery.
             </p>
           </div>
