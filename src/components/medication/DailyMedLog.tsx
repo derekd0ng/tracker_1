@@ -458,9 +458,9 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                                 <button className="med-skip-btn undo" onClick={() => handleClear(med.id, timeOfDay)}>Undo</button>
                               </>
                             ) : (
-                              <>
+                              <div style={{ display: 'flex', gap: 6 }}>
                                 <button
-                                  className="med-skip-btn"
+                                  className="med-skip-btn undo"
                                   onClick={e => {
                                     if (isMoveMenuOpen) { setMoveMenuOpen(null); return; }
                                     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -470,7 +470,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                                   Move ▾
                                 </button>
                                 <button className="med-skip-btn" onClick={() => handleSkip(med.id, timeOfDay)}>Skip</button>
-                              </>
+                              </div>
                             )}
                           </div>
                         </div>
