@@ -116,44 +116,19 @@ export default function HabitsTab() {
     return Math.round((done / (habits.length * 30)) * 100);
   }, [habits, allLogs]);
 
-  const monthlyStats = useMemo(() => {
-    const stepsHabit = habits.find(h => /step|walk/i.test(h.name));
-    const waterHabit = habits.find(h => /water/i.test(h.name));
-
-    let totalSteps = 0;
-    let waterDays = 0;
-
+  const perfectDays = useMemo(() => {
+    if (habits.length === 0) return 0;
+    let count = 0;
     for (let i = 0; i < 30; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const ds = localDateStr(d);
-      if (stepsHabit) {
-        const log = allLogs.find(l => l.habitId === stepsHabit.id && l.date === ds);
-        if (log?.value) totalSteps += log.value;
-      }
-      if (waterHabit) {
-        const log = allLogs.find(l => l.habitId === waterHabit.id && l.date === ds);
-        if (isHabitDone(waterHabit, log?.value)) waterDays++;
+      if (habits.every(h => isHabitDone(h, allLogs.find(l => l.habitId === h.id && l.date === ds)?.value))) {
+        count++;
       }
     }
-
-    return {
-      distanceKm: stepsHabit ? +(totalSteps / 1000).toFixed(1) : null,
-      waterLiters: waterHabit ? +(waterDays * 1.5).toFixed(1) : null,
-    };
+    return count;
   }, [habits, allLogs]);
-
-  const hasConsistentBadge  = habits.some(h => computeCurrentStreak(h, allLogs) >= 7);
-  const hasHealthyWeekBadge = habits.length > 0 && (() => {
-    const now = new Date();
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const ds = localDateStr(d);
-      if (!habits.every(h => isHabitDone(h, allLogs.find(l => l.habitId === h.id && l.date === ds)?.value))) return false;
-    }
-    return true;
-  })();
 
   // ── Empty state ────────────────────────────────────────────────────────────
 
@@ -350,7 +325,18 @@ export default function HabitsTab() {
 
         <div className="habit-stat-card">
           <div className="habit-stat-header">
-            <span className="habit-stat-label">Current Best Streak</span>
+            <span className="habit-stat-label">Perfect Days</span>
+            <span className="habit-stat-icon">⭐</span>
+          </div>
+          <div className="habit-stat-value-row">
+            <span className="habit-stat-value">{perfectDays}</span>
+            <span className="habit-stat-unit">/ 30 days</span>
+          </div>
+        </div>
+
+        <div className="habit-stat-card">
+          <div className="habit-stat-header">
+            <span className="habit-stat-label">Best Streak</span>
             <span className="habit-stat-icon">🔥</span>
           </div>
           <div className="habit-stat-value-row">
@@ -370,34 +356,6 @@ export default function HabitsTab() {
           <div className="habit-progress-track">
             <div className="habit-progress-fill" style={{ width: `${monthlyPct}%` }} />
           </div>
-        </div>
-
-        <div className="habit-stat-card">
-          <div className="habit-stat-header">
-            <span className="habit-stat-label">Distance Walked</span>
-            <span className="habit-stat-icon">🚶</span>
-          </div>
-          <div className="habit-stat-value-row">
-            <span className="habit-stat-value">
-              {monthlyStats.distanceKm !== null ? monthlyStats.distanceKm : '—'}
-            </span>
-            {monthlyStats.distanceKm !== null && <span className="habit-stat-unit">km</span>}
-          </div>
-          <div className="habit-mgmt-meta-label" style={{ marginTop: 4 }}>last 30 days</div>
-        </div>
-
-        <div className="habit-stat-card">
-          <div className="habit-stat-header">
-            <span className="habit-stat-label">Water Drank</span>
-            <span className="habit-stat-icon">💧</span>
-          </div>
-          <div className="habit-stat-value-row">
-            <span className="habit-stat-value">
-              {monthlyStats.waterLiters !== null ? monthlyStats.waterLiters : '—'}
-            </span>
-            {monthlyStats.waterLiters !== null && <span className="habit-stat-unit">L</span>}
-          </div>
-          <div className="habit-mgmt-meta-label" style={{ marginTop: 4 }}>last 30 days</div>
         </div>
 
       </div>
