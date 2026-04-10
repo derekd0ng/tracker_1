@@ -220,10 +220,12 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
 
   function isCompletedByDate(med: Medication, viewDate: string) {
     if (!med.durationDays) return false;
-    const takenByDate = new Set(
-      allLogs.filter(l => l.medicationId === med.id && l.taken && l.date <= viewDate).map(l => l.date),
+    // Use strict < so the medication still appears in its slots on the final day of the course.
+    // It only disappears from active slots on days *after* the course was completed.
+    const takenBeforeDate = new Set(
+      allLogs.filter(l => l.medicationId === med.id && l.taken && l.date < viewDate).map(l => l.date),
     ).size;
-    return takenByDate >= med.durationDays;
+    return takenBeforeDate >= med.durationDays;
   }
 
   const completedMeds = medications.filter(isCompleted);
