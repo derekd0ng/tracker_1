@@ -30,6 +30,7 @@ function rowToLog(r: any) {
     taken:        r.taken,
     takenAt:      r.taken_at ?? undefined,
     skipped:      r.skipped ?? false,
+    movedTo:      r.moved_to ?? undefined,
     changedAt:    r.changed_at ? Number(r.changed_at) : undefined,
   };
 }
@@ -114,10 +115,10 @@ router.post('/logs/toggle', async (req: AuthRequest, res) => {
     const takenAt = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
     await pool.query(
-      `INSERT INTO medication_logs (user_id, medication_id, date, time_of_day, taken, taken_at, skipped, changed_at)
-       VALUES ($1,$2,$3,$4,$5,$6,false,$7)
+      `INSERT INTO medication_logs (user_id, medication_id, date, time_of_day, taken, taken_at, skipped, moved_to, changed_at)
+       VALUES ($1,$2,$3,$4,$5,$6,false,null,$7)
        ON CONFLICT (medication_id, date, time_of_day) DO UPDATE SET
-         taken = EXCLUDED.taken, taken_at = EXCLUDED.taken_at, skipped = false, changed_at = EXCLUDED.changed_at`,
+         taken = EXCLUDED.taken, taken_at = EXCLUDED.taken_at, skipped = false, moved_to = null, changed_at = EXCLUDED.changed_at`,
       [req.userId, medicationId, date, timeOfDay, nowTaken, nowTaken ? takenAt : null, Date.now()],
     );
 
@@ -133,10 +134,10 @@ router.post('/logs/skip', async (req: AuthRequest, res) => {
   try {
     const { date, medicationId, timeOfDay } = req.body;
     await pool.query(
-      `INSERT INTO medication_logs (user_id, medication_id, date, time_of_day, taken, skipped, changed_at)
-       VALUES ($1,$2,$3,$4,false,true,$5)
+      `INSERT INTO medication_logs (user_id, medication_id, date, time_of_day, taken, skipped, moved_to, changed_at)
+       VALUES ($1,$2,$3,$4,false,true,null,$5)
        ON CONFLICT (medication_id, date, time_of_day) DO UPDATE SET
-         taken = false, skipped = true, taken_at = null, changed_at = EXCLUDED.changed_at`,
+         taken = false, skipped = true, taken_at = null, moved_to = null, changed_at = EXCLUDED.changed_at`,
       [req.userId, medicationId, date, timeOfDay, Date.now()],
     );
     res.json({ ok: true });
@@ -153,6 +154,24 @@ router.post('/logs/clear', async (req: AuthRequest, res) => {
     await pool.query(
       'DELETE FROM medication_logs WHERE user_id = $1 AND medication_id = $2 AND date = $3 AND time_of_day = $4',
       [req.userId, medicationId, date, timeOfDay],
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── POST /api/medications/logs/move ──────────────────────────────────────────
+router.post('/logs/move', async (req: AuthRequest, res) => {
+  try {
+    const { date, medicationId, fromSlot, toSlot } = req.body;
+    await pool.query(
+      `INSERT INTO medication_logs (user_id, medication_id, date, time_of_day, taken, skipped, moved_to, changed_at)
+       VALUES ($1,$2,$3,$4,false,false,$5,$6)
+       ON CONFLICT (medication_id, date, time_of_day) DO UPDATE SET
+         taken = false, skipped = false, taken_at = null, moved_to = EXCLUDED.moved_to, changed_at = EXCLUDED.changed_at`,
+      [req.userId, medicationId, date, fromSlot, toSlot, Date.now()],
     );
     res.json({ ok: true });
   } catch (err) {

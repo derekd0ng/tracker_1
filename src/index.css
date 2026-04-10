@@ -928,6 +928,15 @@ input[type='range'] {
   color: var(--text-muted);
 }
 
+.med-item.moved {
+  opacity: 0.5;
+}
+
+.med-item-check.moved-check {
+  border: none;
+  cursor: default;
+}
+
 .med-item-body {
   flex: 1;
   display: flex;

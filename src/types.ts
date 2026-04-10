@@ -56,6 +56,7 @@ export interface MedicationLog {
   taken: boolean;
   takenAt?: string;        // HH:MM when taken
   skipped?: boolean;       // intentionally skipped; extends the course by 1 day
+  movedTo?: TimeOfDay;     // moved to a different slot for this day only
   changedAt?: number;      // Date.now() of last taken/skipped action, for sorting
 }
 

@@ -125,6 +125,16 @@ export function clearMedLog(date: string, medicationId: string, timeOfDay: TimeO
     .catch(e => console.error('clearMedLog:', e));
 }
 
+export function moveMedLog(date: string, medicationId: string, fromSlot: TimeOfDay, toSlot: TimeOfDay): void {
+  const idx = cache.medLogs.findIndex(
+    l => l.date === date && l.medicationId === medicationId && l.timeOfDay === fromSlot,
+  );
+  const entry: MedicationLog = { date, medicationId, timeOfDay: fromSlot, taken: false, skipped: false, movedTo: toSlot, changedAt: Date.now() };
+  if (idx >= 0) cache.medLogs[idx] = entry; else cache.medLogs.push(entry);
+  api.post('/api/medications/logs/move', { date, medicationId, fromSlot, toSlot })
+    .catch(e => console.error('moveMedLog:', e));
+}
+
 export function bulkSetMedLogs(
   entries: Array<{ date: string; medicationId: string; timeOfDay: TimeOfDay; taken: boolean }>,
 ): void {
