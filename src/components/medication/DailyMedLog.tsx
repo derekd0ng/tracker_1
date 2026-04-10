@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Medication, MedicationLog, TimeOfDay } from '../../types';
-import { getMedLogs, getMedLogsForDate, fetchMedLogs, toggleMedLog, skipMedLog, clearMedLog, moveMedLog, saveMedication } from '../../storage';
+import { getMedLogs, getMedLogsForDate, toggleMedLog, skipMedLog, clearMedLog, moveMedLog, saveMedication } from '../../storage';
 import { TIMES_OF_DAY } from '../../types';
 import MedInfoModal from './MedInfoModal';
 
@@ -101,8 +101,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
     setShowPicker(false);
   }
 
-  async function refresh() {
-    await fetchMedLogs();
+  function refresh() {
     const newAllLogs = getMedLogs();
     setLogs(getMedLogsForDate(date));
     setAllLogs(newAllLogs);
