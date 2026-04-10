@@ -206,14 +206,14 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
   const activeSections = TIMES_OF_DAY.filter(t => activeMeds.some(m => m.timesOfDay.includes(t)));
 
   // Determine active/overdue sections based on current time (today only)
-  const SLOT_START_HOUR: Record<TimeOfDay, number> = { morning: 5, afternoon: 12, evening: 17, night: 21 };
+  const SLOT_START_HOUR: Record<TimeOfDay, number> = { morning: 8, afternoon: 13, evening: 17, night: 20 };
   const currentHour = new Date().getHours();
   const isToday = date === todayDate();
 
   function currentSlotOf(h: number): TimeOfDay {
-    if (h >= 5 && h < 12) return 'morning';
-    if (h >= 12 && h < 17) return 'afternoon';
-    if (h >= 17 && h < 21) return 'evening';
+    if (h >= 8 && h < 13) return 'morning';
+    if (h >= 13 && h < 17) return 'afternoon';
+    if (h >= 17 && h < 20) return 'evening';
     return 'night';
   }
 
