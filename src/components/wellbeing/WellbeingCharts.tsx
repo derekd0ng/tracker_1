@@ -208,10 +208,8 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
       const es = grouped.get(date)!;
       const row: Record<string, string | number | [number, number] | null> = { date: fmtDate(date) };
       allSymptoms.forEach(name => {
-        // Only plot if at least one entry logged this symptom; missing entries count as 0 in the avg
-        const rawValues = es.map(e => e.symptoms.find(s => s.name === name)?.intensity);
-        const hasAny = rawValues.some(v => v != null);
-        const stats = hasAny ? dayStats(rawValues.map(v => v ?? 0)) : { avg: null, band: null };
+        // Missing symptom in an entry = 0 (not absent from tracking, just not present)
+        const stats = dayStats(es.map(e => e.symptoms.find(s => s.name === name)?.intensity ?? 0));
         row[name] = stats.avg;
         row[`${name}Band`] = stats.band;
       });
@@ -358,7 +356,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                 {allSymptoms.map((name, i) => {
                   const color = SYMPTOM_COLORS[i % SYMPTOM_COLORS.length];
                   return [
-                    <Area key={`${name}Band`} type="monotone" dataKey={`${name}Band`} fill={color} fillOpacity={0.35} stroke="none" legendType="none" />,
+                    <Area key={`${name}Band`} type="monotone" dataKey={`${name}Band`} fill={color} fillOpacity={0.35} stroke="none" legendType="none" connectNulls />,
                     <Line key={name} type="monotone" dataKey={name} stroke={color} strokeWidth={2} dot={{ r: 3 }} connectNulls />,
                   ];
                 })}
