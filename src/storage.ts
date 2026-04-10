@@ -90,6 +90,10 @@ export function getMedLogsForDate(date: string): MedicationLog[] {
   return cache.medLogs.filter(l => l.date === date);
 }
 
+export async function fetchMedLogs(): Promise<void> {
+  cache.medLogs = await api.get<MedicationLog[]>('/api/medications/logs');
+}
+
 export function toggleMedLog(date: string, medicationId: string, timeOfDay: TimeOfDay): void {
   const idx = cache.medLogs.findIndex(
     l => l.date === date && l.medicationId === medicationId && l.timeOfDay === timeOfDay,
