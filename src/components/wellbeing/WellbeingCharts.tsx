@@ -358,7 +358,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                 {allSymptoms.map((name, i) => {
                   const color = SYMPTOM_COLORS[i % SYMPTOM_COLORS.length];
                   return [
-                    <Area key={`${name}Band`} type="monotone" dataKey={`${name}Band`} fill={color} fillOpacity={0.35} stroke="none" legendType="none" connectNulls />,
+                    <Area key={`${name}Band`} type="monotone" dataKey={`${name}Band`} fill={color} fillOpacity={0.35} stroke="none" legendType="none" />,
                     <Line key={name} type="monotone" dataKey={name} stroke={color} strokeWidth={2} dot={{ r: 3 }} connectNulls />,
                   ];
                 })}
