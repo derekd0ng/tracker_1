@@ -148,10 +148,14 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
   }
 
   function handleMove(medicationId: string, fromSlot: TimeOfDay, toSlot: TimeOfDay) {
-    // If the med was moved into fromSlot, update the original source log instead
     const originLog = logs.find(l => l.medicationId === medicationId && l.movedTo === fromSlot);
     const actualFrom = originLog ? originLog.timeOfDay : fromSlot;
-    moveMedLog(date, medicationId, actualFrom, toSlot);
+    if (toSlot === actualFrom) {
+      // Moving back to the original slot — undo the move entirely
+      clearMedLog(date, medicationId, actualFrom);
+    } else {
+      moveMedLog(date, medicationId, actualFrom, toSlot);
+    }
     setMoveMenuOpen(null);
     refresh();
   }
