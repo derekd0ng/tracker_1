@@ -148,7 +148,10 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
   }
 
   function handleMove(medicationId: string, fromSlot: TimeOfDay, toSlot: TimeOfDay) {
-    moveMedLog(date, medicationId, fromSlot, toSlot);
+    // If the med was moved into fromSlot, update the original source log instead
+    const originLog = logs.find(l => l.medicationId === medicationId && l.movedTo === fromSlot);
+    const actualFrom = originLog ? originLog.timeOfDay : fromSlot;
+    moveMedLog(date, medicationId, actualFrom, toSlot);
     setMoveMenuOpen(null);
     refresh();
   }
@@ -452,31 +455,29 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                               </>
                             ) : (
                               <>
-                                {isOriginalSlot && (
-                                  <div style={{ position: 'relative' }}>
-                                    <button
-                                      className="med-skip-btn"
-                                      onClick={() => setMoveMenuOpen(isMoveMenuOpen ? null : { medId: med.id, slot: timeOfDay })}
-                                    >
-                                      Move ▾
-                                    </button>
-                                    {isMoveMenuOpen && (
-                                      <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 200, background: 'var(--card, #1a2540)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: 4, minWidth: 130, marginTop: 4, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-                                        {TIMES_OF_DAY.filter(t => t !== timeOfDay).map(t => (
-                                          <button
-                                            key={t}
-                                            onClick={() => handleMove(med.id, timeOfDay, t)}
-                                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', borderRadius: 6, fontSize: '0.85rem', fontFamily: 'inherit' }}
-                                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
-                                            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                                          >
-                                            {TIME_ICONS[t]} {TIME_LABELS[t]}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
+                                <div style={{ position: 'relative' }}>
+                                  <button
+                                    className="med-skip-btn"
+                                    onClick={() => setMoveMenuOpen(isMoveMenuOpen ? null : { medId: med.id, slot: timeOfDay })}
+                                  >
+                                    Move ▾
+                                  </button>
+                                  {isMoveMenuOpen && (
+                                    <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 200, background: 'var(--card, #1a2540)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: 4, minWidth: 130, marginTop: 4, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                                      {TIMES_OF_DAY.filter(t => t !== timeOfDay).map(t => (
+                                        <button
+                                          key={t}
+                                          onClick={() => handleMove(med.id, timeOfDay, t)}
+                                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', borderRadius: 6, fontSize: '0.85rem', fontFamily: 'inherit' }}
+                                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                                        >
+                                          {TIME_ICONS[t]} {TIME_LABELS[t]}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                                 <button className="med-skip-btn" onClick={() => handleSkip(med.id, timeOfDay)}>Skip</button>
                               </>
                             )}
