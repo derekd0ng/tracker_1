@@ -61,7 +61,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
   const [logs, setLogs] = useState(() => getMedLogsForDate(todayDate()));
   const [allLogs, setAllLogs] = useState(() => getMedLogs());
   const [sectionOverride, setSectionOverride] = useState<Map<TimeOfDay, boolean>>(new Map());
-  const [moveMenuOpen, setMoveMenuOpen] = useState<{ medId: string; slot: TimeOfDay } | null>(null);
+  const [moveMenuOpen, setMoveMenuOpen] = useState<{ medId: string; slot: TimeOfDay; top: number; right: number } | null>(null);
   const [infoMed, setInfoMed] = useState<{ name: string; dose?: string } | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
@@ -455,29 +455,16 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                               </>
                             ) : (
                               <>
-                                <div style={{ position: 'relative' }}>
-                                  <button
-                                    className="med-skip-btn"
-                                    onClick={() => setMoveMenuOpen(isMoveMenuOpen ? null : { medId: med.id, slot: timeOfDay })}
-                                  >
-                                    Move ▾
-                                  </button>
-                                  {isMoveMenuOpen && (
-                                    <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 200, background: 'var(--card, #1a2540)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: 4, minWidth: 130, marginTop: 4, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-                                      {TIMES_OF_DAY.filter(t => t !== timeOfDay).map(t => (
-                                        <button
-                                          key={t}
-                                          onClick={() => handleMove(med.id, timeOfDay, t)}
-                                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', borderRadius: 6, fontSize: '0.85rem', fontFamily: 'inherit' }}
-                                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
-                                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                                        >
-                                          {TIME_ICONS[t]} {TIME_LABELS[t]}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
+                                <button
+                                  className="med-skip-btn"
+                                  onClick={e => {
+                                    if (isMoveMenuOpen) { setMoveMenuOpen(null); return; }
+                                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                    setMoveMenuOpen({ medId: med.id, slot: timeOfDay, top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                                  }}
+                                >
+                                  Move ▾
+                                </button>
                                 <button className="med-skip-btn" onClick={() => handleSkip(med.id, timeOfDay)}>Skip</button>
                               </>
                             )}
@@ -524,6 +511,25 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
             </div>
           </section>
         </div>
+      )}
+
+      {moveMenuOpen && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 199 }} onClick={() => setMoveMenuOpen(null)} />
+          <div style={{ position: 'fixed', top: moveMenuOpen.top, right: moveMenuOpen.right, zIndex: 200, background: 'var(--card, #1a2540)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: 4, minWidth: 130, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+            {TIMES_OF_DAY.filter(t => t !== moveMenuOpen.slot).map(t => (
+              <button
+                key={t}
+                onClick={() => handleMove(moveMenuOpen.medId, moveMenuOpen.slot, t)}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', borderRadius: 6, fontSize: '0.85rem', fontFamily: 'inherit' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+              >
+                {TIME_ICONS[t]} {TIME_LABELS[t]}
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       {infoMed && (
