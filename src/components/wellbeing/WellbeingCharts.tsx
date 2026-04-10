@@ -208,8 +208,8 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
       const es = grouped.get(date)!;
       const row: Record<string, string | number | [number, number] | null> = { date: fmtDate(date) };
       allSymptoms.forEach(name => {
-        // Missing symptom in an entry = 0 (not absent from tracking, just not present)
-        const stats = dayStats(es.map(e => e.symptoms.find(s => s.name === name)?.intensity ?? 0));
+        // Missing symptom in an entry = absent (null), not zero
+        const stats = dayStats(es.map(e => e.symptoms.find(s => s.name === name)?.intensity));
         row[name] = stats.avg;
         row[`${name}Band`] = stats.band;
       });
