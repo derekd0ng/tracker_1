@@ -149,6 +149,15 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
   });
   const [draggingId, setDraggingId] = useState<ChartId | null>(null);
   const [dragOverId, setDragOverId] = useState<ChartId | null>(null);
+  const [hiddenSymptoms, setHiddenSymptoms] = useState<Set<string>>(new Set());
+
+  function toggleSymptom(name: string) {
+    setHiddenSymptoms(prev => {
+      const s = new Set(prev);
+      s.has(name) ? s.delete(name) : s.add(name);
+      return s;
+    });
+  }
   const dragItem = useRef<ChartId | null>(null);
 
   const cutoffStr = useMemo(() => {
@@ -352,12 +361,22 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                 <XAxis dataKey="date" tick={tickStyle} />
                 <YAxis domain={[0, 10]} ticks={[0, 2, 4, 6, 8, 10]} tick={tickStyle} />
                 <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
-                <Legend iconSize={8} wrapperStyle={{ fontSize: '0.78rem' }} />
+                <Legend
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: '0.78rem' }}
+                  onClick={(e: any) => toggleSymptom(e.value)}
+                  formatter={(value: string) => (
+                    <span style={{ opacity: hiddenSymptoms.has(value) ? 0.35 : 1, cursor: 'pointer', textDecoration: hiddenSymptoms.has(value) ? 'line-through' : 'none' }}>
+                      {value}
+                    </span>
+                  )}
+                />
                 {allSymptoms.map((name, i) => {
                   const color = SYMPTOM_COLORS[i % SYMPTOM_COLORS.length];
+                  const hidden = hiddenSymptoms.has(name);
                   return [
-                    <Area key={`${name}Band`} type="monotone" dataKey={`${name}Band`} fill={color} fillOpacity={0.35} stroke="none" legendType="none" connectNulls />,
-                    <Line key={name} type="monotone" dataKey={name} stroke={color} strokeWidth={2} dot={{ r: 3 }} connectNulls />,
+                    <Area key={`${name}Band`} type="monotone" dataKey={`${name}Band`} fill={color} fillOpacity={0.35} stroke="none" legendType="none" connectNulls hide={hidden} />,
+                    <Line key={name} type="monotone" dataKey={name} stroke={color} strokeWidth={2} dot={{ r: 3 }} connectNulls hide={hidden} />,
                   ];
                 })}
               </ComposedChart>
