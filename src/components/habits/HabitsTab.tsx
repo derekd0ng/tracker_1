@@ -103,27 +103,32 @@ export default function HabitsTab() {
 
   const monthlyPct = useMemo(() => {
     if (habits.length === 0) return 0;
-    let done = 0;
+    let done = 0, total = 0;
     for (let i = 0; i < 30; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const ds = localDateStr(d);
       habits.forEach(h => {
+        if (h.startDate && ds < h.startDate) return; // habit didn't exist yet
+        total++;
         const log = allLogs.find(l => l.habitId === h.id && l.date === ds);
         if (isHabitDone(h, log?.value)) done++;
       });
     }
-    return Math.round((done / (habits.length * 30)) * 100);
+    return total > 0 ? Math.round((done / total) * 100) : 0;
   }, [habits, allLogs]);
 
   const perfectDays = useMemo(() => {
-    if (habits.length === 0) return 0;
+    const dailyHabits = habits.filter(h => (h.frequency ?? 'daily') === 'daily');
+    if (dailyHabits.length === 0) return 0;
     let count = 0;
     for (let i = 0; i < 30; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const ds = localDateStr(d);
-      if (habits.every(h => isHabitDone(h, allLogs.find(l => l.habitId === h.id && l.date === ds)?.value))) {
+      const activeHabits = dailyHabits.filter(h => !h.startDate || ds >= h.startDate);
+      if (activeHabits.length === 0) continue;
+      if (activeHabits.every(h => isHabitDone(h, allLogs.find(l => l.habitId === h.id && l.date === ds)?.value))) {
         count++;
       }
     }
@@ -162,6 +167,7 @@ export default function HabitsTab() {
       unit: esUnit.trim() || undefined,
       target: esTarget !== '' ? parseFloat(esTarget.replace(',', '.')) : undefined,
       weeklyTarget: esFrequency === 'weekly' && esWeeklyTarget !== '' ? parseInt(esWeeklyTarget) : undefined,
+      startDate: today,
     };
     saveHabit(habit);
     reload();
@@ -460,6 +466,14 @@ export default function HabitsTab() {
                           <div className="habit-mgmt-meta-label">Best Streak</div>
                           <div className="habit-mgmt-meta-value" style={{ color: 'var(--accent)' }}>
                             {computeMaxStreak(h, allLogs)} days
+                          </div>
+                        </div>
+                        <div>
+                          <div className="habit-mgmt-meta-label">Tracking since</div>
+                          <div className="habit-mgmt-meta-value">
+                            {h.startDate
+                              ? new Date(h.startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                              : '—'}
                           </div>
                         </div>
                       </div>

@@ -17,6 +17,7 @@ function rowToHabit(r: any) {
     unit:         r.unit ?? undefined,
     target:       r.target != null ? Number(r.target) : undefined,
     weeklyTarget: r.weekly_target ?? undefined,
+    startDate:    r.start_date ? String(r.start_date).slice(0, 10) : undefined,
   };
 }
 
@@ -46,16 +47,16 @@ router.get('/', async (req: AuthRequest, res) => {
 router.put('/:id', async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { name, type, frequency, icon, unit, target, weeklyTarget } = req.body;
+    const { name, type, frequency, icon, unit, target, weeklyTarget, startDate } = req.body;
     await pool.query(
-      `INSERT INTO habits (id, user_id, name, type, frequency, icon, unit, target, weekly_target)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `INSERT INTO habits (id, user_id, name, type, frequency, icon, unit, target, weekly_target, start_date)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        ON CONFLICT (id) DO UPDATE SET
          name = EXCLUDED.name, type = EXCLUDED.type, frequency = EXCLUDED.frequency,
          icon = EXCLUDED.icon, unit = EXCLUDED.unit, target = EXCLUDED.target,
-         weekly_target = EXCLUDED.weekly_target`,
+         weekly_target = EXCLUDED.weekly_target, start_date = EXCLUDED.start_date`,
       [id, req.userId, name, type, frequency ?? 'daily', icon ?? null,
-       unit ?? null, target ?? null, weeklyTarget ?? null],
+       unit ?? null, target ?? null, weeklyTarget ?? null, startDate ?? null],
     );
     res.json({ ok: true });
   } catch (err) {

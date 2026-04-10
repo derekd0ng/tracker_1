@@ -37,6 +37,11 @@ for (let i = SUGGESTIONS.length - 1; i > 0; i--) {
   [SUGGESTIONS[i], SUGGESTIONS[j]] = [SUGGESTIONS[j], SUGGESTIONS[i]];
 }
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 export default function HabitForm({ onSaved, onCancel, initial }: Props) {
   const [name, setName] = useState(initial?.name ?? '');
   const [type, setType] = useState<HabitType>(initial?.type ?? 'boolean');
@@ -45,6 +50,7 @@ export default function HabitForm({ onSaved, onCancel, initial }: Props) {
   const [unit, setUnit] = useState(initial?.unit ?? '');
   const [target, setTarget] = useState(initial?.target?.toString() ?? '');
   const [weeklyTarget, setWeeklyTarget] = useState(initial?.weeklyTarget?.toString() ?? '');
+  const [startDate, setStartDate] = useState(initial?.startDate ?? (initial?.id ? '' : todayStr()));
   const [suggIdx, setSuggIdx] = useState(0);
 
   function handleSubmit(e: React.FormEvent) {
@@ -59,6 +65,7 @@ export default function HabitForm({ onSaved, onCancel, initial }: Props) {
       unit: unit.trim() || undefined,
       target: target !== '' ? parseFloat(target.replace(',', '.')) : undefined,
       weeklyTarget: frequency === 'weekly' && weeklyTarget !== '' ? parseInt(weeklyTarget) : undefined,
+      startDate: startDate || undefined,
     };
     saveHabit(habit);
     onSaved();
@@ -176,6 +183,17 @@ export default function HabitForm({ onSaved, onCancel, initial }: Props) {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Start date */}
+        <div className="form-field">
+          <label>Tracking start date</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={e => setStartDate(e.target.value)}
+            max={todayStr()}
+          />
         </div>
 
         {/* Suggestions carousel */}

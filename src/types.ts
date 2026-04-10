@@ -74,6 +74,7 @@ export interface Habit {
   unit?: string;
   target?: number;
   weeklyTarget?: number;       // for weekly habits: how many times per week
+  startDate?: string;          // YYYY-MM-DD, when tracking for this habit began
 }
 
 export interface HabitLog {
