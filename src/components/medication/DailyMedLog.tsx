@@ -205,31 +205,39 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
 
   const activeSections = TIMES_OF_DAY.filter(t => activeMeds.some(m => m.timesOfDay.includes(t)));
 
-  // Determine the active section: closest pending slot to current time
+  // Determine active/overdue sections based on current time (today only)
   const SLOT_START_HOUR: Record<TimeOfDay, number> = { morning: 5, afternoon: 12, evening: 17, night: 21 };
   const currentHour = new Date().getHours();
+  const isToday = date === todayDate();
+
   function currentSlotOf(h: number): TimeOfDay {
     if (h >= 5 && h < 12) return 'morning';
     if (h >= 12 && h < 17) return 'afternoon';
     if (h >= 17 && h < 21) return 'evening';
     return 'night';
   }
-  const pendingSections = activeSections.filter(t =>
+
+  // Only slots whose start hour has been reached count as started.
+  // e.g. at 00:15, night (21:00) hasn't started for today yet → no active/overdue.
+  const startedSections = isToday
+    ? activeSections.filter(t => currentHour >= SLOT_START_HOUR[t])
+    : [];
+
+  const pendingStartedSections = startedSections.filter(t =>
     activeMeds.filter(m => m.timesOfDay.includes(t)).some(m => !isTaken(m.id, t) && !isSkipped(m.id, t))
   );
+
   const activeSection = (() => {
-    if (pendingSections.length === 0) return null;
+    if (pendingStartedSections.length === 0) return null;
     const curSlot = currentSlotOf(currentHour);
-    const curIdx = TIMES_OF_DAY.indexOf(curSlot);
-    // First pending slot at or after current slot
-    const atOrAfter = TIMES_OF_DAY.slice(curIdx).find(t => pendingSections.includes(t));
-    if (atOrAfter) return atOrAfter;
-    // All pending slots are earlier in the day — take the latest one
-    return [...TIMES_OF_DAY].reverse().find(t => pendingSections.includes(t)) ?? null;
+    // If we're currently in a pending slot, that's the active one
+    if (pendingStartedSections.includes(curSlot)) return curSlot;
+    // Current slot is all done — fall back to last pending started slot
+    return [...TIMES_OF_DAY].reverse().find(t => pendingStartedSections.includes(t)) ?? null;
   })();
 
   const activeSectionIdx = activeSection ? TIMES_OF_DAY.indexOf(activeSection) : -1;
-  const overdueSections = pendingSections.filter(t => TIMES_OF_DAY.indexOf(t) < activeSectionIdx);
+  const overdueSections = pendingStartedSections.filter(t => TIMES_OF_DAY.indexOf(t) < activeSectionIdx);
 
   return (
     <div>
