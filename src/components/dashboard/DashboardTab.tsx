@@ -26,9 +26,9 @@ function localDateStr(d = new Date()) {
 
 function currentTimeSlot(): TimeOfDay {
   const h = new Date().getHours();
-  if (h >= 5 && h < 12) return 'morning';
-  if (h >= 12 && h < 17) return 'afternoon';
-  if (h >= 17 && h < 21) return 'evening';
+  if (h >= 8 && h < 13) return 'morning';
+  if (h >= 13 && h < 17) return 'afternoon';
+  if (h >= 17 && h < 20) return 'evening';
   return 'night';
 }
 
@@ -180,20 +180,26 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
   })();
 
   // ── Slot helpers (for active/overdue styling) ──
+  const SLOT_START_HOUR: Record<TimeOfDay, number> = { morning: 8, afternoon: 13, evening: 17, night: 20 };
+  const currentHour = new Date().getHours();
+
   const visibleSlots = TIMES_OF_DAY.filter(t => visibleMeds.some(m => m.timesOfDay.includes(t)));
-  const pendingSlots = visibleSlots.filter(t =>
+
+  // Only slots whose start hour has been reached count as started
+  const startedSlots = visibleSlots.filter(t => currentHour >= SLOT_START_HOUR[t]);
+
+  const pendingStartedSlots = startedSlots.filter(t =>
     visibleMeds.some(m => m.timesOfDay.includes(t) &&
       !todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === t && (l.taken || l.skipped)))
   );
+
   const activeSlot = (() => {
-    if (pendingSlots.length === 0) return null;
-    const curIdx = TIMES_OF_DAY.indexOf(currentSlot);
-    return TIMES_OF_DAY.slice(curIdx).find(t => pendingSlots.includes(t))
-      ?? [...TIMES_OF_DAY].reverse().find(t => pendingSlots.includes(t))
-      ?? null;
+    if (pendingStartedSlots.length === 0) return null;
+    if (pendingStartedSlots.includes(currentSlot)) return currentSlot;
+    return [...TIMES_OF_DAY].reverse().find(t => pendingStartedSlots.includes(t)) ?? null;
   })();
   const activeSlotIdx = activeSlot ? TIMES_OF_DAY.indexOf(activeSlot) : -1;
-  const overdueSlots  = pendingSlots.filter(t => TIMES_OF_DAY.indexOf(t) < activeSlotIdx);
+  const overdueSlots  = pendingStartedSlots.filter(t => TIMES_OF_DAY.indexOf(t) < activeSlotIdx);
 
   const [slotOverrides, setSlotOverrides] = useState<Map<TimeOfDay, boolean>>(new Map());
 
