@@ -407,7 +407,7 @@ export default function HabitsTab() {
             )}
           </div>
 
-          <HabitInsight habits={habits} allLogs={allLogs} />
+          {/* <HabitInsight habits={habits} allLogs={allLogs} /> */}
         </div>
 
       </div>
