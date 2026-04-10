@@ -156,16 +156,16 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
   }
   const visibleMeds = allMeds.filter(m => isMedVisible(m, today) && !isCompleted(m, allMedLogs));
   const totalDosesToday = visibleMeds.reduce((n, m) => n + m.timesOfDay.length, 0);
-  const takenDosesToday = visibleMeds.reduce(
-    (n, m) => n + m.timesOfDay.filter(t =>
-      todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === t && l.taken)
-    ).length, 0,
-  );
-  const skippedDosesToday = visibleMeds.reduce(
-    (n, m) => n + m.timesOfDay.filter(t =>
-      todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === t && l.skipped)
-    ).length, 0,
-  );
+  const takenDosesToday = visibleMeds.reduce((n, m) => n + m.timesOfDay.filter(t => {
+    if (todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === t && l.taken)) return true;
+    const moveLog = todayMedLogs.find(l => l.medicationId === m.id && l.timeOfDay === t && l.movedTo != null);
+    return moveLog != null && todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === moveLog.movedTo && l.taken);
+  }).length, 0);
+  const skippedDosesToday = visibleMeds.reduce((n, m) => n + m.timesOfDay.filter(t => {
+    if (todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === t && l.skipped)) return true;
+    const moveLog = todayMedLogs.find(l => l.medicationId === m.id && l.timeOfDay === t && l.movedTo != null);
+    return moveLog != null && todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === moveLog.movedTo && l.skipped);
+  }).length, 0);
 
   // Next pending med label
   const nextPendingLabel = (() => {
@@ -179,19 +179,41 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
     return totalDosesToday > 0 ? 'All decided for today' : 'Nothing scheduled';
   })();
 
+  // ── Move-aware helpers ──
+  function isMovedFromSlot(medId: string, slot: TimeOfDay): boolean {
+    return todayMedLogs.some(l => l.medicationId === medId && l.timeOfDay === slot && l.movedTo != null);
+  }
+  function movedInToSlot(slot: TimeOfDay): Medication[] {
+    return visibleMeds.filter(m =>
+      !m.timesOfDay.includes(slot) &&
+      todayMedLogs.some(l => l.medicationId === m.id && l.movedTo === slot)
+    );
+  }
+  function isMedHandledInSlot(med: Medication, slot: TimeOfDay): boolean {
+    return todayMedLogs.some(l =>
+      l.medicationId === med.id && l.timeOfDay === slot && (l.taken || l.skipped || l.movedTo != null)
+    );
+  }
+
   // ── Slot helpers (for active/overdue styling) ──
   const SLOT_START_HOUR: Record<TimeOfDay, number> = { morning: 8, afternoon: 13, evening: 17, night: 20 };
   const currentHour = new Date().getHours();
 
-  const visibleSlots = TIMES_OF_DAY.filter(t => visibleMeds.some(m => m.timesOfDay.includes(t)));
+  const visibleSlots = TIMES_OF_DAY.filter(t =>
+    visibleMeds.some(m => m.timesOfDay.includes(t)) ||
+    visibleMeds.some(m => todayMedLogs.some(l => l.medicationId === m.id && l.movedTo === t))
+  );
 
   // Only slots whose start hour has been reached count as started
   const startedSlots = visibleSlots.filter(t => currentHour >= SLOT_START_HOUR[t]);
 
-  const pendingStartedSlots = startedSlots.filter(t =>
-    visibleMeds.some(m => m.timesOfDay.includes(t) &&
-      !todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === t && (l.taken || l.skipped)))
-  );
+  const pendingStartedSlots = startedSlots.filter(t => {
+    const normalPending = visibleMeds.filter(m => m.timesOfDay.includes(t)).some(m => !isMedHandledInSlot(m, t));
+    const movedInPending = movedInToSlot(t).some(m =>
+      !todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === t && (l.taken || l.skipped))
+    );
+    return normalPending || movedInPending;
+  });
 
   const activeSlot = (() => {
     if (pendingStartedSlots.length === 0) return null;
@@ -359,7 +381,11 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
           ) : (
             <div className="med-sections">
               {visibleSlots.map(slot => {
-                const slotMedsAll = visibleMeds.filter(m => m.timesOfDay.includes(slot));
+                // Meds that should appear in this slot (excluding moved-away, including moved-in)
+                const slotMedsAll = [
+                  ...visibleMeds.filter(m => m.timesOfDay.includes(slot) && !isMovedFromSlot(m.id, slot)),
+                  ...movedInToSlot(slot),
+                ];
 
                 const taken = slotMedsAll.filter(m =>
                   todayMedLogs.some(l => l.medicationId === m.id && l.timeOfDay === slot && l.taken)
