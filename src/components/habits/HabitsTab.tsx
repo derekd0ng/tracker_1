@@ -4,6 +4,7 @@ import { getHabits, deleteHabit, getHabitLogs, saveHabit } from '../../storage';
 import DailyHabitLog from './DailyHabitLog';
 import HabitForm, { SUGGESTIONS } from './HabitForm';
 import BulkHabitInputModal from './BulkHabitInputModal';
+import HabitInsight from './HabitInsight';
 
 const ICON_OPTIONS = ['🏃', '🚶', '🏋️', '💤', '💧', '🥗', '📚', '🧘', '🎯', '🧠', '❤️', '🌿', '💊', '☀️', '🛁'];
 
@@ -405,6 +406,8 @@ export default function HabitsTab() {
               </button>
             )}
           </div>
+
+          <HabitInsight habits={habits} allLogs={allLogs} />
         </div>
 
       </div>
