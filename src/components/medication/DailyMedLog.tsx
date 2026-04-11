@@ -527,11 +527,12 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
               <button
                 key={t}
                 onClick={() => handleMove(moveMenuOpen.medId, moveMenuOpen.slot, t)}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', borderRadius: 6, fontSize: '0.85rem', fontFamily: 'inherit' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', borderRadius: 6, fontSize: '0.85rem', fontFamily: 'inherit' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}
               >
-                {TIME_ICONS[t]} {TIME_LABELS[t]}
+                <img src={`/icon-${t}.png`} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />
+                {TIME_LABELS[t]}
               </button>
             ))}
           </div>
