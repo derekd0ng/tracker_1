@@ -125,6 +125,28 @@ interface Props {
   initialSleepScore?: number;
 }
 
+const SYMPTOM_NAMES = ['Dizziness', 'Brain Fog', 'Headache', 'Fatigue', 'Nausea', 'Vision Problems', 'Weakness', 'Numbness', 'Ear Ringing'] as const;
+
+function buildParsePrompt(text: string): string {
+  return `Extract health data from this description and return ONLY valid JSON, no explanation.
+
+Description: "${text}"
+
+Return JSON with only the fields that are clearly mentioned. Use null for anything not mentioned.
+Available symptom names (use exact spelling): ${SYMPTOM_NAMES.join(', ')}
+
+Schema:
+{
+  "heartRate": number | null,
+  "systolicBP": number | null,
+  "diastolicBP": number | null,
+  "spo2": number | null,
+  "overallFeel": number 1-10 | null,
+  "symptoms": [{ "name": string, "intensity": number 1-10 }],
+  "notes": string | null
+}`;
+}
+
 export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId, initialSleepScore }: Props) {
   const [date, setDate] = useState(initial?.date ?? todayDate());
   const [time, setTime] = useState(initial?.time ?? currentTime());
@@ -148,6 +170,65 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
   );
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [sleepScore, setSleepScore] = useState(initialSleepScore != null ? initialSleepScore.toString() : '');
+
+  // ── AI parse state ────────────────────────────────────────────────────────
+  const [parseText, setParseText] = useState('');
+  const [parsing, setParsing] = useState(false);
+  const [parsedOk, setParsedOk] = useState(false);
+  const [parseError, setParseError] = useState('');
+
+  async function handleParse() {
+    if (!parseText.trim()) return;
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (!apiKey) { setParseError('No API key configured.'); return; }
+    setParsing(true);
+    setParsedOk(false);
+    setParseError('');
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 400,
+          messages: [{ role: 'user', content: buildParsePrompt(parseText) }],
+        }),
+      });
+      const data = await res.json();
+      const raw = data.content?.[0]?.text?.trim() ?? '';
+      // Strip markdown code fences if present
+      const json = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      const parsed = JSON.parse(json);
+
+      if (parsed.heartRate != null)   setHeartRate(String(parsed.heartRate));
+      if (parsed.systolicBP != null)  setSystolicBP(String(parsed.systolicBP));
+      if (parsed.diastolicBP != null) setDiastolicBP(String(parsed.diastolicBP));
+      if (parsed.spo2 != null)        setSpo2(String(parsed.spo2));
+      if (parsed.overallFeel != null) setOverallFeel(Math.min(10, Math.max(1, Math.round(parsed.overallFeel))));
+      if (parsed.notes)               setNotes(parsed.notes);
+      if (Array.isArray(parsed.symptoms) && parsed.symptoms.length > 0) {
+        const names = parsed.symptoms.map((s: any) => s.name).filter((n: string) => (SYMPTOM_NAMES as readonly string[]).includes(n));
+        setSelectedSymptoms(names);
+        const newIntensities: Record<string, number> = { ...intensities };
+        for (const s of parsed.symptoms) {
+          if ((SYMPTOM_NAMES as readonly string[]).includes(s.name) && s.intensity != null) {
+            newIntensities[s.name] = Math.min(10, Math.max(1, Math.round(s.intensity)));
+          }
+        }
+        setIntensities(newIntensities);
+      }
+      setParsedOk(true);
+    } catch {
+      setParseError('Could not parse the response. Try rephrasing.');
+    } finally {
+      setParsing(false);
+    }
+  }
 
   function toggleSymptom(name: string) {
     setSelectedSymptoms(prev =>
@@ -198,6 +279,39 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
   return (
     <form onSubmit={handleSubmit}>
       <div className="modal-body">
+
+        {/* ── AI description parser ── */}
+        <div style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.18)', borderRadius: 12, padding: 14, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <img src="/icon-ai.svg" alt="" style={{ width: 16, height: 16 }} />
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent)' }}>Describe how you feel</span>
+          </div>
+          <textarea
+            placeholder={'e.g. "Feel about 7/10 today. HR 68, BP 118/76, spo2 97. Slight headache (3/10) and some fatigue."'}
+            value={parseText}
+            onChange={e => { setParseText(e.target.value); setParsedOk(false); setParseError(''); }}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleParse(); } }}
+            style={{ width: '100%', minHeight: 72, resize: 'vertical', fontSize: '0.88rem', boxSizing: 'border-box' }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ height: 34, fontSize: '0.82rem', padding: '0 14px' }}
+              disabled={parsing || !parseText.trim()}
+              onClick={handleParse}
+            >
+              {parsing ? 'Parsing…' : 'Fill from description'}
+            </button>
+            {parsedOk && (
+              <span style={{ fontSize: '0.8rem', color: 'var(--success, #22c55e)' }}>Fields filled — review below</span>
+            )}
+            {parseError && (
+              <span style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>{parseError}</span>
+            )}
+          </div>
+        </div>
+
         {/* When */}
         <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <div className="form-field">
