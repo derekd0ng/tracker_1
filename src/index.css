@@ -1498,6 +1498,11 @@ input[type='range'] {
   box-shadow: 0 -3px 12px rgba(255, 180, 171, 0.18);
 }
 
+.vital-card--neutral {
+  border-top-color: #94A3B8;
+  box-shadow: 0 -3px 12px rgba(148, 163, 184, 0.12);
+}
+
 .vital-card-dot {
   position: absolute;
   top: 10px;
@@ -1512,6 +1517,7 @@ input[type='range'] {
 .vital-card--warning .vital-card-dot { background: #FACC15; }
 .vital-card--caution .vital-card-dot { background: #FB923C; }
 .vital-card--bad     .vital-card-dot { background: #FFB4AB; }
+.vital-card--neutral .vital-card-dot { background: #94A3B8; }
 
 .vital-card-label {
   font-size: 0.58rem;
@@ -1541,6 +1547,7 @@ input[type='range'] {
 .vital-card--warning .vital-card-value { color: #FACC15; }
 .vital-card--caution .vital-card-value { color: #FB923C; }
 .vital-card--bad     .vital-card-value { color: #FFB4AB; }
+.vital-card--neutral .vital-card-value { color: #94A3B8; }
 
 /* ── Well-being page: emerald green theme ────────────────────────────────── */
 .wb-theme {
