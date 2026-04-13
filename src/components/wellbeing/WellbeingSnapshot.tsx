@@ -82,7 +82,7 @@ function sleepColor(v: number): VitalColor {
   return 'red';
 }
 function symptomStatus(intensity: number): VitalStatus {
-  if (intensity <= 1) return 'good';
+  if (intensity <= 1) return 'neutral';
   if (intensity <= 4) return 'warning';
   if (intensity <= 7) return 'caution';
   return 'bad';
