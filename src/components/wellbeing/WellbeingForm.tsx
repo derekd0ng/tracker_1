@@ -418,22 +418,16 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
         {/* Symptoms */}
         <p className="section-title mt-16">Symptoms</p>
         <div className="symptom-grid">
-          {SYMPTOM_OPTIONS.map(name => {
-            const isSelected = selectedSymptoms.includes(name);
-            const intensity = intensities[name] ?? 5;
-            const isMinimal = isSelected && intensity === 1;
-            return (
-              <button
-                key={name}
-                type="button"
-                className={`symptom-chip${isSelected ? ' selected' : ''}`}
-                style={isMinimal ? { background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)', color: 'var(--text-secondary)' } : undefined}
-                onClick={() => toggleSymptom(name)}
-              >
-                {name}
-              </button>
-            );
-          })}
+          {SYMPTOM_OPTIONS.map(name => (
+            <button
+              key={name}
+              type="button"
+              className={`symptom-chip${selectedSymptoms.includes(name) ? ' selected' : ''}`}
+              onClick={() => toggleSymptom(name)}
+            >
+              {name}
+            </button>
+          ))}
         </div>
 
         {/* Intensity sliders for selected symptoms */}
