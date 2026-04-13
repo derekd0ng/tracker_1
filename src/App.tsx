@@ -18,9 +18,16 @@ export default function App() {
   const [authState, setAuthState]   = useState<AuthState>('checking');
   const [user, setUser]             = useState<User | null>(null);
 
-  // On mount: try to restore session via refresh token cookie
+  // On mount: restore session from localStorage token, fall back to refresh cookie
   useEffect(() => {
     async function restoreSession() {
+      // If we already have a token (read from localStorage in api.ts), try using it directly.
+      // Only hit the refresh endpoint if we have no token (e.g. first login on this device).
+      const { getAccessToken } = await import('./api');
+      if (getAccessToken()) {
+        await bootStorage();
+        return;
+      }
       const ok = await tryRefresh();
       if (!ok) { setAuthState('unauthenticated'); return; }
       await bootStorage();

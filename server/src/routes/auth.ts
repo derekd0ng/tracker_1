@@ -7,8 +7,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-const ACCESS_EXPIRES  = '15m';
-const REFRESH_DAYS    = 7;
+const ACCESS_EXPIRES  = '5d';
+const REFRESH_DAYS    = 30;
 
 function makeAccessToken(userId: string): string {
   return jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: ACCESS_EXPIRES });

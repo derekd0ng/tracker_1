@@ -1,10 +1,21 @@
 // ── API client ─────────────────────────────────────────────────────────────
-// Access token lives in memory (never localStorage) for security.
-// Refresh token lives in an httpOnly cookie — the browser sends it automatically.
+// Access token is persisted in localStorage so page reloads don't require
+// a cookie round-trip (Safari ITP blocks cross-origin cookies).
+// Refresh token lives in an httpOnly cookie as a fallback for expiry rotation.
 
-let accessToken: string | null = null;
+const ACCESS_TOKEN_KEY = 'access_token';
 
-export function setAccessToken(token: string | null): void { accessToken = token; }
+let accessToken: string | null = (() => {
+  try { return localStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; }
+})();
+
+export function setAccessToken(token: string | null): void {
+  accessToken = token;
+  try {
+    if (token) localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    else localStorage.removeItem(ACCESS_TOKEN_KEY);
+  } catch {}
+}
 export function getAccessToken(): string | null { return accessToken; }
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
