@@ -118,7 +118,7 @@ router.post('/logs/toggle', async (req: AuthRequest, res) => {
       `INSERT INTO medication_logs (user_id, medication_id, date, time_of_day, taken, taken_at, skipped, moved_to, changed_at)
        VALUES ($1,$2,$3,$4,$5,$6,false,null,$7)
        ON CONFLICT (medication_id, date, time_of_day) DO UPDATE SET
-         taken = EXCLUDED.taken, taken_at = EXCLUDED.taken_at, skipped = false, moved_to = null, changed_at = EXCLUDED.changed_at`,
+         taken = EXCLUDED.taken, taken_at = EXCLUDED.taken_at, skipped = false, moved_to = medication_logs.moved_to, changed_at = EXCLUDED.changed_at`,
       [req.userId, medicationId, date, timeOfDay, nowTaken, nowTaken ? takenAt : null, Date.now()],
     );
 
@@ -137,7 +137,7 @@ router.post('/logs/skip', async (req: AuthRequest, res) => {
       `INSERT INTO medication_logs (user_id, medication_id, date, time_of_day, taken, skipped, moved_to, changed_at)
        VALUES ($1,$2,$3,$4,false,true,null,$5)
        ON CONFLICT (medication_id, date, time_of_day) DO UPDATE SET
-         taken = false, skipped = true, taken_at = null, moved_to = null, changed_at = EXCLUDED.changed_at`,
+         taken = false, skipped = true, taken_at = null, moved_to = medication_logs.moved_to, changed_at = EXCLUDED.changed_at`,
       [req.userId, medicationId, date, timeOfDay, Date.now()],
     );
     res.json({ ok: true });

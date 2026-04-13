@@ -61,7 +61,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
   const [logs, setLogs] = useState(() => getMedLogsForDate(todayDate()));
   const [allLogs, setAllLogs] = useState(() => getMedLogs());
   const [sectionOverride, setSectionOverride] = useState<Map<TimeOfDay, boolean>>(new Map());
-  const [moveMenuOpen, setMoveMenuOpen] = useState<{ medId: string; slot: TimeOfDay; top: number; right: number } | null>(null);
+  const [moveMenuOpen, setMoveMenuOpen] = useState<{ medId: string; slot: TimeOfDay; top: number; right: number; entryKey: string } | null>(null);
   const [infoMed, setInfoMed] = useState<{ name: string; dose?: string } | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
@@ -176,27 +176,32 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
     return logs.find(l => l.medicationId === medicationId && l.timeOfDay === timeOfDay && l.movedTo != null)?.movedTo ?? null;
   }
 
-  // Meds that have been moved INTO this slot but are not normally scheduled here
+  // All meds moved INTO this slot (including those also normally scheduled here)
   function movedInMeds(timeOfDay: TimeOfDay): Medication[] {
     return activeMeds.filter(m =>
-      !m.timesOfDay.includes(timeOfDay) &&
       logs.some(l => l.medicationId === m.id && l.movedTo === timeOfDay)
     );
   }
 
-  function isSectionAllDone(meds: Medication[], timeOfDay: TimeOfDay) {
-    return meds.length > 0 && meds.every(m =>
-      isTaken(m.id, timeOfDay) || isSkipped(m.id, timeOfDay) || isMovedFrom(m.id, timeOfDay)
-    );
+  type SlotEntry = { med: Medication; movedIn: boolean; sourceSlot: TimeOfDay | null };
+
+  function isSectionAllDone(entries: SlotEntry[], timeOfDay: TimeOfDay) {
+    return entries.length > 0 && entries.every(entry => {
+      if (entry.movedIn && entry.sourceSlot) {
+        const srcLog = logs.find(l => l.medicationId === entry.med.id && l.timeOfDay === entry.sourceSlot);
+        return !!(srcLog?.taken || srcLog?.skipped);
+      }
+      return isTaken(entry.med.id, timeOfDay) || isSkipped(entry.med.id, timeOfDay) || isMovedFrom(entry.med.id, timeOfDay);
+    });
   }
 
-  function isSectionExpanded(timeOfDay: TimeOfDay, meds: Medication[]) {
+  function isSectionExpanded(timeOfDay: TimeOfDay, entries: SlotEntry[]) {
     if (sectionOverride.has(timeOfDay)) return sectionOverride.get(timeOfDay)!;
-    return !isSectionAllDone(meds, timeOfDay);
+    return !isSectionAllDone(entries, timeOfDay);
   }
 
-  function toggleSection(timeOfDay: TimeOfDay, meds: Medication[]) {
-    const expanded = isSectionExpanded(timeOfDay, meds);
+  function toggleSection(timeOfDay: TimeOfDay, entries: SlotEntry[]) {
+    const expanded = isSectionExpanded(timeOfDay, entries);
     setSectionOverride(prev => new Map(prev).set(timeOfDay, !expanded));
   }
 
@@ -264,7 +269,10 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
     const normalPending = activeMeds.filter(m => m.timesOfDay.includes(t)).some(m =>
       !isTaken(m.id, t) && !isSkipped(m.id, t) && !isMovedFrom(m.id, t)
     );
-    const movedInPending = movedInMeds(t).some(m => !isTaken(m.id, t) && !isSkipped(m.id, t));
+    const movedInPending = movedInMeds(t).some(m => {
+      const srcLog = logs.find(l => l.medicationId === m.id && l.movedTo === t);
+      return !srcLog?.taken && !srcLog?.skipped;
+    });
     return normalPending || movedInPending;
   });
 
@@ -350,27 +358,46 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
         <div className="med-sections">
           {activeSections.map(timeOfDay => {
             const normalMeds = activeMeds.filter(m => m.timesOfDay.includes(timeOfDay));
-            const sectionMeds = [...normalMeds, ...movedInMeds(timeOfDay)]
+            const normalEntries: SlotEntry[] = normalMeds.map(m => ({ med: m, movedIn: false, sourceSlot: null }));
+            const movedInEntries: SlotEntry[] = movedInMeds(timeOfDay).map(m => {
+              const srcLog = logs.find(l => l.medicationId === m.id && l.movedTo === timeOfDay)!;
+              return { med: m, movedIn: true, sourceSlot: srcLog.timeOfDay };
+            });
+            const sectionEntries: SlotEntry[] = [...normalEntries, ...movedInEntries]
               .sort((a, b) => {
-                const aPending = !isTaken(a.id, timeOfDay) && !isSkipped(a.id, timeOfDay) && !isMovedFrom(a.id, timeOfDay);
-                const bPending = !isTaken(b.id, timeOfDay) && !isSkipped(b.id, timeOfDay) && !isMovedFrom(b.id, timeOfDay);
-                if (aPending !== bPending) return bPending ? 1 : -1;
-                const aLog = logs.find(l => l.medicationId === a.id && l.timeOfDay === timeOfDay);
-                const bLog = logs.find(l => l.medicationId === b.id && l.timeOfDay === timeOfDay);
-                return (bLog?.changedAt ?? 0) - (aLog?.changedAt ?? 0);
+                const entryPending = (e: SlotEntry) => {
+                  if (e.movedIn && e.sourceSlot) {
+                    const src = logs.find(l => l.medicationId === e.med.id && l.timeOfDay === e.sourceSlot);
+                    return !src?.taken && !src?.skipped;
+                  }
+                  return !isTaken(e.med.id, timeOfDay) && !isSkipped(e.med.id, timeOfDay) && !isMovedFrom(e.med.id, timeOfDay);
+                };
+                const aP = entryPending(a), bP = entryPending(b);
+                if (aP !== bP) return bP ? 1 : -1;
+                return 0;
               });
-            const pendingCount = sectionMeds.filter(
-              m => !isTaken(m.id, timeOfDay) && !isSkipped(m.id, timeOfDay) && !isMovedFrom(m.id, timeOfDay)
-            ).length;
-            const skippedCount = sectionMeds.filter(m => isSkipped(m.id, timeOfDay)).length;
-            const allDone = isSectionAllDone(sectionMeds, timeOfDay);
-            const expanded = isSectionExpanded(timeOfDay, sectionMeds);
+
+            const pendingCount = sectionEntries.filter(e => {
+              if (e.movedIn && e.sourceSlot) {
+                const src = logs.find(l => l.medicationId === e.med.id && l.timeOfDay === e.sourceSlot);
+                return !src?.taken && !src?.skipped;
+              }
+              return !isTaken(e.med.id, timeOfDay) && !isSkipped(e.med.id, timeOfDay) && !isMovedFrom(e.med.id, timeOfDay);
+            }).length;
+            const skippedCount = sectionEntries.filter(e => {
+              if (e.movedIn && e.sourceSlot) {
+                return !!(logs.find(l => l.medicationId === e.med.id && l.timeOfDay === e.sourceSlot)?.skipped);
+              }
+              return isSkipped(e.med.id, timeOfDay);
+            }).length;
+            const allDone = isSectionAllDone(sectionEntries, timeOfDay);
+            const expanded = isSectionExpanded(timeOfDay, sectionEntries);
 
             return (
               <section key={timeOfDay} className={`med-section${allDone ? ' done' : ''}${timeOfDay === activeSection ? ' active-slot' : overdueSections.includes(timeOfDay) ? ' overdue-slot' : ''}`}>
                 <div
                   className="med-section-header"
-                  onClick={() => toggleSection(timeOfDay, sectionMeds)}
+                  onClick={() => toggleSection(timeOfDay, sectionEntries)}
                 >
                   {timeOfDay === 'morning' ? (
                     <img src="/icon-morning.png" alt="Morning" className="med-section-icon-img" />
@@ -391,36 +418,42 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
 
                 {expanded && (
                   <div className="med-section-items">
-                    {sectionMeds.map(med => {
-                      const taken = isTaken(med.id, timeOfDay);
-                      const skipped = isSkipped(med.id, timeOfDay);
-                      const movedFrom = isMovedFrom(med.id, timeOfDay);
-                      const movedDest = movedFrom ? getMovedDestination(med.id, timeOfDay) : null;
-                      const isOriginalSlot = med.timesOfDay.includes(timeOfDay);
-                      const takenAt = logs.find(l => l.medicationId === med.id && l.timeOfDay === timeOfDay && l.taken)?.takenAt;
-                      const course = courseProgress(med, date, allLogs);
-                      const moveMenuKey = `${med.id}:${timeOfDay}`;
-                      const isMoveMenuOpen = moveMenuOpen?.medId === med.id && moveMenuOpen?.slot === timeOfDay;
+                    {sectionEntries.map(({ med, movedIn, sourceSlot }) => {
+                      // For moved-in entries, state lives in the source slot log
+                      const effectiveSlot = movedIn && sourceSlot ? sourceSlot : timeOfDay;
+                      const srcLog = movedIn && sourceSlot
+                        ? logs.find(l => l.medicationId === med.id && l.timeOfDay === sourceSlot)
+                        : null;
+                      const taken    = movedIn ? !!(srcLog?.taken)   : isTaken(med.id, timeOfDay);
+                      const skipped  = movedIn ? !!(srcLog?.skipped) : isSkipped(med.id, timeOfDay);
+                      // movedFrom only applies to normal entries shown in their source slot
+                      const movedFrom   = !movedIn && isMovedFrom(med.id, timeOfDay);
+                      const movedDest   = movedFrom ? getMovedDestination(med.id, timeOfDay) : null;
+                      const isOriginalSlot = !movedIn && med.timesOfDay.includes(timeOfDay);
+                      const takenAt    = logs.find(l => l.medicationId === med.id && l.timeOfDay === effectiveSlot && l.taken)?.takenAt;
+                      const course     = courseProgress(med, date, allLogs);
+                      const entryKey   = movedIn ? `${med.id}:moved-in` : med.id;
+                      const isMoveMenuOpen = moveMenuOpen?.entryKey === entryKey;
 
                       return (
                         <div
-                          key={med.id}
-                          className={`med-item${taken ? ' taken' : skipped ? ' skipped' : movedFrom ? ' moved' : ''}`}
+                          key={entryKey}
+                          className={`med-item${movedFrom ? ' moved' : taken ? ' taken' : skipped ? ' skipped' : ''}`}
                         >
                           <div
-                            className={`med-item-check${taken ? ' checked' : skipped ? ' skipped-check' : movedFrom ? ' moved-check' : ''}`}
+                            className={`med-item-check${movedFrom ? ' moved-check' : taken ? ' checked' : skipped ? ' skipped-check' : ''}`}
                             onClick={() => {
                               if (movedFrom) return;
-                              if (skipped) handleClear(med.id, timeOfDay);
-                              else handleToggle(med.id, timeOfDay);
+                              if (skipped) handleClear(med.id, effectiveSlot);
+                              else handleToggle(med.id, effectiveSlot);
                             }}
                           >
-                            {taken ? (
+                            {movedFrom ? (
+                              <span style={{ fontSize: '1rem', opacity: 0.5 }}>→</span>
+                            ) : taken ? (
                               <img src="/icon-checked.png" alt="" className="med-item-check-icon" />
                             ) : skipped ? (
                               <img src="/icon-skipped.svg" alt="" className="med-item-check-icon" />
-                            ) : movedFrom ? (
-                              <span style={{ fontSize: '1rem', opacity: 0.5 }}>→</span>
                             ) : (
                               <img src="/icon-unchecked.png" alt="" className="med-item-check-icon" />
                             )}
@@ -429,7 +462,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                           <div className="med-item-body">
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span className="med-item-name">{med.name}</span>
-                              {!isOriginalSlot && (
+                              {(!isOriginalSlot && !movedFrom) && (
                                 <span style={{ fontSize: '0.7rem', background: 'rgba(34,211,238,0.12)', color: '#22D3EE', borderRadius: 4, padding: '1px 5px' }}>moved</span>
                               )}
                               <button
@@ -446,19 +479,19 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                           </div>
 
                           <div className="med-item-actions" onClick={e => e.stopPropagation()}>
-                            {taken ? (
-                              <span className="med-taken-label">
-                                Taken{takenAt ? ` · ${takenAt}` : ''}
-                              </span>
-                            ) : skipped ? (
-                              <button className="med-skip-btn undo" onClick={() => handleClear(med.id, timeOfDay)}>Undo</button>
-                            ) : movedFrom ? (
+                            {movedFrom ? (
                               <>
                                 <span className="med-taken-label" style={{ color: 'var(--text-muted)' }}>
                                   → {TIME_LABELS[movedDest!]}
                                 </span>
                                 <button className="med-skip-btn undo" onClick={() => handleClear(med.id, timeOfDay)}>Undo</button>
                               </>
+                            ) : taken ? (
+                              <span className="med-taken-label">
+                                Taken{takenAt ? ` · ${takenAt}` : ''}
+                              </span>
+                            ) : skipped ? (
+                              <button className="med-skip-btn undo" onClick={() => handleClear(med.id, effectiveSlot)}>Undo</button>
                             ) : (
                               <div style={{ display: 'flex', gap: 6 }}>
                                 <button
@@ -466,12 +499,12 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                                   onClick={e => {
                                     if (isMoveMenuOpen) { setMoveMenuOpen(null); return; }
                                     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                    setMoveMenuOpen({ medId: med.id, slot: timeOfDay, top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                                    setMoveMenuOpen({ medId: med.id, slot: timeOfDay, top: rect.bottom + 4, right: window.innerWidth - rect.right, entryKey });
                                   }}
                                 >
                                   Move ▾
                                 </button>
-                                <button className="med-skip-btn" onClick={() => handleSkip(med.id, timeOfDay)}>Skip</button>
+                                <button className="med-skip-btn" onClick={() => handleSkip(med.id, effectiveSlot)}>Skip</button>
                               </div>
                             )}
                           </div>
