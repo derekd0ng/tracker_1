@@ -21,15 +21,19 @@ export default function App() {
   // On mount: restore session from localStorage token, fall back to refresh cookie
   useEffect(() => {
     async function restoreSession() {
-      // If we already have a token (read from localStorage in api.ts), try using it directly.
-      // Only hit the refresh endpoint if we have no token (e.g. first login on this device).
-      const { getAccessToken } = await import('./api');
-      if (getAccessToken()) {
-        await bootStorage();
+      const { getAccessToken, api } = await import('./api');
+      if (!getAccessToken()) {
+        const ok = await tryRefresh();
+        if (!ok) { setAuthState('unauthenticated'); return; }
+      }
+      // Token is now set — fetch user profile then boot storage
+      try {
+        const data = await api.get<{ user: User }>('/api/auth/me');
+        setUser(data.user);
+      } catch {
+        setAuthState('unauthenticated');
         return;
       }
-      const ok = await tryRefresh();
-      if (!ok) { setAuthState('unauthenticated'); return; }
       await bootStorage();
     }
     restoreSession();
