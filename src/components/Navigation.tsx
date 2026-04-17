@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { TabId } from '../types';
 import { exportData, exportAsXlsx, importData } from '../storage';
+import TelegramConnect from './TelegramConnect';
 
 interface Props {
   activeTab: TabId;
@@ -104,6 +105,7 @@ export default function Navigation({ activeTab, onChange, user, onLogout }: Prop
             style={{ display: 'none' }}
             onChange={handleImportFile}
           />
+          {user && <TelegramConnect />}
           {user && onLogout && (
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

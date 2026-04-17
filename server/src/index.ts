@@ -8,6 +8,7 @@ import authRouter       from './routes/auth';
 import medicationsRouter from './routes/medications';
 import habitsRouter     from './routes/habits';
 import wellbeingRouter  from './routes/wellbeing';
+import telegramRouter   from './routes/telegram';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/auth',        authRouter);
 app.use('/api/medications', medicationsRouter);
 app.use('/api/habits',      habitsRouter);
 app.use('/api/wellbeing',   wellbeingRouter);
+app.use('/api/telegram',    telegramRouter);
 
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ ok: true }));
