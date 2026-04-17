@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { WellbeingEntry, SymptomEntry } from '../../types';
 import { SYMPTOM_OPTIONS } from '../../types';
 import { saveWellbeingEntry, setHabitLog } from '../../storage';
@@ -177,6 +177,48 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
   const [parsedOk, setParsedOk] = useState(false);
   const [parseError, setParseError] = useState('');
 
+  // ── Voice input ───────────────────────────────────────────────────────────
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const SpeechRecognition = typeof window !== 'undefined'
+    ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    : null;
+  const voiceSupported = !!SpeechRecognition;
+
+  function startListening() {
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = 'en-US';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let finalTranscript = parseText;
+    recognition.onresult = (e: any) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalTranscript += (finalTranscript ? ' ' : '') + t;
+        else interim = t;
+      }
+      setParseText(finalTranscript + (interim ? ' ' + interim : ''));
+      setParsedOk(false);
+      setParseError('');
+    };
+    recognition.onerror = () => { setListening(false); };
+    recognition.onend = () => { setListening(false); };
+    recognition.start();
+    setListening(true);
+  }
+
+  function stopListening() {
+    recognitionRef.current?.stop();
+    setListening(false);
+  }
+
+  useEffect(() => () => recognitionRef.current?.stop(), []);
+
   async function handleParse() {
     if (!parseText.trim()) return;
     const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -286,13 +328,51 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
             <img src="/icon-ai.svg" alt="" style={{ width: 16, height: 16 }} />
             <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent)' }}>Describe how you feel</span>
           </div>
-          <textarea
-            placeholder={'e.g. "Feel about 7/10 today. HR 68, BP 118/76, spo2 97. Slight headache (3/10) and some fatigue."'}
-            value={parseText}
-            onChange={e => { setParseText(e.target.value); setParsedOk(false); setParseError(''); }}
-            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleParse(); } }}
-            style={{ width: '100%', minHeight: 72, resize: 'vertical', fontSize: '0.88rem', boxSizing: 'border-box' }}
-          />
+          <div style={{ position: 'relative' }}>
+            <textarea
+              placeholder={'e.g. "Feel about 7/10 today. HR 68, BP 118/76, spo2 97. Slight headache (3/10) and some fatigue."'}
+              value={parseText}
+              onChange={e => { setParseText(e.target.value); setParsedOk(false); setParseError(''); }}
+              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleParse(); } }}
+              style={{ width: '100%', minHeight: 72, resize: 'vertical', fontSize: '0.88rem', boxSizing: 'border-box', paddingRight: voiceSupported ? 44 : undefined }}
+            />
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={listening ? stopListening : startListening}
+                title={listening ? 'Stop recording' : 'Speak your symptoms'}
+                style={{
+                  position: 'absolute', top: 8, right: 8,
+                  width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: listening ? 'rgba(239,68,68,0.18)' : 'rgba(59,130,246,0.12)',
+                  color: listening ? '#ef4444' : '#3B82F6',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {listening ? (
+                  // Stop / recording indicator
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="4" y="4" width="16" height="16" rx="3"/>
+                  </svg>
+                ) : (
+                  // Mic icon
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="2" width="6" height="12" rx="3"/>
+                    <path d="M5 10a7 7 0 0 0 14 0"/>
+                    <line x1="12" y1="19" x2="12" y2="22"/>
+                    <line x1="8" y1="22" x2="16" y2="22"/>
+                  </svg>
+                )}
+              </button>
+            )}
+          </div>
+          {listening && (
+            <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+              Listening… tap the stop button when done
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
             <button
               type="button"
