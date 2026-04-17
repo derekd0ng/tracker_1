@@ -84,7 +84,7 @@ export default function WellbeingTab() {
                     )}
                     {entry.symptoms.length > 0 && (
                       <span className="entry-metric-muted">
-                        · {entry.symptoms.map(s => `${s.name} (${s.intensity})`).join(', ')}
+                        · {entry.symptoms.map(s => `${s.name} (${s.intensity}${s.duration ? `, ${s.duration}` : ''})`).join(', ')}
                       </span>
                     )}
                   </div>
@@ -120,7 +120,7 @@ export default function WellbeingTab() {
                         {entry.spo2 && <span className="entry-metric-muted">SpO₂: {entry.spo2}%</span>}
                         {sleepByDate[entry.date] != null && <span className="entry-metric-muted">Sleep: {sleepByDate[entry.date]}/100</span>}
                         {entry.symptoms.length > 0 && (
-                          <span className="entry-metric-muted">· {entry.symptoms.map(s => `${s.name} (${s.intensity})`).join(', ')}</span>
+                          <span className="entry-metric-muted">· {entry.symptoms.map(s => `${s.name} (${s.intensity}${s.duration ? `, ${s.duration}` : ''})`).join(', ')}</span>
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>

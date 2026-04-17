@@ -143,9 +143,10 @@ Schema:
   "diastolicBP": number | null,
   "spo2": number | null,
   "overallFeel": number 1-10 | null,
-  "symptoms": [{ "name": string, "intensity": number 1-10 }],
+  "symptoms": [{ "name": string, "intensity": number 1-10, "duration": string | null }],
   "notes": string | null
-}`;
+}
+For duration use short human-readable format, e.g. "10 min", "2 h", "all day". Use null if not mentioned.`;
 }
 
 export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId, initialSleepScore, initialParseText }: Props) {
@@ -164,6 +165,11 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
   const [intensities, setIntensities] = useState<Record<string, number>>(
     initial
       ? Object.fromEntries(initial.symptoms.map(s => [s.name, s.intensity]))
+      : {},
+  );
+  const [durations, setDurations] = useState<Record<string, string>>(
+    initial
+      ? Object.fromEntries(initial.symptoms.filter(s => s.duration).map(s => [s.name, s.duration!]))
       : {},
   );
   const [headacheLocations, setHeadacheLocations] = useState<string[]>(
@@ -258,12 +264,17 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
         const names = parsed.symptoms.map((s: any) => s.name).filter((n: string) => (SYMPTOM_NAMES as readonly string[]).includes(n));
         setSelectedSymptoms(names);
         const newIntensities: Record<string, number> = { ...intensities };
+        const newDurations: Record<string, string> = { ...durations };
         for (const s of parsed.symptoms) {
           if ((SYMPTOM_NAMES as readonly string[]).includes(s.name) && s.intensity != null) {
             newIntensities[s.name] = Math.min(10, Math.max(1, Math.round(s.intensity)));
           }
+          if ((SYMPTOM_NAMES as readonly string[]).includes(s.name) && s.duration) {
+            newDurations[s.name] = s.duration;
+          }
         }
         setIntensities(newIntensities);
+        setDurations(newDurations);
       }
       setParsedOk(true);
     } catch {
@@ -298,6 +309,7 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
     const symptoms: SymptomEntry[] = selectedSymptoms.map(name => ({
       name,
       intensity: intensities[name] ?? 5,
+      ...(durations[name]?.trim() ? { duration: durations[name].trim() } : {}),
       ...(name === 'Headache' && headacheLocations.length > 0 ? { locations: headacheLocations } : {}),
     }));
 
@@ -509,6 +521,15 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
                     <span className="text-muted">10</span>
                     <span className="range-value">{intensities[name] ?? 5}</span>
                   </div>
+                </div>
+                <div style={{ paddingLeft: 4, marginTop: 4, marginBottom: 4 }}>
+                  <input
+                    type="text"
+                    placeholder="Duration, e.g. 30 min, 2 h, all day"
+                    value={durations[name] ?? ''}
+                    onChange={e => setDurations(prev => ({ ...prev, [name]: e.target.value }))}
+                    style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', boxSizing: 'border-box' }}
+                  />
                 </div>
                 {name === 'Headache' && (
                   <HeadachePicker selected={headacheLocations} onChange={setHeadacheLocations} />

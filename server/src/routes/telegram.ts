@@ -58,11 +58,12 @@ Return ONLY valid JSON with these fields (use null for anything not mentioned):
   "systolicBP": number | null,
   "diastolicBP": number | null,
   "spo2": number | null,
-  "symptoms": [{"name": string, "intensity": number}],
+  "symptoms": [{"name": string, "intensity": number, "duration": string | null}],
   "notes": string | null
 }
 overallFeel is 1-10. symptom intensity is 1-10.
 Valid symptom names (use exact spelling): ${SYMPTOM_NAMES.join(', ')}.
+For duration use short human-readable format e.g. "10 min", "2 h", "all day". Use null if not mentioned.
 Text: "${text}"`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -200,7 +201,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
     if (parsed.systolicBP && parsed.diastolicBP)              parts.push(`BP: ${parsed.systolicBP}/${parsed.diastolicBP} mmHg`);
     if (parsed.spo2)                                          parts.push(`SpO₂: ${parsed.spo2}%`);
     if (parsed.symptoms?.length) {
-      parts.push(`Symptoms: ${parsed.symptoms.map((s: any) => `${s.name} (${s.intensity}/10)`).join(', ')}`);
+      parts.push(`Symptoms: ${parsed.symptoms.map((s: any) => `${s.name} (${s.intensity}/10${s.duration ? `, ${s.duration}` : ''})`).join(', ')}`);
     }
     if (parsed.notes)                                         parts.push(`Notes: ${parsed.notes}`);
     await sendMessage(chatId, parts.join('\n'));

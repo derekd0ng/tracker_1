@@ -265,7 +265,7 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
             {latestEntry.symptoms.length === 0 ? (
               <VitalCard label="Symptoms" value="None" status="good" />
             ) : latestEntry.symptoms.map((s: SymptomEntry) => (
-              <VitalCard key={s.name} label={s.name} value={`${s.intensity} /10`} status={symptomStatus(s.intensity)} />
+              <VitalCard key={s.name} label={s.duration ? `${s.name} · ${s.duration}` : s.name} value={`${s.intensity} /10`} status={symptomStatus(s.intensity)} />
             ))}
           </div>
         )}

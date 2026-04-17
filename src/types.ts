@@ -16,6 +16,7 @@ export interface WellbeingEntry {
 export interface SymptomEntry {
   name: string;
   intensity: number;     // 1–10
+  duration?: string;     // free text, e.g. "30 min", "2 h", "all day"
   locations?: string[];  // headache zone ids
 }
 
