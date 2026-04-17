@@ -9,6 +9,7 @@ import medicationsRouter from './routes/medications';
 import habitsRouter     from './routes/habits';
 import wellbeingRouter  from './routes/wellbeing';
 import telegramRouter   from './routes/telegram';
+import { startMedicationReminders } from './jobs/medicationReminders';
 
 const app = express();
 
@@ -44,4 +45,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT ?? 3001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  startMedicationReminders();
+});
