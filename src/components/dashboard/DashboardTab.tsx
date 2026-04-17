@@ -285,7 +285,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
     : 0;
 
   // ── Overall progress pct ──
-  const overallDone = takenDosesToday + habitsDoneToday + (latestEntry ? (latestEntry.overallFeel >= 5 ? 1 : 0) : 0);
+  const overallDone = takenDosesToday + habitsDoneToday + (latestEntry ? ((latestEntry.overallFeel ?? 0) >= 5 ? 1 : 0) : 0);
   const overallTotal = totalDosesToday + habits.length + (allWellbeing.length > 0 ? 1 : 0);
   const overallPct = overallTotal > 0 ? Math.round((overallDone / overallTotal) * 100) : 0;
 

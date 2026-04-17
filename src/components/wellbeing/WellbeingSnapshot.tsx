@@ -172,7 +172,9 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
           <p className="text-muted" style={{ padding: '8px 0' }}>No entries yet. Log your first entry above.</p>
         ) : (
           <div className="vital-cards-row" style={{ marginTop: 16 }}>
-            <VitalCard label="Feel" value={`${latestEntry.overallFeel} /10`} status={toStatus(feelColor(latestEntry.overallFeel))} />
+            {latestEntry.overallFeel != null && (
+              <VitalCard label="Feel" value={`${latestEntry.overallFeel} /10`} status={toStatus(feelColor(latestEntry.overallFeel))} />
+            )}
             {latestHR && (
               <VitalCard label={`Heart Rate${latestHR.date !== latestEntry.date ? ` (${shortDate(latestHR.date)})` : ''}`} value={`${latestHR.heartRate} bpm`} status={toStatus(hrColor(latestHR.heartRate!, avgHr))} />
             )}

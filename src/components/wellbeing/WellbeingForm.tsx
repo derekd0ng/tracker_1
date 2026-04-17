@@ -154,7 +154,7 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
   const [systolicBP, setSystolicBP] = useState(initial?.systolicBP?.toString() ?? '');
   const [diastolicBP, setDiastolicBP] = useState(initial?.diastolicBP?.toString() ?? '');
   const [spo2, setSpo2] = useState(initial?.spo2?.toString() ?? '');
-  const [overallFeel, setOverallFeel] = useState(initial?.overallFeel ?? 5);
+  const [overallFeel, setOverallFeel] = useState<number | null>(initial?.overallFeel ?? null);
   // Track which symptoms are selected
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>(
     initial?.symptoms.map(s => s.name) ?? [],
@@ -251,7 +251,7 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
       if (parsed.systolicBP != null)  setSystolicBP(String(parsed.systolicBP));
       if (parsed.diastolicBP != null) setDiastolicBP(String(parsed.diastolicBP));
       if (parsed.spo2 != null)        setSpo2(String(parsed.spo2));
-      if (parsed.overallFeel != null) setOverallFeel(Math.min(10, Math.max(1, Math.round(parsed.overallFeel))));
+      if (parsed.overallFeel != null) setOverallFeel(Math.min(10, Math.max(1, Math.round(parsed.overallFeel))) as number);
       if (parsed.notes)               setNotes(parsed.notes);
       if (Array.isArray(parsed.symptoms) && parsed.symptoms.length > 0) {
         const names = parsed.symptoms.map((s: any) => s.name).filter((n: string) => (SYMPTOM_NAMES as readonly string[]).includes(n));
@@ -303,7 +303,7 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
       systolicBP: systolicBP ? Number(systolicBP) : undefined,
       diastolicBP: diastolicBP ? Number(diastolicBP) : undefined,
       spo2: spo2 ? Number(spo2) : undefined,
-      overallFeel,
+      overallFeel: overallFeel ?? undefined,
       symptoms,
       notes: notes.trim() || undefined,
     };
@@ -477,23 +477,34 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
         </div>
 
         {/* Overall feel */}
-        <p className="section-title mt-16">Overall Feel</p>
-        <div className="form-field">
-          <label>Score (1 = very bad, 10 = excellent)</label>
-          <div className="range-wrapper" style={{ marginTop: 4 }}>
-            <span className="text-muted">1</span>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              step="1"
-              value={overallFeel}
-              onChange={e => setOverallFeel(Number(e.target.value))}
-            />
-            <span className="text-muted">10</span>
-            <span className="range-value">{overallFeel}</span>
-          </div>
+        <div className="mt-16" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p className="section-title" style={{ margin: 0 }}>Overall Feel</p>
+          <button
+            type="button"
+            onClick={() => setOverallFeel(overallFeel == null ? 5 : null)}
+            style={{ fontSize: '0.75rem', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '2px 10px', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            {overallFeel == null ? 'Set' : 'Clear'}
+          </button>
         </div>
+        {overallFeel != null && (
+          <div className="form-field" style={{ marginTop: 8 }}>
+            <label>Score (1 = very bad, 10 = excellent)</label>
+            <div className="range-wrapper" style={{ marginTop: 4 }}>
+              <span className="text-muted">1</span>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="1"
+                value={overallFeel}
+                onChange={e => setOverallFeel(Number(e.target.value))}
+              />
+              <span className="text-muted">10</span>
+              <span className="range-value">{overallFeel}</span>
+            </div>
+          </div>
+        )}
 
         {/* Symptoms */}
         <p className="section-title mt-16">Symptoms</p>

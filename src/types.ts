@@ -8,7 +8,7 @@ export interface WellbeingEntry {
   systolicBP?: number;   // mmHg
   diastolicBP?: number;  // mmHg
   spo2?: number;         // %
-  overallFeel: number;   // 1–10
+  overallFeel?: number;  // 1–10, optional
   symptoms: SymptomEntry[];
   notes?: string;
 }

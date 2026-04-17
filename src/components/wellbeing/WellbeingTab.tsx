@@ -69,7 +69,7 @@ export default function WellbeingTab() {
                 <div className="flex-between">
                   <div className="entry-row-main">
                     <span className="entry-date">{entry.date} · {entry.time}</span>
-                    <span className="entry-metric">Feel: {entry.overallFeel}/10</span>
+                    {entry.overallFeel != null && <span className="entry-metric">Feel: {entry.overallFeel}/10</span>}
                     {entry.heartRate && (
                       <span className="entry-metric-muted">HR: {entry.heartRate}</span>
                     )}
@@ -114,7 +114,7 @@ export default function WellbeingTab() {
                     <div className="flex-between">
                       <div className="entry-row-main">
                         <span className="entry-date">{entry.date} · {entry.time}</span>
-                        <span className="entry-metric">Feel: {entry.overallFeel}/10</span>
+                        {entry.overallFeel != null && <span className="entry-metric">Feel: {entry.overallFeel}/10</span>}
                         {entry.heartRate && <span className="entry-metric-muted">HR: {entry.heartRate}</span>}
                         {entry.systolicBP && entry.diastolicBP && <span className="entry-metric-muted">BP: {entry.systolicBP}/{entry.diastolicBP}</span>}
                         {entry.spo2 && <span className="entry-metric-muted">SpO₂: {entry.spo2}%</span>}
