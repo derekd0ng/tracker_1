@@ -23,7 +23,7 @@ interface Props {
   sleepData?: SleepPoint[];
 }
 
-const RANGES = [7, 14, 30] as const;
+const RANGES = [1, 7, 14, 30] as const;
 type Range = (typeof RANGES)[number];
 
 // Palette tuned for the dark navy scheme
@@ -160,14 +160,20 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
   }
   const dragItem = useRef<ChartId | null>(null);
 
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
   const cutoffStr = useMemo(() => {
+    if (range === 1) return todayStr;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - range);
     const yyyy = cutoff.getFullYear();
     const mm = String(cutoff.getMonth() + 1).padStart(2, '0');
     const dd = String(cutoff.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
-  }, [range]);
+  }, [range, todayStr]);
 
   const filtered = useMemo(
     () => entries.filter(e => e.date >= cutoffStr),
@@ -235,13 +241,61 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
       .map(d => ({ date: fmtDate(d.date), sleep: d.value }));
   }, [sleepData, cutoffStr]);
 
+  // ── 1-day view: one point per entry on a time axis ────────────────────────
+  const todayEntries = useMemo(
+    () => [...filtered].filter(e => e.date === todayStr).sort((a, b) => a.time.localeCompare(b.time)),
+    [filtered, todayStr],
+  );
+
+  const oneDayVitalData = useMemo(() =>
+    todayEntries.map(e => ({
+      date: e.time,
+      feel: e.overallFeel ?? null, feelBand: null,
+      hr:   e.heartRate   ?? null, hrBand:   null,
+      sys:  e.systolicBP  ?? null, sysBand:  null,
+      dia:  e.diastolicBP ?? null, diaBand:  null,
+      spo2: e.spo2        ?? null, spo2Band: null,
+    })),
+    [todayEntries],
+  );
+
+  const oneDaySleepData = useMemo(() => {
+    if (!sleepData) return [];
+    return sleepData.filter(d => d.date === todayStr && d.value > 0).map(d => ({ date: '—', sleep: d.value }));
+  }, [sleepData, todayStr]);
+
+  const oneDaySymptomNames = useMemo(() => {
+    const set = new Set<string>();
+    todayEntries.forEach(e => e.symptoms.forEach(s => set.add(s.name)));
+    return Array.from(set);
+  }, [todayEntries]);
+
+  const oneDaySymptomData = useMemo(() =>
+    todayEntries.map(e => {
+      const row: Record<string, string | number | [number, number] | null> = { date: e.time };
+      oneDaySymptomNames.forEach(name => {
+        row[name] = e.symptoms.find(s => s.name === name)?.intensity ?? 0;
+        row[`${name}Band`] = null;
+      });
+      return row;
+    }),
+    [todayEntries, oneDaySymptomNames],
+  );
+
   const hasData  = dates.length > 0;
   const hasSleep = sleepChartData.length > 0;
   const hasHR    = vitalData.some(d => d.hr   !== null);
   const hasBP    = vitalData.some(d => d.sys  !== null || d.dia  !== null);
   const hasSpO2  = vitalData.some(d => d.spo2 !== null);
 
-  const visible: Record<ChartId, boolean> = {
+  const visible: Record<ChartId, boolean> = range === 1 ? {
+    feel:     oneDayVitalData.some(d => d.feel !== null),
+    sleep:    oneDaySleepData.length > 0,
+    hr:       oneDayVitalData.some(d => d.hr !== null),
+    bp:       oneDayVitalData.some(d => d.sys !== null || d.dia !== null),
+    spo2:     oneDayVitalData.some(d => d.spo2 !== null),
+    symptoms: oneDaySymptomNames.length > 0,
+  } : {
     feel:     hasData,
     sleep:    hasSleep,
     hr:       hasHR,
@@ -253,13 +307,17 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
   function renderChart(id: ChartId, handle: React.ReactNode) {
     if (!visible[id]) return null;
     const icon = CHART_ICONS[id];
+    const chartVitalData   = range === 1 ? oneDayVitalData   : vitalData;
+    const chartSleepData   = range === 1 ? oneDaySleepData   : sleepChartData;
+    const chartSymptomData = range === 1 ? oneDaySymptomData : symptomData;
+    const chartSymptoms    = range === 1 ? oneDaySymptomNames : allSymptoms;
     switch (id) {
       case 'feel':
         return (
           <>
-            <ChartHeader title="Overall Feel (1–10)" avg={weeklyAvg(vitalData.map(d => d.feel))} handle={handle} icon={icon} />
+            <ChartHeader title="Overall Feel (1–10)" avg={weeklyAvg(chartVitalData.map(d => d.feel))} handle={handle} icon={icon} />
             <ResponsiveContainer width="100%" height={170}>
-              <ComposedChart data={vitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
+              <ComposedChart data={chartVitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                 <XAxis dataKey="date" tick={tickStyle} />
                 <YAxis domain={[0, 10]} ticks={[0, 2, 4, 6, 8, 10]} tick={tickStyle} />
@@ -273,9 +331,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
       case 'sleep':
         return (
           <>
-            <ChartHeader title="Sleep Score (0–100)" avg={weeklyAvg(sleepChartData.map(d => d.sleep))} handle={handle} icon={icon} />
+            <ChartHeader title="Sleep Score (0–100)" avg={weeklyAvg(chartSleepData.map(d => d.sleep))} handle={handle} icon={icon} />
             <ResponsiveContainer width="100%" height={150}>
-              <ComposedChart data={sleepChartData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
+              <ComposedChart data={chartSleepData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                 <XAxis dataKey="date" tick={tickStyle} />
                 <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={tickStyle} />
@@ -288,9 +346,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
       case 'hr':
         return (
           <>
-            <ChartHeader title="Heart Rate (bpm)" avg={weeklyAvg(vitalData.map(d => d.hr))} unit=" bpm" handle={handle} icon={icon} />
+            <ChartHeader title="Heart Rate (bpm)" avg={weeklyAvg(chartVitalData.map(d => d.hr))} unit=" bpm" handle={handle} icon={icon} />
             <ResponsiveContainer width="100%" height={150}>
-              <ComposedChart data={vitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
+              <ComposedChart data={chartVitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                 <XAxis dataKey="date" tick={tickStyle} />
                 <YAxis domain={['auto', 'auto']} tick={tickStyle} />
@@ -306,8 +364,8 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
           <>
             <ChartHeader title="Blood Pressure (mmHg)"
               avg={(() => {
-                const s = weeklyAvg(vitalData.map(d => d.sys));
-                const d = weeklyAvg(vitalData.map(d => d.dia));
+                const s = weeklyAvg(chartVitalData.map(d => d.sys));
+                const d = weeklyAvg(chartVitalData.map(d => d.dia));
                 return s && d ? `${s}/${d}` : s ?? d;
               })()}
               unit=" mmHg"
@@ -315,7 +373,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
               icon={icon}
             />
             <ResponsiveContainer width="100%" height={150}>
-              <ComposedChart data={vitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
+              <ComposedChart data={chartVitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                 <XAxis dataKey="date" tick={tickStyle} />
                 <YAxis domain={['auto', 'auto']} tick={tickStyle} />
@@ -332,9 +390,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
       case 'spo2':
         return (
           <>
-            <ChartHeader title="SpO₂ (%)" avg={weeklyAvg(vitalData.map(d => d.spo2))} unit="%" handle={handle} icon={icon} />
+            <ChartHeader title="SpO₂ (%)" avg={weeklyAvg(chartVitalData.map(d => d.spo2))} unit="%" handle={handle} icon={icon} />
             <ResponsiveContainer width="100%" height={150}>
-              <ComposedChart data={vitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
+              <ComposedChart data={chartVitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                 <XAxis dataKey="date" tick={tickStyle} />
                 <YAxis domain={[88, 100]} tick={tickStyle} />
@@ -349,14 +407,14 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
         return (
           <>
             <ChartHeader title="Symptom Intensity (1–10)"
-              avg={weeklyAvg(symptomData.flatMap(d =>
-                allSymptoms.map(n => d[n] as number | null)
+              avg={weeklyAvg(chartSymptomData.flatMap(d =>
+                chartSymptoms.map(n => d[n] as number | null)
               ))}
               handle={handle}
               icon={icon}
             />
             <ResponsiveContainer width="100%" height={180}>
-              <ComposedChart data={symptomData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
+              <ComposedChart data={chartSymptomData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                 <XAxis dataKey="date" tick={tickStyle} />
                 <YAxis domain={[0, 10]} ticks={[0, 2, 4, 6, 8, 10]} tick={tickStyle} />
@@ -371,7 +429,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                     </span>
                   )}
                 />
-                {allSymptoms.map((name, i) => {
+                {chartSymptoms.map((name, i) => {
                   const color = SYMPTOM_COLORS[i % SYMPTOM_COLORS.length];
                   const hidden = hiddenSymptoms.has(name);
                   return [
@@ -426,7 +484,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
 
       {!anyVisible ? (
         <p className="chart-empty">
-          No entries in the last {range} days. Log an entry to start seeing trends.
+          {range === 1 ? 'No entries today. Log an entry to see today\'s data.' : `No entries in the last ${range} days. Log an entry to start seeing trends.`}
         </p>
       ) : (
         <div className="chart-grid">
