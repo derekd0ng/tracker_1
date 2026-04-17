@@ -8,7 +8,7 @@ import authRouter       from './routes/auth';
 import medicationsRouter from './routes/medications';
 import habitsRouter     from './routes/habits';
 import wellbeingRouter  from './routes/wellbeing';
-import telegramRouter   from './routes/telegram';
+import telegramRouter, { registerBotCommands } from './routes/telegram';
 import { startMedicationReminders } from './jobs/medicationReminders';
 
 const app = express();
@@ -48,4 +48,5 @@ const PORT = process.env.PORT ?? 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   startMedicationReminders();
+  registerBotCommands();
 });

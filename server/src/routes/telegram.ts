@@ -93,6 +93,57 @@ function localTime(d = new Date()) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+const SLOT_LABELS: Record<string, string> = {
+  morning: '🌅 Morning', afternoon: '☀️ Afternoon', evening: '🌆 Evening', night: '🌙 Night',
+};
+
+async function getPendingMeds(userId: string, timeOfDay: string, today: string) {
+  const { rows } = await pool.query<{ name: string; dose: string | null }>(
+    `SELECT m.name, m.dose
+     FROM medications m
+     WHERE m.user_id = $1
+       AND m.active  = true
+       AND $2 = ANY(m.times_of_day)
+       AND (m.start_date IS NULL OR m.start_date <= $3)
+       AND (m.duration_days IS NULL OR m.start_date IS NULL
+            OR m.start_date::date + (m.duration_days - 1) >= $3::date)
+       AND NOT EXISTS (
+         SELECT 1 FROM medication_logs ml
+         WHERE ml.medication_id = m.id
+           AND ml.user_id       = $1
+           AND ml.date          = $3
+           AND ml.time_of_day   = $2
+           AND (ml.taken = true OR ml.skipped = true OR ml.moved_to IS NOT NULL)
+       )
+     ORDER BY m.name`,
+    [userId, timeOfDay, today],
+  );
+  return rows;
+}
+
+export async function registerBotCommands() {
+  if (!BOT_TOKEN()) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN()}/setMyCommands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        commands: [
+          { command: 'meds',      description: 'All pending medications for today' },
+          { command: 'morning',   description: 'Pending morning medications' },
+          { command: 'afternoon', description: 'Pending afternoon medications' },
+          { command: 'evening',   description: 'Pending evening medications' },
+          { command: 'night',     description: 'Pending night medications' },
+          { command: 'help',      description: 'Show available commands' },
+        ],
+      }),
+    });
+    console.log('Telegram bot commands registered');
+  } catch (err) {
+    console.error('Failed to register bot commands:', err);
+  }
+}
+
 // ── POST /api/telegram/webhook ─────────────────────────────────────────────────
 router.post('/webhook', async (req: Request, res: Response) => {
   const secret = req.headers['x-telegram-bot-api-secret-token'];
@@ -155,6 +206,54 @@ router.post('/webhook', async (req: Request, res: Response) => {
       return;
     }
     const userId: string = connRows[0].user_id;
+
+    // ── Commands ──
+    if (text?.startsWith('/')) {
+      const cmd = text.split(/\s+/)[0].toLowerCase();
+      const today = localDate();
+
+      if (cmd === '/help') {
+        await sendMessage(chatId,
+          'Commands:\n' +
+          '/meds — all pending medications for today\n' +
+          '/morning — pending morning meds\n' +
+          '/afternoon — pending afternoon meds\n' +
+          '/evening — pending evening meds\n' +
+          '/night — pending night meds\n\n' +
+          'To log well-being just send a message, e.g.:\n' +
+          '"Feel 7/10, headache 4/10 for 2h, HR 72"',
+        );
+        return;
+      }
+
+      if (cmd === '/meds') {
+        const slots = ['morning', 'afternoon', 'evening', 'night'];
+        const lines: string[] = [];
+        for (const slot of slots) {
+          const meds = await getPendingMeds(userId, slot, today);
+          if (meds.length > 0) {
+            lines.push(`${SLOT_LABELS[slot]}:`);
+            meds.forEach(m => lines.push(`  • ${m.name}${m.dose ? ` — ${m.dose}` : ''}`));
+          }
+        }
+        await sendMessage(chatId, lines.length > 0 ? lines.join('\n') : '✅ All medications done for today!');
+        return;
+      }
+
+      if (['/morning', '/afternoon', '/evening', '/night'].includes(cmd)) {
+        const slot = cmd.slice(1);
+        const meds = await getPendingMeds(userId, slot, today);
+        if (meds.length === 0) {
+          await sendMessage(chatId, `${SLOT_LABELS[slot]}: ✅ All done!`);
+        } else {
+          const lines = meds.map(m => `• ${m.name}${m.dose ? ` — ${m.dose}` : ''}`).join('\n');
+          await sendMessage(chatId, `${SLOT_LABELS[slot]} medications pending:\n${lines}`);
+        }
+        return;
+      }
+
+      // Unknown command — fall through to wellbeing parser
+    }
 
     // ── Resolve input text ──
     let inputText = text ?? '';
