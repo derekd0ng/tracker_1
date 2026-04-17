@@ -363,6 +363,32 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
             >
               {parsing ? 'Parsing…' : 'Fill from description'}
             </button>
+            {voiceSupported && (
+              <button
+                type="button"
+                className={`btn${listening ? ' btn-primary' : ' btn-secondary'}`}
+                onClick={listening ? stopListening : startListening}
+                title={listening ? 'Stop recording' : 'Dictate description'}
+                style={{ height: 34, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', padding: '0 14px' }}
+              >
+                {listening ? (
+                  <>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite', flexShrink: 0 }} />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="2" width="6" height="12" rx="3"/>
+                      <path d="M5 10a7 7 0 0 0 14 0"/>
+                      <line x1="12" y1="19" x2="12" y2="22"/>
+                      <line x1="8" y1="22" x2="16" y2="22"/>
+                    </svg>
+                    Voice
+                  </>
+                )}
+              </button>
+            )}
             {parsedOk && (
               <span style={{ fontSize: '0.8rem', color: 'var(--success, #22c55e)' }}>Fields filled — review below</span>
             )}
