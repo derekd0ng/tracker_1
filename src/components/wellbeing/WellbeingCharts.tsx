@@ -270,7 +270,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
 
   const oneDayVitalData = useMemo(() =>
     todayEntries.map(e => ({
-      date: e.time,
+      date: timeToMins(e.time),   // numeric minutes for fixed domain
       feel: e.overallFeel ?? null, feelBand: null,
       hr:   e.heartRate   ?? null, hrBand:   null,
       sys:  e.systolicBP  ?? null, sysBand:  null,
@@ -280,10 +280,8 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
     [todayEntries],
   );
 
-  const oneDaySleepData = useMemo(() => {
-    if (!sleepData) return [];
-    return sleepData.filter(d => d.date === todayStr && d.value > 0).map(d => ({ date: '—', sleep: d.value }));
-  }, [sleepData, todayStr]);
+  // Sleep has no intraday time — not shown in 1-day view
+  const oneDaySleepData: never[] = [];
 
   const oneDaySymptomNames = useMemo(() => {
     const set = new Set<string>();
@@ -316,7 +314,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
     }
 
     return Array.from(timeSet).sort((a, b) => a - b).map(mins => {
-      const row: Record<string, string | number | null> = { date: minsToTime(mins) };
+      const row: Record<string, string | number | null> = { date: mins };
       for (const name of oneDaySymptomNames) {
         const active = intervals.find(iv => iv.name === name && iv.start <= mins && iv.end >= mins);
         row[name] = active ? active.intensity : 0;
@@ -355,6 +353,10 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
     const chartSleepData   = range === 1 ? oneDaySleepData   : sleepChartData;
     const chartSymptomData = range === 1 ? oneDaySymptomData : symptomData;
     const chartSymptoms    = range === 1 ? oneDaySymptomNames : allSymptoms;
+    const xAxis = range === 1
+      ? <XAxis dataKey="date" type="number" domain={[0, 1439]} ticks={[0, 360, 720, 1080, 1380]} tickFormatter={minsToTime} tick={tickStyle} />
+      : <XAxis dataKey="date" tick={tickStyle} />;
+    const tooltipLabel = range === 1 ? (v: number) => minsToTime(v) : undefined;
     switch (id) {
       case 'feel':
         return (
@@ -363,9 +365,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
             <ResponsiveContainer width="100%" height={170}>
               <ComposedChart data={chartVitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-                <XAxis dataKey="date" tick={tickStyle} />
+                {xAxis}
                 <YAxis domain={[0, 10]} ticks={[0, 2, 4, 6, 8, 10]} tick={tickStyle} />
-                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
+                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} labelFormatter={tooltipLabel} />
                 <Area type="monotone" dataKey="feelBand" fill={C.feel} fillOpacity={0.18} stroke="none" legendType="none" connectNulls />
                 <Line type="monotone" dataKey="feel" name="Feel" stroke={C.feel} strokeWidth={2} dot={{ r: 3, fill: C.feel }} connectNulls />
               </ComposedChart>
@@ -379,9 +381,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
             <ResponsiveContainer width="100%" height={150}>
               <ComposedChart data={chartSleepData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-                <XAxis dataKey="date" tick={tickStyle} />
+                {xAxis}
                 <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={tickStyle} />
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip contentStyle={tooltipStyle} labelFormatter={tooltipLabel} />
                 <Line type="monotone" dataKey="sleep" name="Sleep" stroke={C.sleep} strokeWidth={2} dot={{ r: 3, fill: C.sleep }} connectNulls />
               </ComposedChart>
             </ResponsiveContainer>
@@ -394,9 +396,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
             <ResponsiveContainer width="100%" height={150}>
               <ComposedChart data={chartVitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-                <XAxis dataKey="date" tick={tickStyle} />
+                {xAxis}
                 <YAxis domain={['auto', 'auto']} tick={tickStyle} />
-                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
+                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} labelFormatter={tooltipLabel} />
                 <Area type="monotone" dataKey="hrBand" fill={C.hr} fillOpacity={0.18} stroke="none" legendType="none" connectNulls />
                 <Line type="monotone" dataKey="hr" name="Heart Rate" stroke={C.hr} strokeWidth={2} dot={{ r: 3, fill: C.hr }} connectNulls />
               </ComposedChart>
@@ -419,9 +421,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
             <ResponsiveContainer width="100%" height={150}>
               <ComposedChart data={chartVitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-                <XAxis dataKey="date" tick={tickStyle} />
+                {xAxis}
                 <YAxis domain={['auto', 'auto']} tick={tickStyle} />
-                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
+                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} labelFormatter={tooltipLabel} />
                 <Legend iconSize={8} wrapperStyle={{ fontSize: '0.78rem' }} />
                 <Area type="monotone" dataKey="sysBand" fill={C.bpSys} fillOpacity={0.18} stroke="none" legendType="none" connectNulls />
                 <Area type="monotone" dataKey="diaBand" fill={C.bpDia} fillOpacity={0.18} stroke="none" legendType="none" connectNulls />
@@ -438,9 +440,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
             <ResponsiveContainer width="100%" height={150}>
               <ComposedChart data={chartVitalData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-                <XAxis dataKey="date" tick={tickStyle} />
+                {xAxis}
                 <YAxis domain={[88, 100]} tick={tickStyle} />
-                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
+                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} labelFormatter={tooltipLabel} />
                 <Area type="monotone" dataKey="spo2Band" fill={C.spo2} fillOpacity={0.32} stroke="none" legendType="none" connectNulls />
                 <Line type="monotone" dataKey="spo2" name="SpO₂" stroke={C.spo2} strokeWidth={2} dot={{ r: 3, fill: C.spo2 }} connectNulls />
               </ComposedChart>
@@ -460,9 +462,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
             <ResponsiveContainer width="100%" height={180}>
               <ComposedChart data={chartSymptomData} margin={{ top: 4, right: 12, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-                <XAxis dataKey="date" tick={tickStyle} />
+                {xAxis}
                 <YAxis domain={[0, 10]} ticks={[0, 2, 4, 6, 8, 10]} tick={tickStyle} />
-                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
+                <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} labelFormatter={tooltipLabel} />
                 <Legend
                   iconSize={8}
                   wrapperStyle={{ fontSize: '0.78rem' }}
