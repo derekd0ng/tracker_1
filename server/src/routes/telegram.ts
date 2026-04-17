@@ -112,11 +112,13 @@ router.post('/webhook', async (req: Request, res: Response) => {
     const text: string | undefined = message.text?.trim();
     const voice = message.voice;
 
-    // ── Linking: /start CODE ──
-    if (text?.startsWith('/start')) {
-      const code = text.split(/\s+/)[1]?.trim();
+    // ── Linking: /start CODE or plain CODE ──
+    const isStartCmd = text?.startsWith('/start');
+    const looksLikeCode = text ? /^[0-9a-f]{32}$/i.test(text) : false;
+    if (isStartCmd || looksLikeCode) {
+      const code = isStartCmd ? text!.split(/\s+/)[1]?.trim() : text!.trim();
       if (!code) {
-        await sendMessage(chatId, 'Open the app, go to the Well-being page and tap "Connect Telegram" to get a link code.');
+        await sendMessage(chatId, 'Open the app and tap "Connect Telegram" to get a link code.');
         return;
       }
       const { rows } = await pool.query(

@@ -16,6 +16,7 @@ export default function TelegramConnect() {
   const [status, setStatus] = useState<Status | null>(null);
   const [linkInfo, setLinkInfo] = useState<LinkInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,6 +60,14 @@ export default function TelegramConnect() {
     } catch {}
   }
 
+  function handleCopy() {
+    if (!linkInfo) return;
+    navigator.clipboard.writeText(linkInfo.code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   if (status === null) return null;
 
   return (
@@ -66,26 +75,51 @@ export default function TelegramConnect() {
       {linkInfo ? (
         <div>
           <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6, lineHeight: 1.5 }}>
-            Open Telegram and send this to{' '}
             {linkInfo.botUsername
-              ? <a href={`https://t.me/${linkInfo.botUsername}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>@{linkInfo.botUsername}</a>
-              : 'your bot'
-            }:
+              ? <>Open <a href={`https://t.me/${linkInfo.botUsername}?start=${linkInfo.code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>@{linkInfo.botUsername}</a> and tap Start</>
+              : 'Send this code to your bot:'
+            }
           </p>
-          <div
-            style={{
-              fontFamily: 'monospace',
-              fontSize: '0.75rem',
-              background: 'rgba(255,255,255,0.06)',
-              borderRadius: 6,
-              padding: '6px 8px',
-              userSelect: 'all',
-              marginBottom: 6,
-              wordBreak: 'break-all',
-              color: 'var(--text)',
-            }}
-          >
-            /start {linkInfo.code}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <div
+              style={{
+                fontFamily: 'monospace',
+                fontSize: '0.75rem',
+                background: 'rgba(255,255,255,0.06)',
+                borderRadius: 6,
+                padding: '6px 8px',
+                userSelect: 'all',
+                wordBreak: 'break-all',
+                color: 'var(--text)',
+                flex: 1,
+              }}
+            >
+              {linkInfo.code}
+            </div>
+            <button
+              onClick={handleCopy}
+              title="Copy code"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: copied ? 'var(--accent)' : 'var(--text-muted)',
+                padding: '4px',
+                flexShrink: 0,
+                transition: 'color 0.15s',
+              }}
+            >
+              {copied ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+              )}
+            </button>
           </div>
           <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: 6 }}>
             Expires in 15 min
