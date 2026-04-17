@@ -17,6 +17,7 @@ export default function TelegramConnect() {
   const [linkInfo, setLinkInfo] = useState<LinkInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -133,9 +134,26 @@ export default function TelegramConnect() {
           <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6 }}>
             Telegram connected
           </p>
-          <button className="sidebar-backup-btn" onClick={handleDisconnect} disabled={loading}>
-            {loading ? 'Disconnecting…' : 'Disconnect Telegram'}
-          </button>
+          {confirmDisconnect ? (
+            <div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6 }}>
+                Disconnect Telegram?
+              </p>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="sidebar-backup-btn" onClick={handleDisconnect} disabled={loading}
+                  style={{ color: 'var(--danger)' }}>
+                  {loading ? 'Disconnecting…' : 'Yes, disconnect'}
+                </button>
+                <button className="sidebar-backup-btn" onClick={() => setConfirmDisconnect(false)} disabled={loading}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="sidebar-backup-btn" onClick={() => setConfirmDisconnect(true)}>
+              Disconnect Telegram
+            </button>
+          )}
         </div>
       ) : (
         <div>
