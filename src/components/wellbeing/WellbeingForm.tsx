@@ -123,6 +123,7 @@ interface Props {
   initial?: WellbeingEntry;
   sleepHabitId?: string;
   initialSleepScore?: number;
+  initialParseText?: string;  // pre-fill + auto-parse the description field
 }
 
 const SYMPTOM_NAMES = ['Dizziness', 'Brain Fog', 'Headache', 'Fatigue', 'Nausea', 'Vision Problems', 'Weakness', 'Numbness', 'Ear Ringing'] as const;
@@ -147,7 +148,7 @@ Schema:
 }`;
 }
 
-export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId, initialSleepScore }: Props) {
+export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId, initialSleepScore, initialParseText }: Props) {
   const [date, setDate] = useState(initial?.date ?? todayDate());
   const [time, setTime] = useState(initial?.time ?? currentTime());
   const [heartRate, setHeartRate] = useState(initial?.heartRate?.toString() ?? '');
@@ -172,7 +173,7 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
   const [sleepScore, setSleepScore] = useState(initialSleepScore != null ? initialSleepScore.toString() : '');
 
   // ── AI parse state ────────────────────────────────────────────────────────
-  const [parseText, setParseText] = useState('');
+  const [parseText, setParseText] = useState(initialParseText ?? '');
   const [parsing, setParsing] = useState(false);
   const [parsedOk, setParsedOk] = useState(false);
   const [parseError, setParseError] = useState('');
@@ -272,6 +273,11 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
     }
   }
 
+  // Auto-parse when opened via voice input on the main page
+  useEffect(() => {
+    if (initialParseText?.trim()) handleParse();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function toggleSymptom(name: string) {
     setSelectedSymptoms(prev =>
       prev.includes(name) ? prev.filter(s => s !== name) : [...prev, name],
@@ -328,51 +334,13 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
             <img src="/icon-ai.svg" alt="" style={{ width: 16, height: 16 }} />
             <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent)' }}>Describe how you feel</span>
           </div>
-          <div style={{ position: 'relative' }}>
-            <textarea
-              placeholder={'e.g. "Feel about 7/10 today. HR 68, BP 118/76, spo2 97. Slight headache (3/10) and some fatigue."'}
-              value={parseText}
-              onChange={e => { setParseText(e.target.value); setParsedOk(false); setParseError(''); }}
-              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleParse(); } }}
-              style={{ width: '100%', minHeight: 72, resize: 'vertical', fontSize: '0.88rem', boxSizing: 'border-box', paddingRight: voiceSupported ? 44 : undefined }}
-            />
-            {voiceSupported && (
-              <button
-                type="button"
-                onClick={listening ? stopListening : startListening}
-                title={listening ? 'Stop recording' : 'Speak your symptoms'}
-                style={{
-                  position: 'absolute', top: 8, right: 8,
-                  width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: listening ? 'rgba(239,68,68,0.18)' : 'rgba(59,130,246,0.12)',
-                  color: listening ? '#ef4444' : '#3B82F6',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {listening ? (
-                  // Stop / recording indicator
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="4" y="4" width="16" height="16" rx="3"/>
-                  </svg>
-                ) : (
-                  // Mic icon
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="2" width="6" height="12" rx="3"/>
-                    <path d="M5 10a7 7 0 0 0 14 0"/>
-                    <line x1="12" y1="19" x2="12" y2="22"/>
-                    <line x1="8" y1="22" x2="16" y2="22"/>
-                  </svg>
-                )}
-              </button>
-            )}
-          </div>
-          {listening && (
-            <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
-              Listening… tap the stop button when done
-            </div>
-          )}
+          <textarea
+            placeholder={'e.g. "Feel about 7/10 today. HR 68, BP 118/76, spo2 97. Slight headache (3/10) and some fatigue."'}
+            value={parseText}
+            onChange={e => { setParseText(e.target.value); setParsedOk(false); setParseError(''); }}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleParse(); } }}
+            style={{ width: '100%', minHeight: 72, resize: 'vertical', fontSize: '0.88rem', boxSizing: 'border-box' }}
+          />
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
             <button
               type="button"

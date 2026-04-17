@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import WellbeingForm from './WellbeingForm';
 import { getWellbeingEntries, getHabits, getHabitLogs } from '../../storage';
 import type { WellbeingEntry, SymptomEntry } from '../../types';
@@ -119,6 +119,45 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
   const [sleepData, setSleepData] = useState(loadSleepData);
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState<WellbeingEntry | undefined>();
+  const [voiceTranscript, setVoiceTranscript] = useState<string | undefined>();
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const SpeechRecognition = typeof window !== 'undefined'
+    ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    : null;
+
+  function startVoiceEntry() {
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = 'en-US';
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    let transcript = '';
+    recognition.onresult = (e: any) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) transcript += (transcript ? ' ' : '') + e.results[i][0].transcript;
+      }
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => {
+      setListening(false);
+      if (transcript.trim()) {
+        setVoiceTranscript(transcript.trim());
+        setEditEntry(undefined);
+        setShowForm(true);
+      }
+    };
+    recognition.start();
+    setListening(true);
+  }
+
+  function stopVoiceEntry() {
+    recognitionRef.current?.stop();
+  }
+
+  useEffect(() => () => recognitionRef.current?.stop(), []);
 
   const sleepHabit = getHabits().find(h => /sleep/i.test(h.name));
 
@@ -141,8 +180,8 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
     ? [...sleepData].filter(d => d.value > 0).sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
     : null;
 
-  function openNew() { setEditEntry(undefined); setShowForm(true); }
-  function closeForm() { setShowForm(false); setEditEntry(undefined); }
+  function openNew() { setVoiceTranscript(undefined); setEditEntry(undefined); setShowForm(true); }
+  function closeForm() { setShowForm(false); setEditEntry(undefined); setVoiceTranscript(undefined); }
   function handleSaved() {
     setEntries(getWellbeingEntries());
     setSleepData(loadSleepData());
@@ -164,6 +203,31 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button className="btn btn-primary" onClick={openNew}>+ Log Entry</button>
+            {SpeechRecognition && (
+              <button
+                className={`btn${listening ? ' btn-primary' : ' btn-secondary'}`}
+                onClick={listening ? stopVoiceEntry : startVoiceEntry}
+                title={listening ? 'Stop and open form' : 'Log by voice'}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}
+              >
+                {listening ? (
+                  <>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite', flexShrink: 0 }} />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="2" width="6" height="12" rx="3"/>
+                      <path d="M5 10a7 7 0 0 0 14 0"/>
+                      <line x1="12" y1="19" x2="12" y2="22"/>
+                      <line x1="8" y1="22" x2="16" y2="22"/>
+                    </svg>
+                    Voice
+                  </>
+                )}
+              </button>
+            )}
             {navButton}
           </div>
         </div>
@@ -220,6 +284,7 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
               initial={editEntry}
               sleepHabitId={sleepHabit?.id}
               initialSleepScore={sleepData?.find(d => d.date === (editEntry?.date ?? today))?.value}
+              initialParseText={voiceTranscript}
             />
           </div>
         </div>
