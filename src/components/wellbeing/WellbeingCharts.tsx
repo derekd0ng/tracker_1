@@ -52,6 +52,27 @@ function fmtDate(dateStr: string) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+function parseDurMin(dur: string): number | null {
+  const s = dur.toLowerCase().trim();
+  if (s.includes('all day')) return 24 * 60;
+  let total = 0;
+  const hMatch = s.match(/(\d+(?:\.\d+)?)\s*h(?:r|our)?s?/);
+  const mMatch = s.match(/(\d+(?:\.\d+)?)\s*m(?:in)?s?/);
+  if (hMatch) total += parseFloat(hMatch[1]) * 60;
+  if (mMatch) total += parseFloat(mMatch[1]);
+  return total > 0 ? Math.round(total) : null;
+}
+
+function timeToMins(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minsToTime(mins: number): string {
+  const c = Math.max(0, Math.min(1439, mins));
+  return `${String(Math.floor(c / 60)).padStart(2, '0')}:${String(c % 60).padStart(2, '0')}`;
+}
+
 const tooltipStyle = {
   fontSize: '0.8rem',
   border: '1px solid rgba(255,255,255,0.12)',
@@ -270,17 +291,40 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
     return Array.from(set);
   }, [todayEntries]);
 
-  const oneDaySymptomData = useMemo(() =>
-    todayEntries.map(e => {
-      const row: Record<string, string | number | [number, number] | null> = { date: e.time };
-      oneDaySymptomNames.forEach(name => {
-        row[name] = e.symptoms.find(s => s.name === name)?.intensity ?? 0;
+  const oneDaySymptomData = useMemo(() => {
+    if (todayEntries.length === 0) return [];
+
+    // Build (start, end, name, intensity) intervals from each entry's symptoms
+    const intervals: { name: string; intensity: number; start: number; end: number }[] = [];
+    for (const entry of todayEntries) {
+      const endMins = timeToMins(entry.time);
+      for (const s of entry.symptoms) {
+        const durMins = s.duration ? parseDurMin(s.duration) : null;
+        const startMins = durMins != null ? Math.max(0, endMins - durMins) : endMins;
+        intervals.push({ name: s.name, intensity: s.intensity, start: startMins, end: endMins });
+      }
+    }
+
+    // Collect all time points: entry times + duration start points + zero-anchors
+    const timeSet = new Set<number>();
+    for (const entry of todayEntries) timeSet.add(timeToMins(entry.time));
+    for (const iv of intervals) {
+      if (iv.start < iv.end) {
+        timeSet.add(iv.start);
+        if (iv.start > 0) timeSet.add(iv.start - 1); // zero just before symptom starts
+      }
+    }
+
+    return Array.from(timeSet).sort((a, b) => a - b).map(mins => {
+      const row: Record<string, string | number | null> = { date: minsToTime(mins) };
+      for (const name of oneDaySymptomNames) {
+        const active = intervals.find(iv => iv.name === name && iv.start <= mins && iv.end >= mins);
+        row[name] = active ? active.intensity : 0;
         row[`${name}Band`] = null;
-      });
+      }
       return row;
-    }),
-    [todayEntries, oneDaySymptomNames],
-  );
+    });
+  }, [todayEntries, oneDaySymptomNames]);
 
   const hasData  = dates.length > 0;
   const hasSleep = sleepChartData.length > 0;
