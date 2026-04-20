@@ -35,17 +35,15 @@ async function sendReminder(timeOfDay: string) {
     for (const { user_id, chat_id } of connections) {
       // Active meds scheduled for this slot, not yet done for today
       const { rows: meds } = await pool.query<{ name: string; dose: string | null }>(
-        `SELECT m.name, m.dose
+        `-- Natively scheduled meds not yet acted on
+         SELECT m.name, m.dose
          FROM medications m
-         WHERE m.user_id      = $1
-           AND m.active       = true
-           AND $2             = ANY(m.times_of_day)
-           -- course not yet started
+         WHERE m.user_id = $1
+           AND m.active  = true
+           AND $2 = ANY(m.times_of_day)
            AND (m.start_date IS NULL OR m.start_date <= $3)
-           -- course not yet finished (last day = start_date + duration_days - 1)
            AND (m.duration_days IS NULL OR m.start_date IS NULL
                 OR m.start_date::date + (m.duration_days - 1) >= $3::date)
-           -- no log entry marking it done / skipped / moved away for today
            AND NOT EXISTS (
              SELECT 1 FROM medication_logs ml
              WHERE ml.medication_id = m.id
@@ -54,7 +52,20 @@ async function sendReminder(timeOfDay: string) {
                AND ml.time_of_day   = $2
                AND (ml.taken = true OR ml.skipped = true OR ml.moved_to IS NOT NULL)
            )
-         ORDER BY m.name`,
+         UNION
+         -- Meds moved into this slot and not yet taken/skipped
+         SELECT m.name, m.dose
+         FROM medications m
+         JOIN medication_logs ml
+           ON  ml.medication_id = m.id
+           AND ml.user_id       = $1
+           AND ml.date          = $3
+           AND ml.moved_to      = $2
+         WHERE m.user_id  = $1
+           AND m.active   = true
+           AND ml.taken   = false
+           AND (ml.skipped IS NULL OR ml.skipped = false)
+         ORDER BY name`,
         [user_id, timeOfDay, today],
       );
 

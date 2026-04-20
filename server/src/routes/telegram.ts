@@ -99,7 +99,8 @@ const SLOT_LABELS: Record<string, string> = {
 
 async function getPendingMeds(userId: string, timeOfDay: string, today: string) {
   const { rows } = await pool.query<{ name: string; dose: string | null }>(
-    `SELECT m.name, m.dose
+    `-- Natively scheduled meds not yet acted on
+     SELECT m.name, m.dose
      FROM medications m
      WHERE m.user_id = $1
        AND m.active  = true
@@ -115,7 +116,20 @@ async function getPendingMeds(userId: string, timeOfDay: string, today: string) 
            AND ml.time_of_day   = $2
            AND (ml.taken = true OR ml.skipped = true OR ml.moved_to IS NOT NULL)
        )
-     ORDER BY m.name`,
+     UNION
+     -- Meds moved into this slot and not yet taken/skipped
+     SELECT m.name, m.dose
+     FROM medications m
+     JOIN medication_logs ml
+       ON  ml.medication_id = m.id
+       AND ml.user_id       = $1
+       AND ml.date          = $3
+       AND ml.moved_to      = $2
+     WHERE m.user_id  = $1
+       AND m.active   = true
+       AND ml.taken   = false
+       AND (ml.skipped IS NULL OR ml.skipped = false)
+     ORDER BY name`,
     [userId, timeOfDay, today],
   );
   return rows;
