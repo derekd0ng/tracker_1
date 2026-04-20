@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { WellbeingEntry, SymptomEntry } from '../../types';
 import { SYMPTOM_OPTIONS } from '../../types';
-import { saveWellbeingEntry, setHabitLog } from '../../storage';
+import { saveWellbeingEntry, setHabitLog, getCustomSymptoms, addCustomSymptom } from '../../storage';
 
 function todayDate() {
   const d = new Date();
@@ -176,6 +176,9 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
     initial?.symptoms.find(s => s.name === 'Headache')?.locations ?? [],
   );
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [customSymptoms, setCustomSymptoms] = useState<string[]>(() => getCustomSymptoms());
+  const [addingSymptom, setAddingSymptom] = useState(false);
+  const [newSymptomName, setNewSymptomName] = useState('');
   const [sleepScore, setSleepScore] = useState(initialSleepScore != null ? initialSleepScore.toString() : '');
 
   // ── AI parse state ────────────────────────────────────────────────────────
@@ -288,6 +291,17 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
   useEffect(() => {
     if (initialParseText?.trim()) handleParse();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function commitNewSymptom() {
+    const name = newSymptomName.trim();
+    if (!name) { setAddingSymptom(false); setNewSymptomName(''); return; }
+    addCustomSymptom(name);
+    setCustomSymptoms(getCustomSymptoms());
+    setSelectedSymptoms(prev => prev.includes(name) ? prev : [...prev, name]);
+    if (!intensities[name]) setIntensities(prev => ({ ...prev, [name]: 5 }));
+    setNewSymptomName('');
+    setAddingSymptom(false);
+  }
 
   function toggleSymptom(name: string) {
     setSelectedSymptoms(prev =>
@@ -513,9 +527,18 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
         )}
 
         {/* Symptoms */}
-        <p className="section-title mt-16">Symptoms</p>
-        <div className="symptom-grid">
-          {SYMPTOM_OPTIONS.map(name => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} className="mt-16">
+          <p className="section-title" style={{ margin: 0 }}>Symptoms</p>
+          <button
+            type="button"
+            onClick={() => { setAddingSymptom(true); setNewSymptomName(''); }}
+            style={{ fontSize: '0.75rem', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '2px 10px', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            + Add
+          </button>
+        </div>
+        <div className="symptom-grid" style={{ marginTop: 8 }}>
+          {[...SYMPTOM_OPTIONS, ...customSymptoms].map(name => (
             <button
               key={name}
               type="button"
@@ -525,6 +548,18 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
               {name}
             </button>
           ))}
+          {addingSymptom && (
+            <input
+              autoFocus
+              type="text"
+              placeholder="Symptom name"
+              value={newSymptomName}
+              onChange={e => setNewSymptomName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitNewSymptom(); } if (e.key === 'Escape') { setAddingSymptom(false); setNewSymptomName(''); } }}
+              onBlur={commitNewSymptom}
+              style={{ fontSize: '0.82rem', padding: '4px 10px', borderRadius: 20, border: '1px solid var(--accent)', background: 'rgba(34,211,238,0.08)', color: 'var(--text)', outline: 'none', width: 130 }}
+            />
+          )}
         </div>
 
         {/* Intensity sliders for selected symptoms */}

@@ -210,7 +210,8 @@ export function bulkSetHabitLogs(
 
 // ── Chart order (UI preference — keep in localStorage) ───────────────────────
 
-const CHART_ORDER_KEY = 'srt_chart_order';
+const CHART_ORDER_KEY    = 'srt_chart_order';
+const CUSTOM_SYMPTOMS_KEY = 'srt_custom_symptoms';
 
 export function getChartOrder(): string[] | null {
   try { return JSON.parse(localStorage.getItem(CHART_ORDER_KEY) ?? 'null'); }
@@ -219,6 +220,25 @@ export function getChartOrder(): string[] | null {
 
 export function saveChartOrder(order: string[]): void {
   localStorage.setItem(CHART_ORDER_KEY, JSON.stringify(order));
+}
+
+// ── Custom symptoms ───────────────────────────────────────────────────────────
+
+export function getCustomSymptoms(): string[] {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_SYMPTOMS_KEY) ?? '[]'); }
+  catch { return []; }
+}
+
+export function addCustomSymptom(name: string): void {
+  const current = getCustomSymptoms();
+  if (!current.includes(name)) {
+    localStorage.setItem(CUSTOM_SYMPTOMS_KEY, JSON.stringify([...current, name]));
+  }
+}
+
+export function removeCustomSymptom(name: string): void {
+  const current = getCustomSymptoms().filter(s => s !== name);
+  localStorage.setItem(CUSTOM_SYMPTOMS_KEY, JSON.stringify(current));
 }
 
 // ── Data export (XLSX) ────────────────────────────────────────────────────────
