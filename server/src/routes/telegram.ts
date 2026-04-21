@@ -86,11 +86,13 @@ Text: "${text}"`;
   return JSON.parse(match[0]);
 }
 
+const TZ = process.env.REMINDER_TIMEZONE ?? 'UTC';
+
 function localDate(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d);
 }
 function localTime(d = new Date()) {
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
 }
 
 const SLOT_LABELS: Record<string, string> = {
