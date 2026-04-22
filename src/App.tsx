@@ -72,10 +72,10 @@ export default function App() {
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#0d1424', flexDirection: 'column', gap: 16,
+        background: '#080808', flexDirection: 'column', gap: 16,
       }}>
         <div style={{ width: 36, height: 36, border: '3px solid rgba(34,211,238,0.2)',
-          borderTopColor: '#22D3EE', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
           {authState === 'loading' ? 'Loading your data…' : 'Checking session…'}
         </p>
