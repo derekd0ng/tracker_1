@@ -113,67 +113,44 @@ export default function MedicationTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      {/* ── Luminous bar stat cards ── */}
-      <div className="med-stats-row">
+      {/* ── Stat cards ── */}
+      <div style={{ display: 'flex', gap: 12 }}>
 
-        {/* Left pair — aligns with the medication log column */}
-        <div className="med-stats-left">
-
-          <div className="med-stat-card">
-            <div className="lum-bar">
-              <div className="lum-bar-fill" style={{ '--fill-level': `${dosesPct}%`, '--bar-color': '#22D3EE' } as React.CSSProperties} />
-            </div>
-            <div>
-              <span className="med-stat-big">
-                {totalDosesToday > 0 ? `${takenDosesToday}/${totalDosesToday}` : '—'}
-              </span>
-              <span className="med-stat-lbl">Doses Taken</span>
-              <p className="med-stat-sub">
-                {totalDosesToday === 0 ? 'No doses scheduled today'
-                  : takenDosesToday === totalDosesToday ? 'All done for today!'
-                  : `${totalDosesToday - takenDosesToday - skippedDosesToday} remaining today`}
-              </p>
-              {skippedDosesToday > 0 && (
-                <p className="med-stat-sub" style={{ marginTop: 4, color: 'var(--text-muted)', opacity: 0.75 }}>
-                  {skippedDosesToday} skipped
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="med-stat-card">
-            <div className="lum-bar">
-              <div className="lum-bar-fill" style={{ '--fill-level': `${weeklyAdherence}%`, '--bar-color': '#22D3EE' } as React.CSSProperties} />
-            </div>
-            <div>
-              <span className="med-stat-big">{weeklyAdherence}%</span>
-              <span className="med-stat-lbl">Weekly Adherence</span>
-              <p className="med-stat-sub">Consistency is key to recovery.</p>
-            </div>
-          </div>
-
+        <div className="med-stat-card" style={{ borderTop: '2px solid #0ea5e9' }}>
+          <span className="med-stat-lbl">Doses Taken Today</span>
+          <span className="med-stat-big" style={{ color: '#0ea5e9' }}>
+            {totalDosesToday > 0 ? `${takenDosesToday}/${totalDosesToday}` : '—'}
+          </span>
+          <p className="med-stat-sub">
+            {totalDosesToday === 0
+              ? 'No doses scheduled today'
+              : takenDosesToday === totalDosesToday
+                ? 'All done for today!'
+                : `${totalDosesToday - takenDosesToday - skippedDosesToday} remaining · ${skippedDosesToday} skipped`}
+          </p>
         </div>
 
-        {/* Right card — aligns with the prescriptions sidebar column */}
-        <div className="med-stat-card">
-          <div>
-            <span className="med-stat-big">
-              {avg7Display}
-              {hasPrevData && avgDelta !== 0 && (
-                <span className="avg-inline-delta" style={{ color: avgDelta > 0 ? 'var(--accent)' : 'var(--danger)' }}>
-                  {' '}({avgDelta > 0 ? '+' : ''}{avgDelta.toFixed(1)})
-                </span>
-              )}
-            </span>
-            <span className="med-stat-lbl">Avg Daily Doses (7d)</span>
-            <p className="med-stat-sub">
-              {!hasPrevData
-                ? 'No prior week data yet'
-                : avgDelta === 0
-                  ? 'Same as previous week'
-                  : `${avgDelta > 0 ? '+' : ''}${avgDelta.toFixed(1)} vs prev. week`}
-            </p>
-          </div>
+        <div className="med-stat-card" style={{ borderTop: '2px solid #a78bfa' }}>
+          <span className="med-stat-lbl">Weekly Adherence</span>
+          <span className="med-stat-big" style={{ color: '#a78bfa' }}>{weeklyAdherence}%</span>
+          <p className="med-stat-sub">Consistency is key to recovery.</p>
+        </div>
+
+        <div className="med-stat-card" style={{ borderTop: '2px solid #f87171' }}>
+          <span className="med-stat-lbl">Avg Daily Doses (7d)</span>
+          <span className="med-stat-big" style={{ color: '#f87171' }}>
+            {avg7Display}
+            {hasPrevData && avgDelta !== 0 && (
+              <span className="avg-inline-delta" style={{ fontSize: '1rem', color: avgDelta > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                {' '}{avgDelta > 0 ? '+' : ''}{avgDelta.toFixed(1)}
+              </span>
+            )}
+          </span>
+          <p className="med-stat-sub">
+            {!hasPrevData ? 'No prior week data yet'
+              : avgDelta === 0 ? 'Same as previous week'
+              : `${avgDelta > 0 ? '+' : ''}${avgDelta.toFixed(1)} vs prev. week`}
+          </p>
         </div>
 
       </div>

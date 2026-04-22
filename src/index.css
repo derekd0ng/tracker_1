@@ -477,15 +477,20 @@ input[type='range'] {
 .med-stat-card {
   background: var(--surface);
   border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.05);
-  padding: 20px;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--border-mid);
+  padding: 16px 18px;
   display: flex;
-  align-items: center;
-  gap: 20px;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
   transition: background 0.15s;
 }
 
 .med-stat-card:hover { background: var(--surface-alt); }
+
+.med-stat-card .med-stat-lbl { margin: 0 0 8px; }
+.med-stat-card .med-stat-big { margin: 0 0 6px; }
 
 /* Luminous vertical bar */
 .lum-bar {
@@ -523,12 +528,13 @@ input[type='range'] {
 
 .med-stat-lbl {
   font-size: 0.6rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: #ffffff;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
   display: block;
-  margin: 5px 0 6px;
+  font-family: var(--mono);
+  margin: 0 0 8px;
 }
 
 .med-stat-sub {
