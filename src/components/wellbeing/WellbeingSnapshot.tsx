@@ -180,35 +180,60 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
     onSaved?.();
   }
 
+  const accentGreen = '#22c55e';
+  const btnOutlineBase: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '7px 14px', borderRadius: 4, fontSize: '0.8rem',
+    fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+    letterSpacing: '0.04em', transition: 'background 0.15s',
+    background: 'transparent',
+  };
+
   return (
     <>
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="flex-between" style={{ marginBottom: latestEntry ? 4 : 0 }}>
-          <div>
-            <p className="section-title" style={{ marginBottom: 0 }}>Latest Well-being</p>
+      <div className="card" style={{ marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+        {/* ── Header row ── */}
+        <div className="flex-between" style={{ padding: '14px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 10, height: 10, background: accentGreen, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text)' }}>
+              Latest Well-being
+            </span>
             {latestEntry && (
-              <p className="text-muted snapshot-ts" style={{ fontSize: '0.8rem', marginTop: 3, marginBottom: 0 }}>
-                Last entry: {formatEntryDateTime(latestEntry)}
-              </p>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: 2 }}>
+                {formatEntryDateTime(latestEntry)}
+              </span>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button className="btn btn-primary" onClick={openNew}>+ Log Entry</button>
+            <button
+              onClick={openNew}
+              style={{ ...btnOutlineBase, border: `1px solid ${accentGreen}`, color: accentGreen }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(34,197,94,0.08)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              + Log Entry
+            </button>
             {SpeechRecognition && (
               <button
-                className={`btn${listening ? ' btn-primary' : ' btn-secondary'}`}
                 onClick={listening ? stopVoiceEntry : startVoiceEntry}
                 title={listening ? 'Stop and open form' : 'Log by voice'}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}
+                style={{
+                  ...btnOutlineBase,
+                  border: `1px solid ${listening ? '#ef4444' : 'var(--border-hi)'}`,
+                  color: listening ? '#ef4444' : 'var(--text-secondary)',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 {listening ? (
                   <>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite', flexShrink: 0 }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite', flexShrink: 0 }} />
                     Stop
                   </>
                 ) : (
                   <>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="9" y="2" width="6" height="12" rx="3"/>
                       <path d="M5 10a7 7 0 0 0 14 0"/>
                       <line x1="12" y1="19" x2="12" y2="22"/>
@@ -224,11 +249,11 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
         </div>
 
         {!latestEntry ? (
-          <p className="text-muted" style={{ padding: '8px 0' }}>No entries yet. Log your first entry above.</p>
+          <p className="text-muted" style={{ padding: '12px 20px' }}>No entries yet. Log your first entry above.</p>
         ) : (() => {
           const STATUS_RANK: Record<VitalStatus, number> = { bad: 4, caution: 3, warning: 2, good: 1, neutral: 0 };
 
-          type Metric = { label: string; value: string; unit: string; color: string };
+          type Metric = { label: string; value: string; unit: string; color: string; isNone?: boolean };
           const metrics: Metric[] = [];
 
           if (latestEntry.overallFeel != null) {
@@ -258,7 +283,7 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
             metrics.push({ label: `Sleep${suffix}`, value: String(latestSleep.value), unit: '/100', color: STATUS_COLOR[s] });
           }
           if (latestEntry.symptoms.length === 0) {
-            metrics.push({ label: 'Symptoms', value: 'None', unit: '', color: STATUS_COLOR.good });
+            metrics.push({ label: 'Symptoms', value: 'None', unit: '', color: STATUS_COLOR.neutral, isNone: true });
           } else {
             latestEntry.symptoms.forEach((s: SymptomEntry) => {
               metrics.push({
@@ -266,6 +291,7 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
                 value: String(s.intensity),
                 unit: '/10',
                 color: STATUS_COLOR[symptomStatus(s.intensity)],
+                isNone: false,
               });
             });
           }
@@ -274,26 +300,27 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
             <div style={{
               display: 'flex',
               borderTop: '1px solid var(--border)',
-              marginTop: 12,
               overflow: 'hidden',
             }}>
               {metrics.map((m, i) => (
                 <div key={m.label} style={{
                   flex: 1,
                   minWidth: 0,
-                  padding: '12px 14px',
+                  padding: '14px 16px',
                   borderRight: i === metrics.length - 1 ? 'none' : '1px solid var(--border)',
                   background: i === 0 ? 'rgba(34, 197, 94, 0.06)' : 'transparent',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 5,
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {m.label}
+                  <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {m.label}
+                  </span>
+                  {m.isNone ? (
+                    <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>
+                      None
                     </span>
-                  </div>
+                  ) : (
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
                     <span style={{ fontSize: '1.4rem', fontWeight: 700, color: m.color, letterSpacing: '-0.03em', lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
                       {m.value}
@@ -302,6 +329,7 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
                       <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{m.unit}</span>
                     )}
                   </div>
+                  )}
                 </div>
               ))}
             </div>
