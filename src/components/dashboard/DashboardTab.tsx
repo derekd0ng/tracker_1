@@ -322,14 +322,14 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                 title="Edit name"
                 style={{
                   background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                  color: user?.name ? 'rgba(255,255,255,0.25)' : '#22D3EE',
+                  color: user?.name ? 'rgba(255,255,255,0.25)' : '#0ea5e9',
                   display: 'inline-flex', alignItems: 'center',
                   transition: 'color 0.15s',
                   position: 'relative', top: -6, marginLeft: 6,
                   verticalAlign: 'middle',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#22D3EE')}
-                onMouseLeave={e => (e.currentTarget.style.color = user?.name ? 'rgba(255,255,255,0.25)' : '#22D3EE')}
+                onMouseEnter={e => (e.currentTarget.style.color = '#0ea5e9')}
+                onMouseLeave={e => (e.currentTarget.style.color = user?.name ? 'rgba(255,255,255,0.25)' : '#0ea5e9')}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -352,7 +352,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
       {/* ── Well-being snapshot ── */}
       <div className="wb-theme">
         <WellbeingSnapshot navButton={
-          <button onClick={() => onNavigate('wellbeing')} style={{ ...NAV_BTN_BASE, background: '#10B981', color: '#000' }}>
+          <button onClick={() => onNavigate('wellbeing')} style={{ ...NAV_BTN_BASE, background: '#22c55e', color: '#000' }}>
             <ArrowRight />
           </button>
         } />
@@ -362,16 +362,16 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
       <div className="dash-bottom-grid">
 
         {/* Medications */}
-        <div style={{ background: '#131b2e', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)', padding: 20 }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 4, border: '1px solid rgba(255,255,255,0.05)', padding: 20 }}>
           <div className="flex-between" style={{ marginBottom: 14 }}>
             <p className="section-title" style={{ marginBottom: 0 }}>Medications</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {totalDosesToday > 0 && (
-                <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#22D3EE' }}>
+                <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0ea5e9' }}>
                   {takenDosesToday}/{totalDosesToday} taken
                 </span>
               )}
-              <button onClick={() => onNavigate('medication')} style={{ ...NAV_BTN_BASE, background: '#22D3EE', color: '#000' }}>
+              <button onClick={() => onNavigate('medication')} style={{ ...NAV_BTN_BASE, background: '#0ea5e9', color: '#000' }}>
                 <ArrowRight />
               </button>
             </div>
@@ -467,7 +467,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
         </div>
 
         {/* Habits & Streaks */}
-        <div className="hab-theme" style={{ background: '#131b2e', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)', padding: 20 }}>
+        <div className="hab-theme" style={{ background: 'var(--surface)', borderRadius: 4, border: '1px solid rgba(255,255,255,0.05)', padding: 20 }}>
           <div className="flex-between" style={{ marginBottom: 14 }}>
             <p className="section-title" style={{ marginBottom: 0 }}>Habits & Streaks</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -88,24 +88,15 @@ function symptomStatus(intensity: number): VitalStatus {
   return 'bad';
 }
 
-// ── VitalCard ──────────────────────────────────────────────────────────────
+// ── Status → accent color ──────────────────────────────────────────────────
 
-interface VitalCardProps { label: string; value: string; status: VitalStatus; wide?: boolean; }
-function VitalCard({ label, value, status, wide }: VitalCardProps) {
-  const parts = value.match(/^([\d./]+)(.*)$/);
-  const num  = parts?.[1] ?? value;
-  const unit = parts?.[2]?.trim() ?? '';
-  return (
-    <div className={`vital-card vital-card--${status}${wide ? ' vital-card--wide' : ''}`}>
-      <div className="vital-card-dot" />
-      <div className="vital-card-label">{label}</div>
-      <div className="vital-card-row">
-        <span className="vital-card-value">{num}</span>
-        {unit && <span className="vital-card-unit">{unit}</span>}
-      </div>
-    </div>
-  );
-}
+const STATUS_COLOR: Record<VitalStatus, string> = {
+  good:    '#22c55e',
+  warning: '#facc15',
+  caution: '#fb923c',
+  bad:     '#f87171',
+  neutral: '#888888',
+};
 
 // ── WellbeingSnapshot ──────────────────────────────────────────────────────
 
@@ -234,41 +225,88 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
 
         {!latestEntry ? (
           <p className="text-muted" style={{ padding: '8px 0' }}>No entries yet. Log your first entry above.</p>
-        ) : (
-          <div className="vital-cards-row" style={{ marginTop: 16 }}>
-            {latestEntry.overallFeel != null && (
-              <VitalCard label="Feel" value={`${latestEntry.overallFeel} /10`} status={toStatus(feelColor(latestEntry.overallFeel))} />
-            )}
-            {latestHR && (
-              <VitalCard label={`Heart Rate${latestHR.date !== latestEntry.date ? ` (${shortDate(latestHR.date)})` : ''}`} value={`${latestHR.heartRate} bpm`} status={toStatus(hrColor(latestHR.heartRate!, avgHr))} />
-            )}
-            {latestBP && (() => {
-              const STATUS_RANK: Record<VitalStatus, number> = { bad: 4, caution: 3, warning: 2, good: 1, neutral: 0 };
-              const sysStatus = toStatus(sysBPColor(latestBP.systolicBP!));
-              const diaStatus = toStatus(diaBPColor(latestBP.diastolicBP!));
-              const bpStatus = STATUS_RANK[sysStatus] >= STATUS_RANK[diaStatus] ? sysStatus : diaStatus;
-              return (
-                <VitalCard
-                  label={`Blood Pressure${latestBP.date !== latestEntry.date ? ` (${shortDate(latestBP.date)})` : ''}`}
-                  value={`${latestBP.systolicBP}/${latestBP.diastolicBP} mmHg`}
-                  status={bpStatus}
-                  wide
-                />
-              );
-            })()}
-            {latestSpO2 && (
-              <VitalCard label={`SpO₂${latestSpO2.date !== latestEntry.date ? ` (${shortDate(latestSpO2.date)})` : ''}`} value={`${latestSpO2.spo2} %`} status={toStatus(spo2Color(latestSpO2.spo2!))} />
-            )}
-            {latestSleep && (
-              <VitalCard label={`Sleep${latestSleep.date !== latestEntry.date ? ` (${shortDate(latestSleep.date)})` : ''}`} value={`${latestSleep.value} /100`} status={toStatus(sleepColor(latestSleep.value))} />
-            )}
-            {latestEntry.symptoms.length === 0 ? (
-              <VitalCard label="Symptoms" value="None" status="good" />
-            ) : latestEntry.symptoms.map((s: SymptomEntry) => (
-              <VitalCard key={s.name} label={s.duration ? `${s.name} · ${s.duration}` : s.name} value={`${s.intensity} /10`} status={symptomStatus(s.intensity)} />
-            ))}
-          </div>
-        )}
+        ) : (() => {
+          const STATUS_RANK: Record<VitalStatus, number> = { bad: 4, caution: 3, warning: 2, good: 1, neutral: 0 };
+
+          type Metric = { label: string; value: string; unit: string; color: string };
+          const metrics: Metric[] = [];
+
+          if (latestEntry.overallFeel != null) {
+            const s = toStatus(feelColor(latestEntry.overallFeel));
+            metrics.push({ label: 'Feel', value: String(latestEntry.overallFeel), unit: '/10', color: STATUS_COLOR[s] });
+          }
+          if (latestHR) {
+            const s = toStatus(hrColor(latestHR.heartRate!, avgHr));
+            const suffix = latestHR.date !== latestEntry.date ? ` (${shortDate(latestHR.date)})` : '';
+            metrics.push({ label: `HR${suffix}`, value: String(latestHR.heartRate), unit: 'bpm', color: STATUS_COLOR[s] });
+          }
+          if (latestBP) {
+            const sysS = toStatus(sysBPColor(latestBP.systolicBP!));
+            const diaS = toStatus(diaBPColor(latestBP.diastolicBP!));
+            const bpS = STATUS_RANK[sysS] >= STATUS_RANK[diaS] ? sysS : diaS;
+            const suffix = latestBP.date !== latestEntry.date ? ` (${shortDate(latestBP.date)})` : '';
+            metrics.push({ label: `BP${suffix}`, value: `${latestBP.systolicBP}/${latestBP.diastolicBP}`, unit: 'mmHg', color: STATUS_COLOR[bpS] });
+          }
+          if (latestSpO2) {
+            const s = toStatus(spo2Color(latestSpO2.spo2!));
+            const suffix = latestSpO2.date !== latestEntry.date ? ` (${shortDate(latestSpO2.date)})` : '';
+            metrics.push({ label: `SpO₂${suffix}`, value: String(latestSpO2.spo2), unit: '%', color: STATUS_COLOR[s] });
+          }
+          if (latestSleep) {
+            const s = toStatus(sleepColor(latestSleep.value));
+            const suffix = latestSleep.date !== latestEntry.date ? ` (${shortDate(latestSleep.date)})` : '';
+            metrics.push({ label: `Sleep${suffix}`, value: String(latestSleep.value), unit: '/100', color: STATUS_COLOR[s] });
+          }
+          if (latestEntry.symptoms.length === 0) {
+            metrics.push({ label: 'Symptoms', value: 'None', unit: '', color: STATUS_COLOR.good });
+          } else {
+            latestEntry.symptoms.forEach((s: SymptomEntry) => {
+              metrics.push({
+                label: s.duration ? `${s.name} · ${s.duration}` : s.name,
+                value: String(s.intensity),
+                unit: '/10',
+                color: STATUS_COLOR[symptomStatus(s.intensity)],
+              });
+            });
+          }
+
+          return (
+            <div style={{
+              display: 'flex',
+              borderTop: '1px solid var(--border)',
+              marginTop: 12,
+              overflow: 'hidden',
+            }}>
+              {metrics.map((m, i) => (
+                <div key={m.label} style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '12px 14px',
+                  borderRight: i === metrics.length - 1 ? 'none' : '1px solid var(--border)',
+                  background: i === 0 ? 'rgba(34, 197, 94, 0.06)' : 'transparent',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 5,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {m.label}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 700, color: m.color, letterSpacing: '-0.03em', lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+                      {m.value}
+                    </span>
+                    {m.unit && (
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{m.unit}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {showForm && (
