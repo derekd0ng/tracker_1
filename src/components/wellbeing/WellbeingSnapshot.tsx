@@ -308,7 +308,7 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
                   minWidth: 0,
                   padding: '14px 16px',
                   borderRight: i === metrics.length - 1 ? 'none' : '1px solid var(--border)',
-                  background: i === 0 ? 'rgba(34, 197, 94, 0.06)' : 'transparent',
+                  background: 'transparent',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 5,
