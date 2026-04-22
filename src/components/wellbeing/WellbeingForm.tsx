@@ -1,3 +1,4 @@
+import { IconSparkle, IconMic } from '../Icons';
 import { useState, useRef, useEffect } from 'react';
 import type { WellbeingEntry, SymptomEntry } from '../../types';
 import { SYMPTOM_OPTIONS } from '../../types';
@@ -357,7 +358,7 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
         {/* ── AI description parser ── */}
         <div style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.18)', borderRadius: 12, padding: 14, marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <img src="/icon-ai.svg" alt="" style={{ width: 16, height: 16 }} />
+            <IconSparkle size={16} color="#a78bfa" />
             <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent)' }}>Describe how you feel</span>
           </div>
           <textarea

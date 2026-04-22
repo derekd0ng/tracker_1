@@ -6,6 +6,7 @@ import {
 } from '../../storage';
 import MedicationForm from './MedicationForm';
 import DailyMedLog from './DailyMedLog';
+import { IconPlus, IconList, IconLayers, IconLightbulb, IconSparkle } from '../Icons';
 import BulkMedInputModal from './BulkMedInputModal';
 
 function localDateStr(d = new Date()) {
@@ -179,23 +180,23 @@ export default function MedicationTab() {
               </div>
             </div>
             <button className="prescriptions-btn-primary" onClick={openNew}>
-              <img src="/icon-add.png" alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+              <IconPlus size={18} />
               Add Medication
             </button>
             <button className="prescriptions-btn-secondary" onClick={() => setShowList(true)}>
-              <img src="/icon-list.png" alt="" style={{ width: 15, height: 15, objectFit: 'contain' }} />
+              <IconList size={16} />
               View Full List
             </button>
             {meds.length > 0 && (
               <button className="prescriptions-btn-ghost" onClick={() => setShowBulk(true)}>
-                <img src="/icon-bulk.png" alt="" style={{ width: 13, height: 13, objectFit: 'contain' }} />
+                <IconLayers size={14} />
                 Bulk Input
               </button>
             )}
           </div>
 
           <div className="med-tip-card">
-            <img src="/icon-tip.png" alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+            <IconLightbulb size={28} color="var(--accent)" />
             <h4 className="med-tip-title">Did you know?</h4>
             <p className="med-tip-body">
               Consistency improves the efficacy of your treatment plan by up to 40%. Try setting reminders.

@@ -3,6 +3,7 @@ import type { Medication, MedicationLog, TimeOfDay } from '../../types';
 import { getMedLogs, getMedLogsForDate, toggleMedLog, skipMedLog, clearMedLog, moveMedLog, saveMedication } from '../../storage';
 import { TIMES_OF_DAY } from '../../types';
 import MedInfoModal from './MedInfoModal';
+import { IconMorning, IconAfternoon, IconEvening, IconNight, IconCheckSquare, IconSkipSquare, IconEmptySquare, IconSparkle } from '../Icons';
 
 interface Props {
   medications: Medication[];
@@ -16,11 +17,11 @@ const TIME_LABELS: Record<TimeOfDay, string> = {
   night: 'Night',
 };
 
-const TIME_ICONS: Record<TimeOfDay, string> = {
-  morning: '🌅',
-  afternoon: '☀️',
-  evening: '🌇',
-  night: '🌙',
+const TIME_SLOT_ICONS: Record<TimeOfDay, React.ReactElement> = {
+  morning:   <IconMorning size={18} />,
+  afternoon: <IconAfternoon size={18} />,
+  evening:   <IconEvening size={18} />,
+  night:     <IconNight size={18} />,
 };
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -399,15 +400,9 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                   className="med-section-header"
                   onClick={() => toggleSection(timeOfDay, sectionEntries)}
                 >
-                  {timeOfDay === 'morning' ? (
-                    <img src="/icon-morning.png" alt="Morning" className="med-section-icon-img" />
-                  ) : timeOfDay === 'afternoon' ? (
-                    <img src="/icon-afternoon.png" alt="Afternoon" className="med-section-icon-img" />
-                  ) : timeOfDay === 'evening' ? (
-                    <img src="/icon-evening.png" alt="Evening" className="med-section-icon-img" />
-                  ) : (
-                    <img src="/icon-night.png" alt="Night" className="med-section-icon-img" />
-                  )}
+                  <div className="med-section-icon">
+                    {TIME_SLOT_ICONS[timeOfDay]}
+                  </div>
                   <h3 className="med-section-title">{TIME_LABELS[timeOfDay]}</h3>
                   <span className={`med-section-badge${allDone ? ' done' : pendingCount > 0 ? ' pending' : ' upcoming'}`}>
                     {allDone
@@ -451,11 +446,11 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                             {movedFrom ? (
                               <span style={{ fontSize: '1rem', opacity: 0.5 }}>→</span>
                             ) : taken ? (
-                              <img src="/icon-checked.png" alt="" className="med-item-check-icon" />
+                              <IconCheckSquare size={32} color="var(--success)" />
                             ) : skipped ? (
-                              <img src="/icon-skipped.svg" alt="" className="med-item-check-icon" />
+                              <IconSkipSquare size={32} color="var(--warning)" />
                             ) : (
-                              <img src="/icon-unchecked.png" alt="" className="med-item-check-icon" />
+                              <IconEmptySquare size={32} color="var(--border-hi)" />
                             )}
                           </div>
 
@@ -468,7 +463,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                               <button
                                 className="med-info-btn"
                                 onClick={e => { e.stopPropagation(); setInfoMed({ name: med.name, dose: med.dose }); }}
-                              ><img src="/icon-ai.svg" alt="AI info" width="14" height="14" /></button>
+                              ><IconSparkle size={14} color="#a78bfa" /></button>
                             </div>
                             {(med.dose || med.purpose || course) && (
                               <span className="med-item-sub">
@@ -538,7 +533,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                       <button
                         className="med-info-btn"
                         onClick={e => { e.stopPropagation(); setInfoMed({ name: med.name, dose: med.dose }); }}
-                      ><img src="/icon-ai.svg" alt="AI info" width="14" height="14" /></button>
+                      ><IconSparkle size={14} color="#a78bfa" /></button>
                     </div>
                     <span className="med-item-sub">
                       {med.durationDays} day course done
@@ -564,7 +559,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}
               >
-                <img src={`/icon-${t}.png`} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />
+                {TIME_SLOT_ICONS[t]}
                 {TIME_LABELS[t]}
               </button>
             ))}

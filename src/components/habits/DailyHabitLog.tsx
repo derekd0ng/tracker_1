@@ -1,3 +1,4 @@
+import { IconCheckCircle, IconEmptyCircle, IconSparkle } from '../Icons';
 import { useState, useRef, useEffect } from 'react';
 import type { Habit, HabitLog } from '../../types';
 import { getHabitLogs, getHabitLogsForDate, setHabitLog } from '../../storage';
@@ -194,7 +195,7 @@ export default function DailyHabitLog({ habits }: Props) {
             {h.name}
           </span>
           <button className="med-info-btn" style={{ flexShrink: 0 }} onClick={() => setInfoHabit(h.name)}>
-            <img src="/icon-ai.svg" alt="AI" style={{ width: 12, height: 12, display: 'block' }} />
+            <IconSparkle size={12} color="#a78bfa" />
           </button>
         </div>
 
@@ -231,7 +232,7 @@ export default function DailyHabitLog({ habits }: Props) {
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         {h.type === 'boolean' ? (
           <img
-            src={done ? '/icon-habit-checked.svg' : '/icon-unchecked.svg'}
+            src={undefined}
             alt={done ? 'done' : 'not done'}
             style={{ width: 40, height: 40, cursor: 'pointer', flexShrink: 0, display: 'block' }}
             onClick={() => handleBoolean(h)}
@@ -254,7 +255,7 @@ export default function DailyHabitLog({ habits }: Props) {
           </div>
         ) : done ? (
           <img
-            src="/icon-habit-checked.svg"
+            src={undefined}
             alt="done"
             style={{ width: 40, height: 40, cursor: 'pointer', flexShrink: 0, display: 'block' }}
             onClick={() => startEditingNumeric(h.id)}

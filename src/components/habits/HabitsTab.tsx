@@ -1,3 +1,4 @@
+import { IconSparkle, IconList, IconLayers } from '../Icons';
 import { useState, useCallback, useMemo } from 'react';
 import type { Habit, HabitLog, HabitType, HabitFrequency } from '../../types';
 import { getHabits, deleteHabit, getHabitLogs, saveHabit } from '../../storage';
@@ -291,7 +292,7 @@ export default function HabitsTab() {
           <div style={{ marginBottom: 20 }}>
             <h3 className="habit-section-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               Suggested for You
-              <img src="/icon-ai.svg" alt="AI" style={{ width: 22, height: 22 }} />
+              <IconSparkle size={22} color="#a78bfa" />
             </h3>
           </div>
           <div className="habit-suggestion-grid">
@@ -396,12 +397,12 @@ export default function HabitsTab() {
               Add Habit
             </button>
             <button className="prescriptions-btn-secondary" onClick={() => setShowList(true)}>
-              <img src="/icon-list.png" alt="" style={{ width: 15, height: 15, objectFit: 'contain' }} />
+              <IconList size={16} />
               View Full List
             </button>
             {habits.length > 0 && (
               <button className="prescriptions-btn-ghost" onClick={() => setShowBulk(true)}>
-                <img src="/icon-bulk.png" alt="" style={{ width: 13, height: 13, objectFit: 'contain' }} />
+                <IconLayers size={14} />
                 Bulk Input
               </button>
             )}
@@ -417,7 +418,7 @@ export default function HabitsTab() {
         <div style={{ marginBottom: 20 }}>
           <h3 className="habit-section-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             Suggested for You
-            <img src="/icon-ai.svg" alt="AI" style={{ width: 22, height: 22 }} />
+            <IconSparkle size={22} color="#a78bfa" />
           </h3>
         </div>
         <div className="habit-suggestion-grid">

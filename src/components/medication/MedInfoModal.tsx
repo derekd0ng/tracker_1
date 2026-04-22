@@ -1,3 +1,4 @@
+import { IconSparkle } from '../Icons';
 import { useState, useEffect } from 'react';
 
 interface Props {
@@ -69,7 +70,7 @@ export default function MedInfoModal({ medicationName, dose, onClose }: Props) {
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(168,85,247,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <img src="/icon-ai.svg" alt="" width="16" height="16" />
+              <IconSparkle size={16} color="#a78bfa" />
             </div>
             <div>
               <p className="modal-title" style={{ marginBottom: 0 }}>AI Overview</p>

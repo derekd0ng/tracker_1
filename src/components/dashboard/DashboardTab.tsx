@@ -86,6 +86,7 @@ function shortDate(dateStr: string): string {
 // ── Component ──────────────────────────────────────────────────────────────
 
 import type { TabId } from '../../types';
+import { IconMorning, IconAfternoon, IconEvening, IconNight, IconCheckSquare, IconSkipSquare, IconEmptySquare, IconCheckCircle, IconEmptyCircle, IconFlame, IconCalendar, IconArrowRight, IconPencil, IconSparkle } from '../Icons';
 
 interface Props {
   onNavigate: (tab: TabId) => void;
@@ -94,13 +95,7 @@ interface Props {
 }
 
 // Arrow-right icon for nav buttons
-function ArrowRight() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
+
 
 const NAV_BTN_BASE: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -331,10 +326,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                 onMouseEnter={e => (e.currentTarget.style.color = '#0ea5e9')}
                 onMouseLeave={e => (e.currentTarget.style.color = user?.name ? 'rgba(255,255,255,0.25)' : '#0ea5e9')}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <IconPencil size={15} />
               </button>
             </>
           )}
@@ -353,7 +345,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
       <div className="wb-theme">
         <WellbeingSnapshot navButton={
           <button onClick={() => onNavigate('wellbeing')} style={{ ...NAV_BTN_BASE, background: '#22c55e', color: '#000' }}>
-            <ArrowRight />
+            <IconArrowRight size={16} />
           </button>
         } />
       </div>
@@ -372,7 +364,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                 </span>
               )}
               <button onClick={() => onNavigate('medication')} style={{ ...NAV_BTN_BASE, background: '#0ea5e9', color: '#000' }}>
-                <ArrowRight />
+                <IconArrowRight size={16} />
               </button>
             </div>
           </div>
@@ -446,13 +438,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                               style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
                               onClick={() => handleToggleMed(m.id, slot)}
                             >
-                              <img
-                                src={isTaken ? '/icon-dash-checked.svg' : isSkipped ? '/icon-dash-skipped.svg' : '/icon-dash-unchecked.svg'}
-                                alt=""
-                                width="20"
-                                height="20"
-                                style={{ flexShrink: 0 }}
-                              />
+                              {isTaken ? <IconCheckSquare size={20} color="var(--success)" /> : isSkipped ? <IconSkipSquare size={20} color="var(--warning)" /> : <IconEmptySquare size={20} color="var(--border-hi)" />}
                               {m.name}{m.dose ? ` · ${m.dose}` : ''}
                             </span>
                           );
@@ -477,7 +463,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                 </span>
               )}
               <button onClick={() => onNavigate('habits')} style={{ ...NAV_BTN_BASE, background: '#3B82F6', color: '#000' }}>
-                <ArrowRight />
+                <IconArrowRight size={16} />
               </button>
             </div>
           </div>
@@ -490,7 +476,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                 <div className="med-section" style={{ padding: 0 }}>
                   <div className="med-section-header" style={{ cursor: 'pointer' }} onClick={() => toggleHabitSection('daily')}>
                     <div className="med-section-icon" style={{ background: 'rgba(59,130,246,0.12)' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" fill="#3B82F6"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"/></svg>
+                      <IconFlame size={18} color="var(--accent)" />
                     </div>
                     <h3 className="med-section-title">Daily Habits</h3>
                     <span className="med-section-badge" style={{ background: 'rgba(59,130,246,0.12)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.2)' }}>
@@ -516,7 +502,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                               {habit.type === 'boolean' ? (
                                 <img
-                                  src={doneToday ? '/icon-habit-checked.svg' : '/icon-unchecked.svg'}
+                                  src={doneToday ? undefined : undefined}
                                   alt={doneToday ? 'done' : 'not done'}
                                   style={{ width: 40, height: 40, cursor: 'pointer', flexShrink: 0, display: 'block' }}
                                   onClick={() => handleHabitBoolean(habit.id, value)}
@@ -536,7 +522,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                                 </div>
                               ) : doneToday ? (
                                 <img
-                                  src="/icon-habit-checked.svg" alt="done"
+                                  src="" alt="done"
                                   style={{ width: 40, height: 40, cursor: 'pointer', flexShrink: 0, display: 'block' }}
                                   onClick={() => setDashEditingIds(prev => new Set(prev).add(habit.id))}
                                 />
@@ -561,7 +547,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                 <div className="med-section" style={{ padding: 0 }}>
                   <div className="med-section-header" style={{ cursor: 'pointer' }} onClick={() => toggleHabitSection('weekly')}>
                     <div className="med-section-icon" style={{ background: 'rgba(59,130,246,0.12)' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#3B82F6" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"/></svg>
+                      <IconCalendar size={18} color="var(--accent)" />
                     </div>
                     <h3 className="med-section-title">Weekly Habits</h3>
                     <span className="med-section-badge" style={{ background: 'rgba(59,130,246,0.12)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.2)' }}>
@@ -588,7 +574,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                               {habit.type === 'boolean' ? (
                                 <img
-                                  src={doneToday ? '/icon-habit-checked.svg' : '/icon-unchecked.svg'}
+                                  src={doneToday ? undefined : undefined}
                                   alt={doneToday ? 'done' : 'not done'}
                                   style={{ width: 40, height: 40, cursor: 'pointer', flexShrink: 0, display: 'block' }}
                                   onClick={() => handleHabitBoolean(habit.id, value)}
@@ -608,7 +594,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                                 </div>
                               ) : doneToday ? (
                                 <img
-                                  src="/icon-habit-checked.svg" alt="done"
+                                  src="" alt="done"
                                   style={{ width: 40, height: 40, cursor: 'pointer', flexShrink: 0, display: 'block' }}
                                   onClick={() => setDashEditingIds(prev => new Set(prev).add(habit.id))}
                                 />
