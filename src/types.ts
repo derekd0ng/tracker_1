@@ -61,7 +61,15 @@ export interface MedicationLog {
   changedAt?: number;      // Date.now() of last taken/skipped action, for sorting
 }
 
-export type TabId = 'dashboard' | 'wellbeing' | 'medication' | 'habits';
+export type TabId = 'dashboard' | 'wellbeing' | 'medication' | 'habits' | 'todo';
+
+export interface TodoItem {
+  id: string;
+  title: string;
+  done: boolean;
+  createdAt: string;
+  dueDate?: string;
+}
 
 export type HabitType = 'boolean' | 'numeric';
 export type HabitFrequency = 'daily' | 'weekly';

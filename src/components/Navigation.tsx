@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { TabId } from '../types';
 import { exportData, exportAsXlsx, importData } from '../storage';
 import TelegramConnect from './TelegramConnect';
-import { IconDashboard, IconWellbeing, IconMedications, IconHabits } from './Icons';
+import { IconDashboard, IconWellbeing, IconMedications, IconHabits, IconTodo } from './Icons';
 
 interface Props {
   activeTab: TabId;
@@ -16,6 +16,7 @@ const NAV_ICONS: Record<TabId, React.ReactNode> = {
   wellbeing:  <IconWellbeing size={18} />,
   medication: <IconMedications size={18} />,
   habits:     <IconHabits size={18} />,
+  todo:       <IconTodo size={18} />,
 };
 
 const TABS: { id: TabId; label: string }[] = [
@@ -23,6 +24,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'wellbeing',  label: 'Well-being' },
   { id: 'medication', label: 'Medications' },
   { id: 'habits',     label: 'Habits'     },
+  { id: 'todo',       label: 'To-Do'      },
 ];
 
 export default function Navigation({ activeTab, onChange, user, onLogout }: Props) {

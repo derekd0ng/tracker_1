@@ -108,6 +108,7 @@ body::after {
 .sidebar[data-active="wellbeing"]  .sidebar-logo-title { color: #22c55e; }
 .sidebar[data-active="medication"] .sidebar-logo-title { color: #0ea5e9; }
 .sidebar[data-active="habits"]     .sidebar-logo-title { color: #a78bfa; }
+.sidebar[data-active="todo"]       .sidebar-logo-title { color: #f43f5e; }
 
 .sidebar-logo-sub {
   font-size: 0.75rem;
@@ -188,6 +189,11 @@ body::after {
 }
 .sidebar[data-active="habits"] .sidebar-nav-item:hover {
   color: var(--text-secondary);
+}
+.sidebar[data-active="todo"] .sidebar-nav-item.active {
+  color: #f43f5e;
+  border-left-color: #f43f5e;
+  background: rgba(244, 63, 94, 0.06);
 }
 
 .sidebar-nav-icon {
@@ -2180,6 +2186,15 @@ input[type='range'] {
 }
 
 /* ── Habits tab: blue theme ──────────────────────────────────────────────── */
+/* ── To-do tab: rose theme ───────────────────────────────────────────────── */
+.todo-theme {
+  --accent:      #f43f5e;
+  --accent-bg:   rgba(244, 63, 94, 0.10);
+  --success:     #22c55e;
+  --border-focus:#f43f5e;
+}
+
+/* ── Habits tab: violet theme ────────────────────────────────────────────── */
 .hab-theme {
   --accent:      #a78bfa;
   --accent-bg:   rgba(167, 139, 250, 0.10);
@@ -2542,6 +2557,7 @@ input[type='range'] {
 .bottom-tabbar[data-active="wellbeing"] .bottom-tab.active  { color: #22c55e; }
 .bottom-tabbar[data-active="medication"] .bottom-tab.active { color: #0ea5e9; }
 .bottom-tabbar[data-active="habits"] .bottom-tab.active     { color: #a78bfa; }
+.bottom-tabbar[data-active="todo"]   .bottom-tab.active     { color: #f43f5e; }
 
 @media (max-width: 768px) {
   /* Hide sidebar, show tab bar */

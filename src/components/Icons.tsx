@@ -263,6 +263,14 @@ export const IconStar = ({ size = 16, color = 'currentColor' }: IconProps) => (
   </svg>
 );
 
+export const IconTodo = ({ size = 16, color = 'currentColor' }: IconProps) => (
+  <svg {...base(size, color)}>
+    <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+    <polyline points="5,7.5 7,9.5 11,5.5"/>
+    <line x1="5" y1="11.5" x2="11" y2="11.5"/>
+  </svg>
+);
+
 export const IconX = ({ size = 16, color = 'currentColor' }: IconProps) => (
   <svg {...base(size, color)}>
     <line x1="4" y1="4" x2="12" y2="12"/>
