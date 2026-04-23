@@ -446,11 +446,11 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                             {movedFrom ? (
                               <span style={{ fontSize: '1rem', opacity: 0.5 }}>→</span>
                             ) : taken ? (
-                              <IconCheckSquare size={32} color="var(--success)" />
+                              <IconCheckSquare size={22} color="var(--success)" />
                             ) : skipped ? (
-                              <IconSkipSquare size={32} color="var(--warning)" />
+                              <IconSkipSquare size={22} color="var(--warning)" />
                             ) : (
-                              <IconEmptySquare size={32} color="var(--border-hi)" />
+                              <IconEmptySquare size={22} color="var(--border-hi)" />
                             )}
                           </div>
 

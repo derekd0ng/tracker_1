@@ -94,23 +94,23 @@ export const IconNight = ({ size = 16, color = 'currentColor' }: IconProps) => (
 // ── Check states ──────────────────────────────────────────────────────────────
 
 export const IconCheckSquare = ({ size = 16, color = 'currentColor' }: IconProps) => (
-  <svg {...base(size, color)}>
-    <rect x="2" y="2" width="12" height="12" rx="2"/>
+  <svg {...base(size, color)} strokeWidth={1}>
+    <rect x="2" y="2" width="12" height="12" rx="1.5"/>
     <polyline points="5,8 7,10 11,6"/>
   </svg>
 );
 
 export const IconSkipSquare = ({ size = 16, color = 'currentColor' }: IconProps) => (
-  <svg {...base(size, color)}>
-    <rect x="2" y="2" width="12" height="12" rx="2"/>
+  <svg {...base(size, color)} strokeWidth={1}>
+    <rect x="2" y="2" width="12" height="12" rx="1.5"/>
     <line x1="5.5" y1="5.5" x2="10.5" y2="10.5"/>
     <line x1="10.5" y1="5.5" x2="5.5" y2="10.5"/>
   </svg>
 );
 
 export const IconEmptySquare = ({ size = 16, color = 'currentColor' }: IconProps) => (
-  <svg {...base(size, color)}>
-    <rect x="2" y="2" width="12" height="12" rx="2"/>
+  <svg {...base(size, color)} strokeWidth={1}>
+    <rect x="2" y="2" width="12" height="12" rx="1.5"/>
   </svg>
 );
 
