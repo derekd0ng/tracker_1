@@ -131,15 +131,15 @@ export default function MedicationTab() {
           </p>
         </div>
 
-        <div className="med-stat-card" style={{ borderTop: '2px solid #a78bfa' }}>
+        <div className="med-stat-card" style={{ borderTop: '2px solid #0ea5e9' }}>
           <span className="med-stat-lbl">Weekly Adherence</span>
-          <span className="med-stat-big" style={{ color: '#a78bfa' }}>{weeklyAdherence}%</span>
+          <span className="med-stat-big" style={{ color: '#0ea5e9' }}>{weeklyAdherence}%</span>
           <p className="med-stat-sub">Consistency is key to recovery.</p>
         </div>
 
-        <div className="med-stat-card" style={{ borderTop: '2px solid #f87171' }}>
+        <div className="med-stat-card" style={{ borderTop: '2px solid #0ea5e9' }}>
           <span className="med-stat-lbl">Avg Daily Doses (7d)</span>
-          <span className="med-stat-big" style={{ color: '#f87171' }}>
+          <span className="med-stat-big" style={{ color: '#0ea5e9' }}>
             {avg7Display}
             {hasPrevData && avgDelta !== 0 && (
               <span className="avg-inline-delta" style={{ fontSize: '1rem', color: avgDelta > 0 ? 'var(--success)' : 'var(--danger)' }}>
