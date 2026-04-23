@@ -1658,23 +1658,23 @@ input[type='range'] {
 
 .habit-number-input {
   width: 74px;
-  height: 40px;
+  height: 32px;
   padding: 0 10px;
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(167, 139, 250, 0.3);
   border-radius: 4px;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-family: inherit;
   color: var(--text);
-  background: transparent;
+  background: rgba(167, 139, 250, 0.06);
   text-align: right;
   box-sizing: border-box;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s;
 }
 
 .habit-number-input:focus {
   outline: none;
-  border-color: rgba(195, 195, 205, 0.7);
-  box-shadow: 0 0 0 3px rgba(195, 195, 205, 0.12);
+  border-color: rgba(167, 139, 250, 0.6);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.12);
 }
 
 .habit-numeric-meta { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }

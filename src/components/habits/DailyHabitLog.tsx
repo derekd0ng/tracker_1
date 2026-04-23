@@ -1,4 +1,4 @@
-import { IconCheckCircle, IconEmptyCircle, IconSparkle } from '../Icons';
+import { IconCheckSquare, IconEmptySquare, IconSparkle } from '../Icons';
 import { useState, useRef, useEffect } from 'react';
 import type { Habit, HabitLog } from '../../types';
 import { getHabitLogs, getHabitLogsForDate, setHabitLog } from '../../storage';
@@ -231,12 +231,11 @@ export default function DailyHabitLog({ habits }: Props) {
         {/* Input */}
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         {h.type === 'boolean' ? (
-          <img
-            src={undefined}
-            alt={done ? 'done' : 'not done'}
-            style={{ width: 40, height: 40, cursor: 'pointer', flexShrink: 0, display: 'block' }}
-            onClick={() => handleBoolean(h)}
-          />
+          <span style={{ cursor: 'pointer', display: 'flex', flexShrink: 0 }} onClick={() => handleBoolean(h)}>
+            {done
+              ? <IconCheckSquare size={22} color="var(--accent)" />
+              : <IconEmptySquare size={22} color="var(--border-hi)" />}
+          </span>
         ) : isEditing ? (
           <div className="habit-numeric-wrap" style={{ width: '100%' }}>
             <input
@@ -254,25 +253,22 @@ export default function DailyHabitLog({ habits }: Props) {
             />
           </div>
         ) : done ? (
-          <img
-            src={undefined}
-            alt="done"
-            style={{ width: 40, height: 40, cursor: 'pointer', flexShrink: 0, display: 'block' }}
-            onClick={() => startEditingNumeric(h.id)}
-          />
+          <span style={{ cursor: 'pointer', display: 'flex', flexShrink: 0 }} onClick={() => startEditingNumeric(h.id)}>
+            <IconCheckSquare size={22} color="var(--accent)" />
+          </span>
         ) : (
           <button
             onClick={() => startEditingNumeric(h.id)}
             style={{
               background: 'transparent',
-              border: '1.5px solid rgba(59,130,246,0.3)',
-              borderRadius: 12,
-              padding: 0,
-              height: 40,
+              border: '1px solid rgba(167,139,250,0.3)',
+              borderRadius: 4,
+              padding: '0 10px',
+              height: 32,
               boxSizing: 'border-box',
-              color: 'var(--text)',
+              color: 'var(--text-secondary)',
               fontSize: '0.82rem',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
               fontFamily: 'inherit',
               whiteSpace: 'nowrap',
