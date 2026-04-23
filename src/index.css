@@ -2257,6 +2257,7 @@ input[type='range'] {
 .hab-theme .prescriptions-btn-primary {
   background: rgba(167, 139, 250, 0.12);
   color: #a78bfa;
+  border-color: rgba(167, 139, 250, 0.35);
 }
 .hab-theme .prescriptions-btn-primary:hover { background: rgba(167, 139, 250, 0.20); }
 .hab-theme .med-section-badge.done {
