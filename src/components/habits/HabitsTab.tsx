@@ -137,6 +137,14 @@ export default function HabitsTab() {
     return count;
   }, [habits, allLogs]);
 
+  // Last entry: most recent habit log date
+  const lastHabitEntry = (() => {
+    const dates = allLogs.filter(l => l.value > 0).map(l => l.date).sort().reverse();
+    if (!dates[0]) return null;
+    const d = new Date(dates[0] + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  })();
+
   // ── Empty state ────────────────────────────────────────────────────────────
 
   const [esName,        setEsName]        = useState('');
@@ -336,6 +344,11 @@ export default function HabitsTab() {
             <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text)' }}>
               Habits
             </span>
+            {lastHabitEntry && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Last entry: {lastHabitEntry}
+              </span>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', borderTop: '1px solid var(--border)' }}>

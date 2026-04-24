@@ -197,11 +197,11 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 10, height: 10, background: accentGreen, flexShrink: 0 }} />
             <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text)' }}>
-              Latest Well-being
+              Well-being
             </span>
             {latestEntry && (
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: 2 }}>
-                {formatEntryDateTime(latestEntry)}
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: 2 }}>
+                Last entry: {formatEntryDateTime(latestEntry)}
               </span>
             )}
           </div>

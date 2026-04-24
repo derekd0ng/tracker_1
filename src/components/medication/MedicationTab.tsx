@@ -111,6 +111,14 @@ export default function MedicationTab() {
   const avgDelta    = avg7 - avg7Prev;
   const hasPrevData = prev7Taken > 0;
 
+  // Last entry: most recent log date with any action
+  const lastMedEntry = (() => {
+    const dates = allLogs.filter(l => l.taken || l.skipped).map(l => l.date).sort().reverse();
+    if (!dates[0]) return null;
+    const d = new Date(dates[0] + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  })();
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
@@ -122,6 +130,11 @@ export default function MedicationTab() {
             <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text)' }}>
               Medications
             </span>
+            {lastMedEntry && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Last entry: {lastMedEntry}
+              </span>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', borderTop: '1px solid var(--border)' }}>
