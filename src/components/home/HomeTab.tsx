@@ -85,7 +85,9 @@ interface Module {
 
 const MODULES: Module[] = [
   { id:'wellbeing',   label:'WELL-BEING',  shortLabel:'WB',  col:ACCENTS.wellbeing,
-    cardX:R1_LX, cardY:R1Y, navX:NL, navY:NY1, side:'left',
+    cardX:R1_LX, cardY:R1Y,
+    navX:R1_LX+CARD_W-HAB_NAV_W/2, navY:R1Y+CARD_H-HAB_NAV_H/2,
+    navW:HAB_NAV_W, navH:HAB_NAV_H, side:'left',
     cardInnerEdgeX:R1_LX+CARD_W, cardCY:R1Y+CARD_H/2 },
   { id:'medication',  label:'MEDICATIONS', shortLabel:'MED', col:ACCENTS.medications,
     cardX:R1_RX, cardY:R1Y, navX:NR, navY:NY1, side:'right',
