@@ -123,8 +123,9 @@ function BrainCard({ module, onNavigate, style, children }: {
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: hov && !isCalendar ? '#121212' : '#0d0d0d',
+        background: hov && !isCalendar ? module.col : '#0d0d0d',
         border: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
+        color: hov && !isCalendar ? '#080808' : '#e2e2e2',
         borderRadius: 4,
         cursor: isCalendar ? 'default' : 'pointer',
         padding: '12px 14px 10px',
@@ -136,11 +137,12 @@ function BrainCard({ module, onNavigate, style, children }: {
     >
       <div style={{
         fontSize: 8.5, fontWeight: 700, letterSpacing: '0.12em',
-        color: module.col, fontFamily: "'JetBrains Mono', monospace",
+        color: hov && !isCalendar ? '#080808' : module.col,
+        fontFamily: "'JetBrains Mono', monospace",
         marginBottom: 9, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <span>{module.label}</span>
-        {hov && !isCalendar && <span style={{ opacity: 0.6, fontSize: 10 }}>→</span>}
+        {hov && !isCalendar && <span style={{ opacity: 0.5, fontSize: 10 }}>→</span>}
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>{children}</div>
     </div>
