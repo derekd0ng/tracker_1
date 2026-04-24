@@ -282,7 +282,7 @@ function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
   const div      = hov ? 'rgba(0,0,0,0.15)' : 'var(--border)';
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', justifyContent:'space-between' }}>
       {/* Big feel number */}
       {latest.overallFeel != null && (
         <div style={{ display:'flex', alignItems:'baseline', gap: 5, paddingBottom: 7 }}>
