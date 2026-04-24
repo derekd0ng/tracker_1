@@ -184,101 +184,75 @@ export default function DailyHabitLog({ habits }: Props) {
     const weekCount = isWeekly ? computeWeekCount(h, allLogs, date) : 0;
     const isEditing = editingIds.has(h.id);
 
+    const targetStr = isWeekly
+      ? (h.weeklyTarget != null ? `${h.weeklyTarget}×/wk` : null)
+      : (h.target != null ? `${h.target}${h.unit ? ` ${h.unit}` : ''}` : (h.unit ?? null));
+    const streakStr = isWeekly
+      ? (weekCount > 0 ? `${weekCount}${h.weeklyTarget != null ? `/${h.weeklyTarget}` : ''} this wk` : null)
+      : (streak > 0 ? `${streak}d streak` : null);
+    const subLine = [targetStr, streakStr].filter(Boolean).join(' · ');
+
     return (
       <div key={h.id} className={`habit-log-row${done ? ' habit-log-row--done' : ''}`}>
+
         {/* Icon */}
-        <div className="habit-log-icon">{h.icon ?? '○'}</div>
+        <span style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {h.icon ?? '·'}
+        </span>
 
-        {/* Name + AI button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          <span className="habit-mgmt-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {h.name}
-          </span>
-          <button className="med-info-btn" style={{ flexShrink: 0 }} onClick={() => setInfoHabit(h.name)}>
-            <IconSparkle size={12} color="#a78bfa" />
-          </button>
+        {/* Name + meta */}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="med-item-name" style={{ color: done ? 'var(--text-secondary)' : 'var(--text)' }}>
+              {h.name}
+            </span>
+            <button className="med-info-btn" style={{ flexShrink: 0 }} onClick={() => setInfoHabit(h.name)}>
+              <IconSparkle size={12} color="#a78bfa" />
+            </button>
+          </div>
+          {subLine && (
+            <span className="med-item-sub">{subLine}</span>
+          )}
         </div>
 
-        {/* Target */}
-        <div className="habit-log-target">
-          <div className="habit-mgmt-meta-label">Target</div>
-          <div className="habit-mgmt-meta-value">
-            {isWeekly
-              ? h.weeklyTarget != null ? `${h.weeklyTarget}×/week` : '—'
-              : h.target != null
-                ? `${h.target}${h.unit ? ` ${h.unit}` : ''}`
-                : h.unit ?? '—'}
-          </div>
-        </div>
-
-        {/* Streak (daily) or week count (weekly) */}
-        {isWeekly ? (
-          <div className="habit-log-streak">
-            <div className="habit-mgmt-meta-label">This week</div>
-            <div className="habit-mgmt-meta-value" style={{ color: weekCount > 0 ? 'var(--accent)' : undefined }}>
-              {weekCount}{h.weeklyTarget != null ? `/${h.weeklyTarget}` : ''} done
-            </div>
-          </div>
-        ) : (
-          <div className="habit-log-streak">
-            <div className="habit-mgmt-meta-label">Streak</div>
-            <div className="habit-mgmt-meta-value" style={{ color: streak > 0 ? '#f59e0b' : undefined }}>
-              {streak > 0 ? `🔥 ${streak} day${streak !== 1 ? 's' : ''}` : '—'}
-            </div>
-          </div>
-        )}
-
-        {/* Input */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        {h.type === 'boolean' ? (
-          <span style={{ cursor: 'pointer', display: 'flex', flexShrink: 0 }} onClick={() => handleBoolean(h)}>
-            {done
-              ? <IconCheckSquare size={22} color="var(--accent)" />
-              : <IconEmptySquare size={22} color="var(--border-hi)" />}
-          </span>
-        ) : isEditing ? (
-          <div className="habit-numeric-wrap" style={{ width: '100%' }}>
+        {/* Status */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+          {h.type === 'boolean' ? (
+            <span style={{ cursor: 'pointer', display: 'flex', flexShrink: 0 }} onClick={() => handleBoolean(h)}>
+              {done
+                ? <IconCheckSquare size={20} color="var(--accent)" />
+                : <IconEmptySquare size={20} color="var(--border-hi)" />}
+            </span>
+          ) : isEditing ? (
             <input
               type="text"
               inputMode="decimal"
               defaultValue={value ?? ''}
               autoFocus
               className="habit-number-input"
-              style={{ width: '100%' }}
               onBlur={e => handleNumericCommit(h, e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter') handleNumericCommit(h, e.currentTarget.value);
                 if (e.key === 'Escape') setEditingIds(prev => { const s = new Set(prev); s.delete(h.id); return s; });
               }}
             />
-          </div>
-        ) : done ? (
-          <span style={{ cursor: 'pointer', display: 'flex', flexShrink: 0 }} onClick={() => startEditingNumeric(h.id)}>
-            <IconCheckSquare size={22} color="var(--accent)" />
-          </span>
-        ) : (
-          <button
-            onClick={() => startEditingNumeric(h.id)}
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(167,139,250,0.3)',
-              borderRadius: 4,
-              padding: '0 10px',
-              height: 32,
-              boxSizing: 'border-box',
-              color: 'var(--text-secondary)',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              whiteSpace: 'nowrap',
-              width: '100%',
-              textAlign: 'center',
-            }}
-          >
-            {value != null ? value : '—'}
-          </button>
-        )}
+          ) : done ? (
+            <span style={{ cursor: 'pointer', display: 'flex', flexShrink: 0 }} onClick={() => startEditingNumeric(h.id)}>
+              <IconCheckSquare size={20} color="var(--accent)" />
+            </span>
+          ) : (
+            <button
+              onClick={() => startEditingNumeric(h.id)}
+              style={{
+                background: 'transparent', border: '1px solid rgba(167,139,250,0.3)',
+                borderRadius: 4, padding: '4px 12px', height: 30,
+                color: 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+              }}
+            >
+              {value != null ? value : '—'}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -362,10 +336,13 @@ export default function DailyHabitLog({ habits }: Props) {
                   {dailyHabits.filter(h => isHabitDone(h, getLogValue(h.id))).length}/{dailyHabits.length} done
                 </span>
               </div>
-              <div className="med-section-items" style={{ padding: '0 12px 12px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {sortByDone(dailyHabits).map(h => renderHabitRow(h))}
+              <div className="med-section-items">
+                <div className="med-items-header">
+                  <span/>
+                  <span>Habit / Note</span>
+                  <span>Status</span>
                 </div>
+                {sortByDone(dailyHabits).map(h => renderHabitRow(h))}
               </div>
             </div>
           )}
@@ -382,10 +359,13 @@ export default function DailyHabitLog({ habits }: Props) {
                   {weeklyHabits.filter(h => isHabitDone(h, getLogValue(h.id))).length}/{weeklyHabits.length} done
                 </span>
               </div>
-              <div className="med-section-items" style={{ padding: '0 12px 12px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {sortByDone(weeklyHabits).map(h => renderHabitRow(h, true))}
+              <div className="med-section-items">
+                <div className="med-items-header">
+                  <span/>
+                  <span>Habit / Note</span>
+                  <span>Status</span>
                 </div>
+                {sortByDone(weeklyHabits).map(h => renderHabitRow(h, true))}
               </div>
             </div>
           )}

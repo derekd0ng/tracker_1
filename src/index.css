@@ -2063,18 +2063,19 @@ input[type='range'] {
 /* Daily log rows — each is its own card */
 .habit-log-row {
   display: grid;
-  grid-template-columns: 46px 1fr 1fr 1fr 80px;
+  grid-template-columns: 26px 1fr auto;
   align-items: center;
   column-gap: 12px;
-  padding: 14px 20px;
-  background: rgba(34, 42, 61, 0.2);
+  padding: 12px 16px;
+  background: transparent;
   border: none;
-  border-radius: 4px;
-  transition: background 0.12s;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
 }
-.habit-log-row:hover { background: rgba(34, 42, 61, 0.5); }
-.habit-log-row--done { background: rgba(34, 42, 61, 0.2); }
-.habit-log-row--done:hover { background: rgba(34, 42, 61, 0.5); }
+.habit-log-row:last-child { border-bottom: none; }
+.habit-log-row:hover { background: rgba(255,255,255,0.02); }
+.habit-log-row--done { background: rgba(167,139,250,0.04); }
+.habit-log-row--done:hover { background: rgba(167,139,250,0.07); }
 .habit-mgmt-name {
   font-size: 0.95rem;
   font-weight: 700;
