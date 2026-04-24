@@ -113,7 +113,7 @@ const MODULES: Module[] = [
 // ── BrainCard ─────────────────────────────────────────────────────────────────
 function BrainCard({ module, onNavigate, style, children }: {
   module: Module; onNavigate: (id: TabId) => void;
-  style: React.CSSProperties; children: React.ReactNode;
+  style: React.CSSProperties; children: (hov: boolean) => React.ReactNode;
 }) {
   const [hov, setHov] = useState(false);
   const isCalendar = module.id === 'calendar';
@@ -144,7 +144,7 @@ function BrainCard({ module, onNavigate, style, children }: {
         <span>{module.label}</span>
         {hov && !isCalendar && <span style={{ opacity: 0.5, fontSize: 10 }}>→</span>}
       </div>
-      <div style={{ flex: 1, minHeight: 0 }}>{children}</div>
+      <div style={{ flex: 1, minHeight: 0 }}>{children(hov && !isCalendar)}</div>
     </div>
   );
 }
@@ -202,7 +202,7 @@ function NavIcon({ id, size, color }: { id: string; size: number; color: string 
 
 // ── Mini card contents ────────────────────────────────────────────────────────
 
-function WbMini({ accent }: { accent: string }) {
+function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
   const entries = getWellbeingEntries().sort((a,b) => b.date.localeCompare(a.date)||b.time.localeCompare(a.time));
   const latest = entries[0];
   const latestHR  = entries.find(e => e.heartRate != null);
@@ -245,7 +245,7 @@ function WbMini({ accent }: { accent: string }) {
   );
 }
 
-function MedMini({ accent }: { accent: string }) {
+function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
   const today = localDateStr();
   const meds = getMedications().filter(m => m.active && (!m.startDate || m.startDate <= today));
   const logs = getMedLogsForDate(today);
@@ -289,7 +289,7 @@ function MedMini({ accent }: { accent: string }) {
   );
 }
 
-function HabMini({ accent }: { accent: string }) {
+function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
   const today = localDateStr();
   const habits = getHabits().filter(h => (h.frequency ?? 'daily') === 'daily');
   const todayLogs = getHabitLogsForDate(today);
@@ -333,28 +333,32 @@ function HabMini({ accent }: { accent: string }) {
   );
 }
 
-function TodoMini({ accent }: { accent: string }) {
+function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
   const todos = (() => {
     try { return JSON.parse(localStorage.getItem('srt_todos') ?? '[]'); } catch { return []; }
   })() as { title: string; done: boolean }[];
 
   const pending = todos.filter(t => !t.done);
 
+  const fg      = hov ? '#080808' : '#e2e2e2';
+  const fgMuted = hov ? 'rgba(0,0,0,0.5)' : '#555';
+  const dot     = hov ? 'rgba(0,0,0,0.6)' : accent;
+
   if (todos.length === 0) return (
-    <div style={{ fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>No to-dos yet</div>
+    <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No to-dos yet</div>
   );
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 7 }}>
       <div style={{ display:'flex', alignItems:'baseline', gap: 5 }}>
-        <span style={{ fontSize: 30, fontWeight: 700, color: accent, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{pending.length}</span>
-        <span style={{ fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>pending</span>
+        <span style={{ fontSize: 30, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{pending.length}</span>
+        <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>pending</span>
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap: 4 }}>
         {pending.slice(0, 4).map((t, i) => (
           <div key={i} style={{ display:'flex', alignItems:'flex-start', gap: 5 }}>
-            <div style={{ width: 5, height: 5, borderRadius: 1, flexShrink: 0, marginTop: 3.5, background: accent }}/>
-            <span style={{ fontSize: 10.5, color:'#e2e2e2', fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.title}</span>
+            <div style={{ width: 5, height: 5, borderRadius: 1, flexShrink: 0, marginTop: 3.5, background: dot }}/>
+            <span style={{ fontSize: 10.5, color: fg, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.title}</span>
           </div>
         ))}
       </div>
@@ -362,7 +366,7 @@ function TodoMini({ accent }: { accent: string }) {
   );
 }
 
-function DiaryMini({ accent }: { accent: string }) {
+function DiaryMini({ accent, hov }: { accent: string; hov: boolean }) {
   const entries = (() => {
     try { return Object.values(JSON.parse(localStorage.getItem('srt_diary') ?? '{}')) as {date:string;freeText:string;updatedAt:string}[]; }
     catch { return []; }
@@ -470,13 +474,13 @@ export default function HomeTab({ onNavigate }: Props) {
   const totalGoals = totalMeds + habits.length;
   const pct = totalGoals > 0 ? Math.round(((takenMeds + doneHabits) / totalGoals) * 100) : 0;
 
-  const cardContent = (m: Module) => {
+  const cardContent = (m: Module, hov: boolean) => {
     switch (m.id) {
-      case 'wellbeing':  return <WbMini accent={m.col} />;
-      case 'medication': return <MedMini accent={m.col} />;
-      case 'habits':     return <HabMini accent={m.col} />;
-      case 'todo':       return <TodoMini accent={m.col} />;
-      case 'diary':      return <DiaryMini accent={m.col} />;
+      case 'wellbeing':  return <WbMini accent={m.col} hov={hov} />;
+      case 'medication': return <MedMini accent={m.col} hov={hov} />;
+      case 'habits':     return <HabMini accent={m.col} hov={hov} />;
+      case 'todo':       return <TodoMini accent={m.col} hov={hov} />;
+      case 'diary':      return <DiaryMini accent={m.col} hov={hov} />;
       case 'calendar':   return <CalMini accent={m.col} />;
     }
   };
@@ -516,7 +520,7 @@ export default function HomeTab({ onNavigate }: Props) {
             <BrainCard key={m.id}
               style={{ position:'absolute', left: m.cardX, top: m.cardY, width: CARD_W, height: CARD_H, zIndex: 1 }}
               module={m} onNavigate={onNavigate}>
-              {cardContent(m)}
+              {(hov) => cardContent(m, hov)}
             </BrainCard>
           ))}
 
