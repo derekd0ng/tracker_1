@@ -98,7 +98,7 @@ export default function App() {
   if (activeTab === 'home') {
     return (
       <div className="app">
-        <main style={{ width: '100%', minHeight: '100vh', padding: '32px 40px 60px' }}>
+        <main style={{ width: '100%', minHeight: '100vh', padding: '24px 24px 40px' }}>
           <HomeTab onNavigate={setActiveTab} />
         </main>
         {/* Mobile bottom nav still available */}

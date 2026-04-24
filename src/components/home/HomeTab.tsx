@@ -48,24 +48,30 @@ function computeStreak(habitId: string, allLogs: {habitId:string;date:string;val
 }
 
 // ── Canvas constants ──────────────────────────────────────────────────────────
-const CW = 1140, CH = 760;
-const CARD_W = 290, CARD_H = 192;
-const NAV = 56;
-const HAB_NAV_W = 110, HAB_NAV_H = 70;
+const CW = 1440, CH = 880;
+const CARD_W = 380, CARD_H = 240;
+const NAV = 64;
+const HAB_NAV_W = 130, HAB_NAV_H = 84;
 
-const R1_LX = 219, R1_RX = 631;
-const R2_LX = 20,  R2_RX = 830;
-const R3_LX = 219, R3_RX = 631;
-const R1Y = 30, R2Y = 270, R3Y = 510;
+// Row Y — evenly spaced with 50px gaps, 30px top/bottom margin
+const R1Y = 30, R2Y = 320, R3Y = 610;
 
-const CENTER_SQ = 160;
-const CENTER_X = CW / 2 - CENTER_SQ / 2;
-const CENTER_Y = R2Y + CARD_H / 2 - CENTER_SQ / 2;
+// Row X — symmetric around CX=720
+// Row 1 & 3: close together (140px gap between cards, 270px margin each side)
+const R1_LX = 270, R1_RX = 790;
+const R3_LX = 270, R3_RX = 790;
+// Row 2: far apart (20px margin each side)
+const R2_LX = 20,  R2_RX = 1040;
 
-const NL = 513, NR = 573;
-const NY1 = R1Y + (CARD_H - NAV) / 2;
-const NY2 = R2Y + (CARD_H - NAV) / 2;
-const NY3 = R3Y + (CARD_H - NAV) / 2;
+// Spine nav squares sit in the 140px gap between row-1/3 cards, centred on CX=720
+const NL = 654, NR = 722;   // NL right-edge=718, NR left-edge=722 → 4px apart
+const NY1 = R1Y + (CARD_H - NAV) / 2;   // 118
+const NY2 = R2Y + (CARD_H - NAV) / 2;   // 408
+const NY3 = R3Y + (CARD_H - NAV) / 2;   // 698
+
+const CENTER_SQ = 200;
+const CENTER_X = CW / 2 - CENTER_SQ / 2;             // 620
+const CENTER_Y = R2Y + CARD_H / 2 - CENTER_SQ / 2;   // 340
 
 interface Module {
   id: TabId | 'calendar';
@@ -94,7 +100,7 @@ const MODULES: Module[] = [
     cardInnerEdgeX:R2_LX+CARD_W, cardCY:R2Y+CARD_H/2 },
   { id:'todo',        label:'TO-DOS',      shortLabel:'TO-DOS', col:ACCENTS.todo,
     cardX:R2_RX, cardY:R2Y,
-    navX:R2_RX - HAB_NAV_W - 20, navY:R2Y+CARD_H/2-HAB_NAV_H/2,
+    navX:R2_RX-HAB_NAV_W-20, navY:R2Y+CARD_H/2-HAB_NAV_H/2,
     navW:HAB_NAV_W, navH:HAB_NAV_H, side:'right',
     cardInnerEdgeX:R2_RX, cardCY:R2Y+CARD_H/2 },
   { id:'diary',       label:'DIARY',       shortLabel:'LOG', col:ACCENTS.diary,
@@ -449,7 +455,7 @@ export default function HomeTab({ onNavigate }: Props) {
   useEffect(() => {
     function upd() {
       if (!wrapRef.current) return;
-      setScale(Math.min(1, wrapRef.current.offsetWidth / CW));
+      setScale(wrapRef.current.offsetWidth / CW);
     }
     upd();
     const ro = new ResizeObserver(upd);
