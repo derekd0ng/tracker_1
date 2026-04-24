@@ -263,6 +263,13 @@ export const IconStar = ({ size = 16, color = 'currentColor' }: IconProps) => (
   </svg>
 );
 
+export const IconHome = ({ size = 16, color = 'currentColor' }: IconProps) => (
+  <svg {...base(size, color)}>
+    <path d="M2 7.5L8 2l6 5.5V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.5z"/>
+    <path d="M6 15V9h4v6"/>
+  </svg>
+);
+
 export const IconDiary = ({ size = 16, color = 'currentColor' }: IconProps) => (
   <svg {...base(size, color)}>
     <path d="M4 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>

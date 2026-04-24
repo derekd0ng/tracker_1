@@ -6,6 +6,7 @@ import MedicationTab from './components/medication/MedicationTab';
 import HabitsTab from './components/habits/HabitsTab';
 import TodoTab from './components/todo/TodoTab';
 import DiaryTab from './components/diary/DiaryTab';
+import HomeTab from './components/home/HomeTab';
 import AuthScreen from './components/auth/AuthScreen';
 import { setAccessToken, AUTH_LOGOUT_EVENT, tryRefresh } from './api';
 import { initStorage } from './storage';
@@ -97,6 +98,7 @@ export default function App() {
       <Navigation activeTab={activeTab} onChange={setActiveTab} user={user} onLogout={handleLogout} />
       <main className="app-main">
         <div className="content-center">
+          {activeTab === 'home'       && <HomeTab onNavigate={setActiveTab} />}
           {activeTab === 'dashboard'  && <DashboardTab onNavigate={setActiveTab} user={user} onUserUpdate={u => setUser(u)} />}
           {activeTab === 'wellbeing'  && <div className="wb-theme"><WellbeingTab /></div>}
           {activeTab === 'medication' && <MedicationTab />}

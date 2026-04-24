@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { TabId } from '../types';
 import { exportData, exportAsXlsx, importData } from '../storage';
 import TelegramConnect from './TelegramConnect';
-import { IconDashboard, IconWellbeing, IconMedications, IconHabits, IconTodo, IconDiary } from './Icons';
+import { IconDashboard, IconWellbeing, IconMedications, IconHabits, IconTodo, IconDiary, IconHome } from './Icons';
 
 interface Props {
   activeTab: TabId;
@@ -12,6 +12,7 @@ interface Props {
 }
 
 const NAV_ICONS: Record<TabId, React.ReactNode> = {
+  home:       <IconHome size={18} />,
   dashboard:  <IconDashboard size={18} />,
   wellbeing:  <IconWellbeing size={18} />,
   medication: <IconMedications size={18} />,
@@ -21,6 +22,7 @@ const NAV_ICONS: Record<TabId, React.ReactNode> = {
 };
 
 const TABS: { id: TabId; label: string }[] = [
+  { id: 'home',       label: 'Home'       },
   { id: 'dashboard',  label: 'Dashboard'  },
   { id: 'wellbeing',  label: 'Well-being' },
   { id: 'medication', label: 'Medications' },
