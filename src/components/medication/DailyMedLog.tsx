@@ -491,7 +491,10 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                                 Taken{takenAt ? ` ${takenAt}` : ''}
                               </span>
                             ) : skipped ? (
-                              <button className="med-skip-btn undo" onClick={() => handleClear(med.id, effectiveSlot)}>Undo</button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--danger)', fontFamily: 'var(--mono)' }}>Skipped</span>
+                                <button className="med-skip-btn undo" onClick={() => handleClear(med.id, effectiveSlot)}>Undo</button>
+                              </div>
                             ) : (
                               <div style={{ display: 'flex', gap: 6 }}>
                                 <button
