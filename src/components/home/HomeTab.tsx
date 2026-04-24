@@ -336,39 +336,70 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
   );
 }
 
+const TODO_MAX = 5;
+
 function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
-  const [todos, setTodos] = useState<{ title: string; done: boolean }[]>([]);
+  const [todos, setTodos] = useState<{ id: string; title: string; done: boolean }[]>([]);
+
   useEffect(() => {
     import('../../api').then(({ api }) =>
-      api.get<{ title: string; done: boolean }[]>('/api/todos')
+      api.get<{ id: string; title: string; done: boolean }[]>('/api/todos')
         .then(setTodos).catch(() => {})
     );
   }, []);
 
-  const pending = todos.filter(t => !t.done);
+  async function toggle(id: string, done: boolean) {
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !done } : t));
+    const { api } = await import('../../api');
+    api.patch(`/api/todos/${id}`, { done: !done }).catch(() => {
+      setTodos(prev => prev.map(t => t.id === id ? { ...t, done } : t));
+    });
+  }
 
   const fg      = hov ? HOVER_TEXT : '#e2e2e2';
   const fgMuted = hov ? 'rgba(0,0,0,0.5)' : '#555';
-  const dot     = hov ? 'rgba(0,0,0,0.6)' : accent;
+  const fgDim   = hov ? 'rgba(0,0,0,0.35)' : '#383838';
+
+  const pending = todos.filter(t => !t.done);
+  const done    = todos.filter(t => t.done);
+  // Pending first, then done
+  const ordered = [...pending, ...done];
+  const visible = ordered.slice(0, TODO_MAX);
+  const overflow = ordered.length - visible.length;
 
   if (todos.length === 0) return (
     <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No to-dos yet</div>
   );
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 7 }}>
-      <div style={{ display:'flex', alignItems:'baseline', gap: 5 }}>
-        <span style={{ fontSize: 30, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{pending.length}</span>
-        <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>pending</span>
-      </div>
-      <div style={{ display:'flex', flexDirection:'column', gap: 4 }}>
-        {pending.slice(0, 4).map((t, i) => (
-          <div key={i} style={{ display:'flex', alignItems:'flex-start', gap: 5 }}>
-            <div style={{ width: 5, height: 5, borderRadius: 1, flexShrink: 0, marginTop: 3.5, background: dot }}/>
-            <span style={{ fontSize: 10.5, color: fg, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.title}</span>
-          </div>
-        ))}
-      </div>
+    <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
+      {visible.map(t => (
+        <div
+          key={t.id}
+          onClick={e => { e.stopPropagation(); toggle(t.id, t.done); }}
+          style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', borderRadius: 2, padding: '1px 0' }}
+        >
+          {/* Check icon */}
+          <svg width={13} height={13} viewBox="0 0 16 16" fill="none"
+            stroke={t.done ? (hov ? 'rgba(0,0,0,0.5)' : accent) : (hov ? 'rgba(0,0,0,0.3)' : '#383838')}
+            strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+            {t.done && <polyline points="5,8 7,10 11,6"/>}
+          </svg>
+          <span style={{
+            fontSize: 10.5, lineHeight: 1.3, fontFamily:'Space Grotesk,sans-serif',
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+            color: t.done ? fgMuted : fg,
+            textDecoration: t.done ? 'line-through' : 'none',
+            opacity: t.done ? 0.6 : 1,
+          }}>{t.title}</span>
+        </div>
+      ))}
+      {overflow > 0 && (
+        <div style={{ fontSize: 9.5, color: fgDim, fontFamily:"'JetBrains Mono',monospace", marginTop: 2 }}>
+          +{overflow} more
+        </div>
+      )}
     </div>
   );
 }
