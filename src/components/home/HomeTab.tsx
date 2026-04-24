@@ -229,44 +229,80 @@ function CheckSq({ done, accent, hov }: { done: boolean; accent: string; hov: bo
   );
 }
 
+// Status helpers for wb grid
+const WB_SC: Record<string,string> = { good:'#34d399',warning:'#facc15',caution:'#fb923c',bad:'#f87171',neutral:'#888' };
+const wbS = (v:number, r:[number,string][]) => { for(const [t,s] of r) if(v>=t) return WB_SC[s]; return WB_SC.neutral; };
+const feelSC  = (v:number) => wbS(v,[[8,'good'],[6,'warning'],[3,'caution'],[0,'bad']]);
+const spo2SC  = (v:number) => wbS(v,[[95,'good'],[92,'warning'],[90,'caution'],[0,'bad']]);
+const sleepSC = (v:number) => wbS(v,[[80,'good'],[60,'warning'],[40,'caution'],[0,'bad']]);
+const sysSC   = (v:number) => v>=150?WB_SC.bad:v>=135?WB_SC.caution:v>=120?WB_SC.warning:v>=90?WB_SC.good:WB_SC.warning;
+const diaSC   = (v:number) => v>100?WB_SC.bad:v>=85?WB_SC.caution:v>=80?WB_SC.warning:v>=60?WB_SC.good:WB_SC.warning;
+const hrSC    = (hr:number,avg:number|null) => { if(!avg) return WB_SC.good; const p=Math.abs(hr-avg)/avg; return p<=.10?WB_SC.good:p<=.20?WB_SC.warning:p<=.30?WB_SC.caution:WB_SC.bad; };
+const sympSC  = (i:number) => i<=1?WB_SC.neutral:i<=4?WB_SC.warning:i<=7?WB_SC.caution:WB_SC.bad;
+const stronger= (a:string,b:string) => { const r:Record<string,number>={[WB_SC.bad]:4,[WB_SC.caution]:3,[WB_SC.warning]:2,[WB_SC.good]:1,[WB_SC.neutral]:0}; return (r[a]??0)>=(r[b]??0)?a:b; };
+
 function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
-  const { fg, fgMuted, bg, border } = C(hov);
+  const { fgMuted, bg, border } = C(hov);
   const entries = getWellbeingEntries().sort((a,b) => b.date.localeCompare(a.date)||b.time.localeCompare(a.time));
-  const latest = entries[0];
-  const latestHR  = entries.find(e => e.heartRate != null);
-  const latestSpo = entries.find(e => e.spo2 != null);
+  const latest    = entries[0];
+  const latestHR  = entries.find(e => e.heartRate  != null);
+  const latestBP  = entries.find(e => e.systolicBP != null && e.diastolicBP != null);
+  const latestSpo = entries.find(e => e.spo2       != null);
+  const sleepHabitId = getHabits().find(h => /sleep/i.test(h.name))?.id;
+  const latestSleep  = sleepHabitId
+    ? getHabitLogs().filter(l => l.habitId === sleepHabitId && l.value > 0).sort((a,b) => b.date.localeCompare(a.date))[0] ?? null
+    : null;
+  const thirtyAgo = (() => { const d=new Date(); d.setDate(d.getDate()-30); return localDateStr(d); })();
+  const avgHr = (() => {
+    const vals = entries.filter(e => e.date >= thirtyAgo && e.heartRate != null).map(e => e.heartRate as number);
+    return vals.length ? vals.reduce((s,v)=>s+v,0)/vals.length : null;
+  })();
 
   if (!latest) return (
     <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No entries yet</div>
   );
 
-  const metrics = [
-    { l:'HR',   v: latestHR?.heartRate, u:'bpm', c: hov ? HOVER_TEXT : '#f87171' },
-    { l:'SPO₂', v: latestSpo?.spo2,     u:'%',   c: hov ? HOVER_TEXT : '#34d399' },
-    { l:'FEEL', v: latest.overallFeel,  u:'/10', c: hov ? HOVER_TEXT : accent    },
-  ];
+  // Build grid cells (everything except feel)
+  type Cell = { l:string; v:string; u:string; c:string; isNone?:boolean };
+  const cells: Cell[] = [];
+  if (latestHR?.heartRate   != null) cells.push({ l:'HR',   v:String(latestHR.heartRate),  u:'bpm',  c:hrSC(latestHR.heartRate, avgHr) });
+  if (latestBP?.systolicBP  != null) cells.push({ l:'BP',   v:`${latestBP.systolicBP}/${latestBP.diastolicBP}`, u:'mmHg', c:stronger(sysSC(latestBP.systolicBP!),diaSC(latestBP.diastolicBP!)) });
+  if (latestSpo?.spo2       != null) cells.push({ l:'SpO₂', v:String(latestSpo.spo2),       u:'%',    c:spo2SC(latestSpo.spo2!) });
+  if (latestSleep)                    cells.push({ l:'Sleep',v:String(latestSleep.value),     u:'/100', c:sleepSC(latestSleep.value) });
+  if (latest.symptoms.length === 0)   cells.push({ l:'Symptoms', v:'None', u:'', c:WB_SC.neutral, isNone:true });
+  else latest.symptoms.forEach(s =>   cells.push({ l:s.name, v:String(s.intensity), u:'/10', c:sympSC(s.intensity) }));
+
+  const MAX = 6;
+  const overflow = cells.length > MAX ? cells.length - MAX + 1 : 0;
+  const visible  = overflow > 0
+    ? [...cells.slice(0, MAX-1), { l:'', v:`+${overflow}`, u:' more', c:WB_SC.neutral, isNone:true }]
+    : cells;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 7 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap: 6 }}>
+      {/* Big feel number */}
       {latest.overallFeel != null && (
         <div style={{ display:'flex', alignItems:'baseline', gap: 5 }}>
-          <span style={{ fontSize: 32, fontWeight: 700, color: hov ? HOVER_TEXT : accent, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{latest.overallFeel}</span>
+          <span style={{ fontSize: 30, fontWeight: 700, color: hov ? HOVER_TEXT : feelSC(latest.overallFeel), fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{latest.overallFeel}</span>
           <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/10 feel</span>
         </div>
       )}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 4 }}>
-        {metrics.map(m => (
-          <div key={m.l} style={{ background: bg, borderRadius: 2, padding:'5px 6px', border:`1px solid ${border}` }}>
-            <div style={{ fontSize: 7.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>{m.l}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: m.v != null ? m.c : fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.3 }}>
-              {m.v ?? '—'}<span style={{ fontSize: 8, color: fgMuted }}>{m.v != null ? m.u : ''}</span>
+      {/* Metrics grid */}
+      {visible.length > 0 && (
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 3 }}>
+          {visible.map((m,i) => (
+            <div key={i} style={{ background: bg, borderRadius: 2, padding:'4px 6px', border:`1px solid ${border}` }}>
+              <div style={{ fontSize: 7, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase', letterSpacing:'0.05em' }}>{m.l}</div>
+              {m.isNone ? (
+                <div style={{ fontSize: 10, fontWeight: 700, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.2 }}>{m.v}</div>
+              ) : (
+                <div style={{ display:'flex', alignItems:'baseline', gap: 1 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: hov ? HOVER_TEXT : m.c, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.2 }}>{m.v}</span>
+                  <span style={{ fontSize: 7, color: fgMuted }}>{m.u}</span>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
-      </div>
-      {latest.symptoms.length > 0 && (
-        <div style={{ fontSize: 9.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-          {latest.symptoms.map(s => s.name).join(' · ')}
+          ))}
         </div>
       )}
     </div>
