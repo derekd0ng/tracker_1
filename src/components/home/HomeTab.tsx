@@ -379,7 +379,7 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
       <div style={{ display:'flex', alignItems:'baseline', gap: 4 }}>
-        <span style={{ fontSize: 26, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{takenDoses}</span>
+        <span style={{ fontSize: 28, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{takenDoses}</span>
         <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/{totalDoses} taken</span>
       </div>
       {nextSlot ? (
@@ -392,12 +392,12 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
               <div key={m.id} onClick={e => { e.stopPropagation(); toggleMed(m.id, nextSlot!); }}
                 style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', padding:'1px 0' }}>
                 <CheckSq done={false} accent={accent} hov={hov} />
-                <span style={{ fontSize: 10.5, color: fg, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                <span style={{ fontSize: 12, color: fg, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                   {m.name}{m.dose ? ` · ${m.dose}` : ''}
                 </span>
               </div>
             ))}
-            {overflow > 0 && <div style={{ fontSize: 9.5, color: fgDim, fontFamily:"'JetBrains Mono',monospace" }}>+{overflow} more</div>}
+            {overflow > 0 && <div style={{ fontSize: 10.5, color: fgDim, fontFamily:"'JetBrains Mono',monospace" }}>+{overflow} more</div>}
           </div>
         </>
       ) : (
@@ -437,7 +437,7 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
       <div style={{ display:'flex', alignItems:'baseline', gap: 4 }}>
-        <span style={{ fontSize: 26, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{doneCount}</span>
+        <span style={{ fontSize: 28, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{doneCount}</span>
         <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/{habits.length} done</span>
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
@@ -449,7 +449,7 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
               style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', padding:'1px 0' }}>
               <CheckSq done={isDone} accent={accent} hov={hov} />
               <span style={{
-                fontSize: 10.5, color: isDone ? fgMuted : fg,
+                fontSize: 12, color: isDone ? fgMuted : fg,
                 fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3,
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                 textDecoration: isDone ? 'line-through' : 'none', opacity: isDone ? 0.6 : 1,
@@ -457,7 +457,7 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
             </div>
           );
         })}
-        {overflow > 0 && <div style={{ fontSize: 9.5, color: fgDim, fontFamily:"'JetBrains Mono',monospace" }}>+{overflow} more</div>}
+        {overflow > 0 && <div style={{ fontSize: 10.5, color: fgDim, fontFamily:"'JetBrains Mono',monospace" }}>+{overflow} more</div>}
       </div>
     </div>
   );
@@ -499,7 +499,7 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
       <div style={{ display:'flex', alignItems:'baseline', gap: 4 }}>
-        <span style={{ fontSize: 26, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{pending.length}</span>
+        <span style={{ fontSize: 28, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{pending.length}</span>
         <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/{todos.length} pending</span>
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
@@ -517,7 +517,7 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
             {t.done && <polyline points="5,8 7,10 11,6"/>}
           </svg>
           <span style={{
-            fontSize: 10.5, lineHeight: 1.3, fontFamily:'Space Grotesk,sans-serif',
+            fontSize: 12, lineHeight: 1.3, fontFamily:'Space Grotesk,sans-serif',
             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
             color: t.done ? fgMuted : fg,
             textDecoration: t.done ? 'line-through' : 'none',
@@ -526,7 +526,7 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
         </div>
       ))}
       {overflow > 0 && (
-        <div style={{ fontSize: 9.5, color: fgDim, fontFamily:"'JetBrains Mono',monospace", marginTop: 2 }}>
+        <div style={{ fontSize: 10.5, color: fgDim, fontFamily:"'JetBrains Mono',monospace", marginTop: 2 }}>
           +{overflow} more
         </div>
       )}
