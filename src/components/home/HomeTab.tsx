@@ -124,7 +124,7 @@ function BrainCard({ module, onNavigate, style, children }: {
       onMouseLeave={() => setHov(false)}
       style={{
         background: hov && !isCalendar ? '#121212' : '#0d0d0d',
-        border: `1px solid ${hov && !isCalendar ? module.col : '#1e1e1e'}`,
+        border: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
         borderRadius: 4,
         cursor: isCalendar ? 'default' : 'pointer',
         padding: '12px 14px 10px',
@@ -507,31 +507,15 @@ export default function HomeTab({ onNavigate }: Props) {
             {[NY1, NY2, NY3].map((ny, i) => (
               <line key={i} x1={NL+NAV/2} y1={ny+NAV/2} x2={NR+NAV/2} y2={ny+NAV/2} stroke="rgba(255,255,255,0.07)" strokeWidth="1"/>
             ))}
-            {/* Row-2 spokes */}
-            {MODULES.filter(m => m.id === 'habits' || m.id === 'todo').map(m => {
-              const navCX = m.navX + (m.navW ?? NAV)/2;
-              const navCY = m.navY + (m.navH ?? NAV)/2;
-              const dist = Math.abs(navCX - m.cardInnerEdgeX);
-              if (dist < 25) return null;
-              return (
-                <line key={m.id} x1={navCX} y1={navCY} x2={m.cardInnerEdgeX} y2={m.cardCY}
-                  stroke={m.col} strokeWidth="1" strokeDasharray="4,5" opacity="0.25"/>
-              );
-            })}
           </svg>
 
-          {/* Cards + Nav */}
+          {/* Cards */}
           {MODULES.map(m => (
-            <div key={m.id}>
-              <BrainCard
-                style={{ position:'absolute', left: m.cardX, top: m.cardY, width: CARD_W, height: CARD_H, zIndex: 1 }}
-                module={m} onNavigate={onNavigate}>
-                {cardContent(m)}
-              </BrainCard>
-              <BrainNav
-                style={{ position:'absolute', left: m.navX, top: m.navY, width: m.navW ?? NAV, height: m.navH ?? NAV, zIndex: 2 }}
-                module={m} onNavigate={onNavigate}/>
-            </div>
+            <BrainCard key={m.id}
+              style={{ position:'absolute', left: m.cardX, top: m.cardY, width: CARD_W, height: CARD_H, zIndex: 1 }}
+              module={m} onNavigate={onNavigate}>
+              {cardContent(m)}
+            </BrainCard>
           ))}
 
           {/* Center goals square */}
