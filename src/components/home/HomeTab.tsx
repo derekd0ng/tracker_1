@@ -367,8 +367,16 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
   let nextMeds: typeof meds = [];
   for (let i = 0; i < SLOT_ORDER.length; i++) {
     const slot = SLOT_ORDER[(ci + i) % SLOT_ORDER.length];
-    const slotMeds = meds.filter(m => m.timesOfDay.includes(slot));
-    const pending = slotMeds.filter(m => !logs.some(l => l.medicationId === m.id && l.timeOfDay === slot && (l.taken || l.skipped)));
+    // Native meds in this slot that haven't been taken/skipped/moved-away
+    const nativePending = meds
+      .filter(m => m.timesOfDay.includes(slot))
+      .filter(m => !logs.some(l => l.medicationId === m.id && l.timeOfDay === slot && (l.taken || l.skipped || l.movedTo)));
+    // Meds moved INTO this slot that haven't been taken/skipped yet
+    const movedInPending = meds
+      .filter(m => !m.timesOfDay.includes(slot))
+      .filter(m => logs.some(l => l.medicationId === m.id && l.movedTo === slot))
+      .filter(m => !logs.some(l => l.medicationId === m.id && l.timeOfDay === slot && (l.taken || l.skipped)));
+    const pending = [...nativePending, ...movedInPending];
     if (pending.length > 0) { nextSlot = slot; nextMeds = pending; break; }
   }
 
