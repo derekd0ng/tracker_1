@@ -344,17 +344,25 @@ function currentSlotIndex() {
 function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
   const { fg, fgMuted, fgDim } = C(hov);
   const [tick, setTick] = useState(0);
-  const today = localDateStr();
-  const meds = getMedications().filter(m => m.active && (!m.startDate || m.startDate <= today));
-  const logs = getMedLogsForDate(today);
+
+  // Before 02:00 we're still "finishing yesterday" — logs for checked items go to yesterday's date
+  const currentHour = new Date().getHours();
+  const isLateNight = currentHour < 2;
+
+  const today     = localDateStr();
+  const yesterday = localDateStr(new Date(Date.now() - 86400000));
+  const displayDate = isLateNight ? yesterday : today;
+
+  const meds = getMedications().filter(m => m.active && (!m.startDate || m.startDate <= displayDate));
+  const logs = getMedLogsForDate(displayDate);
 
   const totalDoses = meds.reduce((n,m) => n + m.timesOfDay.length, 0);
   const takenDoses = meds.reduce((n,m) => n + m.timesOfDay.filter(s =>
     logs.some(l => l.medicationId === m.id && l.timeOfDay === s && l.taken)
   ).length, 0);
 
-  // Find next slot with pending meds
-  const ci = currentSlotIndex();
+  // Find next slot with pending meds (for late-night: scan all slots of yesterday; else normal)
+  const ci = isLateNight ? 3 : currentSlotIndex(); // night=3 when late-night
   let nextSlot: Slot | null = null;
   let nextMeds: typeof meds = [];
   for (let i = 0; i < SLOT_ORDER.length; i++) {
@@ -365,7 +373,7 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
   }
 
   function toggleMed(medId: string, slot: Slot) {
-    toggleMedLog(today, medId, slot);
+    toggleMedLog(displayDate, medId, slot);
     setTick(t => t + 1);
   }
 
@@ -379,9 +387,14 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
-      <div style={{ display:'flex', alignItems:'baseline', gap: 4 }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap: 4, flexWrap:'wrap' }}>
         <span style={{ fontSize: 28, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{takenDoses}</span>
         <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/{totalDoses} taken</span>
+        {isLateNight && (
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: hov ? 'rgba(0,0,0,0.5)' : 'var(--warning)', fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase' }}>
+            yesterday
+          </span>
+        )}
       </div>
       {nextSlot ? (
         <>
