@@ -272,46 +272,57 @@ function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
   if (latest.symptoms.length === 0)   cells.push({ l:'Symptoms', v:'None', u:'', c:WB_SC.neutral, isNone:true });
   else latest.symptoms.forEach(s =>   cells.push({ l:s.name, v:String(s.intensity), u:'/10', c:sympSC(s.intensity) }));
 
-  const MAX = 5;
+  // 3×2 grid: max 6 cells; if 5 → last spans 2 cols; if >6 → replace 6th with +X more
+  const MAX = 6;
   const overflow = cells.length > MAX ? cells.length - MAX + 1 : 0;
   const visible  = overflow > 0
-    ? [...cells.slice(0, MAX-1), { l:'', v:`+${overflow}`, u:' more', c:WB_SC.neutral, isNone:true }]
+    ? [...cells.slice(0, MAX - 1), { l:'', v:`+${overflow}`, u:' more', c:WB_SC.neutral, isNone:true }]
     : cells;
-
-  const dividerColor = hov ? 'rgba(0,0,0,0.15)' : 'var(--border)';
+  const isFive   = visible.length === 5;
+  const div      = hov ? 'rgba(0,0,0,0.15)' : 'var(--border)';
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 0, height:'100%' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
       {/* Big feel number */}
       {latest.overallFeel != null && (
-        <div style={{ display:'flex', alignItems:'baseline', gap: 5, paddingBottom: 8 }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap: 5, paddingBottom: 7 }}>
           <span style={{ fontSize: 30, fontWeight: 700, color: hov ? HOVER_TEXT : feelSC(latest.overallFeel), fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{latest.overallFeel}</span>
           <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/10 feel</span>
         </div>
       )}
-      {/* Horizontal divided strip — mirrors well-being tab overview */}
+      {/* 3-column 2-row grid strip */}
       {visible.length > 0 && (
-        <div style={{ display:'flex', borderTop: `1px solid ${dividerColor}`, marginLeft: -14, marginRight: -14 }}>
-          {visible.map((m, i) => (
-            <div key={i} style={{
-              flex: 1, minWidth: 0,
-              padding: '6px 8px',
-              borderRight: i === visible.length - 1 ? 'none' : `1px solid ${dividerColor}`,
-              display: 'flex', flexDirection: 'column', gap: 2,
-            }}>
-              <span style={{ fontSize: 6.5, fontWeight: 700, letterSpacing: '0.06em', color: fgMuted, textTransform: 'uppercase', fontFamily:"'JetBrains Mono',monospace", whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                {m.l}
-              </span>
-              {m.isNone ? (
-                <span style={{ fontSize: 10, fontWeight: 700, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
-              ) : (
-                <div style={{ display:'flex', alignItems:'baseline', gap: 1 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: hov ? HOVER_TEXT : m.c, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
-                  <span style={{ fontSize: 6.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>{m.u}</span>
-                </div>
-              )}
-            </div>
-          ))}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+          borderTop: `1px solid ${div}`,
+          marginLeft: -14, marginRight: -14, flex: 1,
+        }}>
+          {visible.map((m, i) => {
+            const isSpan    = isFive && i === 4;
+            const noRight   = (i % 3 === 2) || isSpan;
+            const hasTopBdr = i >= 3;
+            return (
+              <div key={i} style={{
+                gridColumn: isSpan ? 'span 2' : undefined,
+                borderRight: noRight ? 'none' : `1px solid ${div}`,
+                borderTop: hasTopBdr ? `1px solid ${div}` : 'none',
+                padding: '5px 8px',
+                display: 'flex', flexDirection: 'column', gap: 2,
+              }}>
+                <span style={{ fontSize: 6.5, fontWeight: 700, letterSpacing: '0.06em', color: fgMuted, textTransform: 'uppercase', fontFamily:"'JetBrains Mono',monospace", whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {m.l}
+                </span>
+                {m.isNone ? (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
+                ) : (
+                  <div style={{ display:'flex', alignItems:'baseline', gap: 1 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: hov ? HOVER_TEXT : m.c, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
+                    <span style={{ fontSize: 6.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>{m.u}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
