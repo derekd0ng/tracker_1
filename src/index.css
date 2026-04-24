@@ -906,64 +906,56 @@ input[type='range'] {
 .med-section-items {
   display: flex;
   flex-direction: column;
-  padding: 0 12px 12px;
-  gap: 4px;
+  padding: 0;
+  gap: 0;
+}
+
+/* Column header */
+.med-items-header {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: 12px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.med-items-header span {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: var(--mono);
 }
 
 .med-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
   align-items: center;
-  gap: 14px;
-  padding: 12px;
-  border-radius: 4px;
-  background: rgba(34, 42, 61, 0.2);
-  transition: background 0.12s;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  transition: background 0.1s;
 }
-
-.med-item:hover { background: rgba(34, 42, 61, 0.5); }
+.med-item:last-child { border-bottom: none; }
+.med-item:hover { background: rgba(255,255,255,0.02); }
+.med-item.taken  { background: rgba(14,165,233,0.04); }
+.med-item.skipped { opacity: 0.5; }
+.med-item.moved  { opacity: 0.4; }
 
 .med-item-check {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 0.15s;
 }
+.med-item-check.moved-check { cursor: default; }
 
 .med-item-check-icon {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-  transition: opacity 0.15s;
-}
-
-
-.med-item-check.checked {
-  background: none;
-  border: none;
-  color: #fff;
-  font-weight: 700;
-}
-
-.med-item-check.skipped-check {
-  border: none;
-  color: var(--text-muted);
-}
-
-.med-item.moved {
-  opacity: 0.5;
-}
-
-.med-item-check.moved-check {
-  border: none;
-  cursor: default;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .med-item-body {
@@ -974,15 +966,19 @@ input[type='range'] {
 }
 
 .med-item-name {
-  font-size: 0.9375rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.1px;
 }
 
+.med-item.taken .med-item-name { color: var(--text-secondary); }
 
 .med-item-sub {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
+  font-family: var(--mono);
+  margin-top: 2px;
 }
 
 .med-info-btn {
@@ -1038,36 +1034,41 @@ input[type='range'] {
 
 .med-item-actions {
   flex-shrink: 0;
-  width: 110px;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  min-width: 100px;
 }
 
 .med-taken-label {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--accent);
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .med-skip-btn {
-  padding: 5px 14px;
-  min-width: 64px;
+  padding: 4px 12px;
   text-align: center;
   border-radius: 4px;
-  border: none;
-  background: var(--danger-bg);
-  font-size: 0.75rem;
+  border: 1px solid var(--border-mid);
+  background: transparent;
+  font-size: 0.68rem;
   font-weight: 700;
-  color: var(--danger);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.12s;
+  transition: border-color 0.12s, color 0.12s;
   white-space: nowrap;
 }
 
-.med-skip-btn:hover { background: rgba(255, 180, 171, 0.22); }
-.med-skip-btn.undo { color: var(--text); background: rgba(34, 42, 61, 0.5); }
-.med-skip-btn.undo:hover { background: rgba(34, 42, 61, 0.9); }
+.med-skip-btn:hover { border-color: var(--danger); color: var(--danger); }
+.med-skip-btn.undo { border-color: var(--border); color: var(--text-muted); }
+.med-skip-btn.undo:hover { border-color: var(--border-hi); color: var(--text); }
 
 /* ── Prescriptions card (sidebar) ───────────────────────────────────────── */
 .prescriptions-card {

@@ -413,6 +413,11 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
 
                 {expanded && (
                   <div className="med-section-items">
+                    <div className="med-items-header">
+                      <span/>
+                      <span>Medication / Note</span>
+                      <span>Status</span>
+                    </div>
                     {sectionEntries.map(({ med, movedIn, sourceSlot }) => {
                       // For moved-in entries, state lives in the source slot log
                       const effectiveSlot = movedIn && sourceSlot ? sourceSlot : timeOfDay;
@@ -483,7 +488,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
                               </>
                             ) : taken ? (
                               <span className="med-taken-label">
-                                Taken{takenAt ? ` · ${takenAt}` : ''}
+                                Taken{takenAt ? ` ${takenAt}` : ''}
                               </span>
                             ) : skipped ? (
                               <button className="med-skip-btn undo" onClick={() => handleClear(med.id, effectiveSlot)}>Undo</button>
