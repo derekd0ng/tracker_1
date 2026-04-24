@@ -607,10 +607,9 @@ export default function HomeTab({ onNavigate }: Props) {
       {/* Background gradient spill */}
       <style>{`
         @keyframes gradientSpin {
-          0%   { transform: translate(-50%,-50%) rotate(0deg)   scale(1);    }
-          33%  { transform: translate(-50%,-50%) rotate(120deg) scale(1.08); }
-          66%  { transform: translate(-50%,-50%) rotate(240deg) scale(0.94); }
-          100% { transform: translate(-50%,-50%) rotate(360deg) scale(1);    }
+          0%   { transform: translate(-50%,-50%) rotate(-20deg) scale(1);    }
+          50%  { transform: translate(-50%,-50%) rotate(20deg)  scale(1.06); }
+          100% { transform: translate(-50%,-50%) rotate(-20deg) scale(1);    }
         }
       `}</style>
       <div style={{
