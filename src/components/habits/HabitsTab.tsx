@@ -328,44 +328,39 @@ export default function HabitsTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
 
-      {/* ── Section 1: Stats ── */}
-      <div className="habit-stats-grid">
-
-        <div className="habit-stat-card">
-          <div className="habit-stat-header">
-            <span className="habit-stat-label">Perfect Days</span>
-            <span className="habit-stat-icon">⭐</span>
-          </div>
-          <div className="habit-stat-value-row">
-            <span className="habit-stat-value">{perfectDays}</span>
-            <span className="habit-stat-unit">/ 30 days</span>
+      {/* ── Overview strip ── */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="flex-between" style={{ padding: '14px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 10, height: 10, background: 'var(--accent)', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text)' }}>
+              Habits
+            </span>
           </div>
         </div>
-
-        <div className="habit-stat-card">
-          <div className="habit-stat-header">
-            <span className="habit-stat-label">Best Streak</span>
-            <span className="habit-stat-icon">🔥</span>
-          </div>
-          <div className="habit-stat-value-row">
-            <span className="habit-stat-value">{bestStreak}</span>
-            <span className="habit-stat-unit">days</span>
-          </div>
+        <div style={{ display: 'flex', borderTop: '1px solid var(--border)' }}>
+          {[
+            { label: 'Done Today',   value: habits.length > 0 ? `${todayDone}/${habits.length}` : '—', sub: todayDone === habits.length && habits.length > 0 ? 'all done!' : `${habits.length - todayDone} remaining` },
+            { label: 'Best Streak',  value: bestStreak > 0 ? `${bestStreak}d` : '—',                    sub: bestStreak > 0 ? 'keep going' : 'start today' },
+            { label: 'Monthly Rate', value: habits.length > 0 ? `${monthlyPct}%` : '—',                 sub: `${perfectDays} perfect days (30d)` },
+          ].map((m, i, arr) => (
+            <div key={m.label} style={{
+              flex: 1, minWidth: 0, padding: '14px 18px',
+              borderRight: i === arr.length - 1 ? 'none' : '1px solid var(--border)',
+              display: 'flex', flexDirection: 'column', gap: 4,
+            }}>
+              <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                {m.label}
+              </span>
+              <span style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.03em', lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+                {m.value}
+              </span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                {m.sub}
+              </span>
+            </div>
+          ))}
         </div>
-
-        <div className="habit-stat-card">
-          <div className="habit-stat-header">
-            <span className="habit-stat-label">Monthly Completion</span>
-            <span className="habit-stat-icon">📈</span>
-          </div>
-          <div className="habit-stat-value-row" style={{ marginBottom: 12 }}>
-            <span className="habit-stat-value">{habits.length > 0 ? `${monthlyPct}%` : '—'}</span>
-          </div>
-          <div className="habit-progress-track">
-            <div className="habit-progress-fill" style={{ width: `${monthlyPct}%` }} />
-          </div>
-        </div>
-
       </div>
 
       {/* ── Section 2: 2-column layout ── */}

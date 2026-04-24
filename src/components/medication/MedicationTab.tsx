@@ -114,46 +114,55 @@ export default function MedicationTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      {/* ── Stat cards ── */}
-      <div style={{ display: 'flex', gap: 12 }}>
-
-        <div className="med-stat-card" style={{ borderTop: '2px solid #0ea5e9' }}>
-          <span className="med-stat-lbl">Doses Taken Today</span>
-          <span className="med-stat-big" style={{ color: '#0ea5e9' }}>
-            {totalDosesToday > 0 ? `${takenDosesToday}/${totalDosesToday}` : '—'}
-          </span>
-          <p className="med-stat-sub">
-            {totalDosesToday === 0
-              ? 'No doses scheduled today'
-              : takenDosesToday === totalDosesToday
-                ? 'All done for today!'
-                : `${totalDosesToday - takenDosesToday - skippedDosesToday} remaining · ${skippedDosesToday} skipped`}
-          </p>
+      {/* ── Overview strip ── */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 0 }}>
+        <div className="flex-between" style={{ padding: '14px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 10, height: 10, background: '#0ea5e9', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text)' }}>
+              Medications
+            </span>
+          </div>
         </div>
-
-        <div className="med-stat-card" style={{ borderTop: '2px solid #0ea5e9' }}>
-          <span className="med-stat-lbl">Weekly Adherence</span>
-          <span className="med-stat-big" style={{ color: '#0ea5e9' }}>{weeklyAdherence}%</span>
-          <p className="med-stat-sub">Consistency is key to recovery.</p>
-        </div>
-
-        <div className="med-stat-card" style={{ borderTop: '2px solid #0ea5e9' }}>
-          <span className="med-stat-lbl">Avg Daily Doses (7d)</span>
-          <span className="med-stat-big" style={{ color: '#0ea5e9' }}>
-            {avg7Display}
-            {hasPrevData && avgDelta !== 0 && (
-              <span className="avg-inline-delta" style={{ fontSize: '1rem', color: avgDelta > 0 ? 'var(--success)' : 'var(--danger)' }}>
-                {' '}{avgDelta > 0 ? '+' : ''}{avgDelta.toFixed(1)}
+        <div style={{ display: 'flex', borderTop: '1px solid var(--border)' }}>
+          {[
+            {
+              label: 'Doses Today',
+              value: totalDosesToday > 0 ? `${takenDosesToday}/${totalDosesToday}` : '—',
+              sub: totalDosesToday === 0 ? 'none scheduled'
+                : takenDosesToday === totalDosesToday ? 'all done!'
+                : `${totalDosesToday - takenDosesToday - skippedDosesToday} remaining · ${skippedDosesToday} skipped`,
+            },
+            {
+              label: 'Weekly Adherence',
+              value: `${weeklyAdherence}%`,
+              sub: 'consistency is key',
+            },
+            {
+              label: 'Avg Daily (7d)',
+              value: avg7Display,
+              sub: !hasPrevData ? 'no prior data'
+                : avgDelta === 0 ? 'same as prev. week'
+                : `${avgDelta > 0 ? '+' : ''}${avgDelta.toFixed(1)} vs prev. week`,
+            },
+          ].map((m, i, arr) => (
+            <div key={m.label} style={{
+              flex: 1, minWidth: 0, padding: '14px 18px',
+              borderRight: i === arr.length - 1 ? 'none' : '1px solid var(--border)',
+              display: 'flex', flexDirection: 'column', gap: 4,
+            }}>
+              <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                {m.label}
               </span>
-            )}
-          </span>
-          <p className="med-stat-sub">
-            {!hasPrevData ? 'No prior week data yet'
-              : avgDelta === 0 ? 'Same as previous week'
-              : `${avgDelta > 0 ? '+' : ''}${avgDelta.toFixed(1)} vs prev. week`}
-          </p>
+              <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0ea5e9', letterSpacing: '-0.03em', lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+                {m.value}
+              </span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                {m.sub}
+              </span>
+            </div>
+          ))}
         </div>
-
       </div>
 
       {/* ── Main 2-column layout ── */}
