@@ -602,10 +602,30 @@ export default function HomeTab({ onNavigate }: Props) {
   };
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 16 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap: 16, position:'relative' }}>
+
+      {/* Background gradient spill — accent colors blended, centered, ~50% of screen */}
+      <div style={{
+        position: 'fixed',
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '50vw', height: '50vw',
+        borderRadius: '50%',
+        background: `conic-gradient(from 0deg,
+          rgba(52,211,153,0.22),
+          rgba(34,211,238,0.20),
+          rgba(96,165,250,0.18),
+          rgba(129,140,248,0.18),
+          rgba(232,121,249,0.20),
+          rgba(192,132,252,0.18),
+          rgba(52,211,153,0.22))`,
+        filter: 'blur(72px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
 
       {/* Header */}
-      <div style={{ borderBottom:'1px solid #1e1e1e', paddingBottom: 14, display:'flex', alignItems:'baseline', gap: 12 }}>
+      <div style={{ borderBottom:'1px solid #1e1e1e', paddingBottom: 14, display:'flex', alignItems:'baseline', gap: 12, position:'relative', zIndex: 1 }}>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing:'-0.02em', color:'#e2e2e2', fontFamily:'Space Grotesk,sans-serif' }}>
           Home
         </h1>
@@ -618,7 +638,7 @@ export default function HomeTab({ onNavigate }: Props) {
       </div>
 
       {/* Canvas */}
-      <div ref={wrapRef} style={{ width:'100%', height: CH * scale }}>
+      <div ref={wrapRef} style={{ width:'100%', height: CH * scale, position:'relative', zIndex: 1 }}>
         <div style={{ width: CW, height: CH, position:'relative', transform:`scale(${scale})`, transformOrigin:'top left' }}>
 
 {/* Cards */}
