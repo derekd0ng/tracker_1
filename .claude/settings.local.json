@@ -26,9 +26,30 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git config:*)",
-      "Bash(git checkout:*)",
-      "Bash(/Users/k.kocherov/project_1/server/.env:*)",
-      "Bash(git remote:*)"
+      "Bash(git -C /Users/k.kocherov/project_1 checkout fullstack)",
+      "Bash(git -C /Users/k.kocherov/project_1 stash pop)",
+      "Bash(git -C /Users/k.kocherov/project_1 checkout -- .claude/settings.local.json)",
+      "Bash(git push:*)",
+      "Bash(openssl rand:*)",
+      "Bash(curl:*)",
+      "Bash(convert --version)",
+      "Bash(npx:*)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(gunzip -c \"/Users/k.kocherov/.claude/projects/-Users-k-kocherov-project-1/77f6d61f-3c16-4291-8adb-8c783d5c9164/tool-results/webfetch-1776870676139-7bsvnd.bin\")",
+      "Bash(tar -x --to-stdout \"recovery-2/project/components/v2/theme.js\")",
+      "Bash(sort -t: -k3 -n)",
+      "Bash(uniq -f2)",
+      "Bash(open *)",
+      "Bash(git -C /Users/k.kocherov/project_1 add index.html src/App.tsx src/index.css)",
+      "Bash(git -C /Users/k.kocherov/project_1 commit -m ' *)",
+      "Bash(git *)",
+      "Bash(tar -x --to-stdout \"recovery-2/project/components/v2/Medications.jsx\")",
+      "Bash(tar -x --to-stdout \"recovery-2/project/components/v2/Icons.jsx\")",
+      "Read(//tmp/**)",
+      "Bash(gunzip -c /tmp/design2.bin)",
+      "Bash(tar -t)",
+      "Bash(tar -x --to-stdout \"recovery-2/chats/chat1.md\")",
+      "Bash(tar -x --to-stdout \"recovery-2/project/components/v2/Home.jsx\")"
     ]
   }
 }

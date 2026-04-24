@@ -17,7 +17,11 @@ function rowToHabit(r: any) {
     unit:         r.unit ?? undefined,
     target:       r.target != null ? Number(r.target) : undefined,
     weeklyTarget: r.weekly_target ?? undefined,
-    startDate:    r.start_date ? String(r.start_date).slice(0, 10) : undefined,
+    startDate:    r.start_date
+      ? (r.start_date instanceof Date
+          ? r.start_date.toISOString().slice(0, 10)
+          : String(r.start_date).slice(0, 10))
+      : undefined,
   };
 }
 

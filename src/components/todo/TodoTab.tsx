@@ -3,9 +3,9 @@ import type { TodoItem } from '../../types';
 import { IconCheckSquare, IconEmptySquare, IconX, IconPlus } from '../Icons';
 import { api } from '../../api';
 
-const ACCENT = '#f43f5e';
-const ACCENT_DIM = 'rgba(244, 63, 94, 0.12)';
-const ACCENT_BORDER = 'rgba(244, 63, 94, 0.35)';
+const ACCENT = '#818cf8';
+const ACCENT_DIM = 'rgba(129, 140, 248, 0.12)';
+const ACCENT_BORDER = 'rgba(129, 140, 248, 0.35)';
 
 function localDateStr(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

@@ -91,7 +91,7 @@ function symptomStatus(intensity: number): VitalStatus {
 // ── Status → accent color ──────────────────────────────────────────────────
 
 const STATUS_COLOR: Record<VitalStatus, string> = {
-  good:    '#22c55e',
+  good:    '#34d399',
   warning: '#facc15',
   caution: '#fb923c',
   bad:     '#f87171',
@@ -180,7 +180,7 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
     onSaved?.();
   }
 
-  const accentGreen = '#22c55e';
+  const accentGreen = '#34d399';
   const btnOutlineBase: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '7px 14px', borderRadius: 4, fontSize: '0.8rem',

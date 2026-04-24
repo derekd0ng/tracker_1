@@ -405,7 +405,7 @@ export default function WellbeingForm({ onSaved, onCancel, initial, sleepHabitId
               </button>
             )}
             {parsedOk && (
-              <span style={{ fontSize: '0.8rem', color: 'var(--success, #22c55e)' }}>Fields filled — review below</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--success, #34d399)' }}>Fields filled — review below</span>
             )}
             {parseError && (
               <span style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>{parseError}</span>

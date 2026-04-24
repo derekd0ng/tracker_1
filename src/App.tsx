@@ -78,7 +78,7 @@ export default function App() {
         background: '#080808', flexDirection: 'column', gap: 16,
       }}>
         <div style={{ width: 36, height: 36, border: '3px solid rgba(34,211,238,0.2)',
-          borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          borderTopColor: '#22d3ee', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
           {authState === 'loading' ? 'Loading your data…' : 'Checking session…'}
         </p>

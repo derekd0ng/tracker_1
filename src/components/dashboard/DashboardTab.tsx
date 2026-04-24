@@ -317,14 +317,14 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                 title="Edit name"
                 style={{
                   background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                  color: user?.name ? 'rgba(255,255,255,0.25)' : '#0ea5e9',
+                  color: user?.name ? 'rgba(255,255,255,0.25)' : '#22d3ee',
                   display: 'inline-flex', alignItems: 'center',
                   transition: 'color 0.15s',
                   position: 'relative', top: -6, marginLeft: 6,
                   verticalAlign: 'middle',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#0ea5e9')}
-                onMouseLeave={e => (e.currentTarget.style.color = user?.name ? 'rgba(255,255,255,0.25)' : '#0ea5e9')}
+                onMouseEnter={e => (e.currentTarget.style.color = '#22d3ee')}
+                onMouseLeave={e => (e.currentTarget.style.color = user?.name ? 'rgba(255,255,255,0.25)' : '#22d3ee')}
               >
                 <IconPencil size={15} />
               </button>
@@ -344,7 +344,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
       {/* ── Well-being snapshot ── */}
       <div className="wb-theme">
         <WellbeingSnapshot navButton={
-          <button onClick={() => onNavigate('wellbeing')} style={{ ...NAV_BTN_BASE, background: '#22c55e', color: '#000' }}>
+          <button onClick={() => onNavigate('wellbeing')} style={{ ...NAV_BTN_BASE, background: '#34d399', color: '#000' }}>
             <IconArrowRight size={16} />
           </button>
         } />
@@ -359,11 +359,11 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
             <p className="section-title" style={{ marginBottom: 0 }}>Medications</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {totalDosesToday > 0 && (
-                <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0ea5e9' }}>
+                <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#22d3ee' }}>
                   {takenDosesToday}/{totalDosesToday} taken
                 </span>
               )}
-              <button onClick={() => onNavigate('medication')} style={{ ...NAV_BTN_BASE, background: '#0ea5e9', color: '#000' }}>
+              <button onClick={() => onNavigate('medication')} style={{ ...NAV_BTN_BASE, background: '#22d3ee', color: '#000' }}>
                 <IconArrowRight size={16} />
               </button>
             </div>
@@ -495,7 +495,7 @@ export default function DashboardTab({ onNavigate, user, onUserUpdate }: Props) 
                             <div className="habit-log-icon">{habit.icon ?? '○'}</div>
                             <span className="habit-mgmt-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{habit.name}</span>
                             <div>
-                              <div className="habit-mgmt-meta-value" style={{ color: streak > 0 ? '#f59e0b' : undefined }}>
+                              <div className="habit-mgmt-meta-value" style={{ color: streak > 0 ? '#e879f9' : undefined }}>
                                 {streak > 0 ? `🔥 ${streak} day${streak !== 1 ? 's' : ''}` : '—'}
                               </div>
                             </div>

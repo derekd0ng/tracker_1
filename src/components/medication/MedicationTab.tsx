@@ -126,7 +126,7 @@ export default function MedicationTab() {
       <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 0 }}>
         <div className="flex-between" style={{ padding: '14px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 10, height: 10, background: '#0ea5e9', flexShrink: 0 }} />
+            <div style={{ width: 10, height: 10, background: '#22d3ee', flexShrink: 0 }} />
             <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text)' }}>
               Medications
             </span>
@@ -167,7 +167,7 @@ export default function MedicationTab() {
               <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                 {m.label}
               </span>
-              <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0ea5e9', letterSpacing: '-0.03em', lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+              <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#22d3ee', letterSpacing: '-0.03em', lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
                 {m.value}
               </span>
               <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
@@ -192,7 +192,7 @@ export default function MedicationTab() {
           <div style={{
             background: 'var(--surface)', borderRadius: 4, padding: 20,
             border: '2px solid rgba(14,165,233,0.4)',
-            borderTop: '3px solid #0ea5e9',
+            borderTop: '3px solid #22d3ee',
           }}>
             <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text)', margin: '0 0 16px' }}>
               Prescriptions
@@ -201,7 +201,7 @@ export default function MedicationTab() {
             {/* Divided stat row */}
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
               <div style={{ flex: 1, padding: '14px 12px', textAlign: 'center', borderRight: '1px solid var(--border)' }}>
-                <span style={{ display: 'block', fontSize: '2rem', fontWeight: 700, color: '#0ea5e9', lineHeight: 1, letterSpacing: '-1px', fontFamily: "'JetBrains Mono', monospace" }}>{activeCount}</span>
+                <span style={{ display: 'block', fontSize: '2rem', fontWeight: 700, color: '#22d3ee', lineHeight: 1, letterSpacing: '-1px', fontFamily: "'JetBrains Mono', monospace" }}>{activeCount}</span>
                 <span style={{ display: 'block', fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', marginTop: 5 }}>Active</span>
               </div>
               <div style={{ flex: 1, padding: '14px 12px', textAlign: 'center' }}>
@@ -212,7 +212,7 @@ export default function MedicationTab() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button onClick={openNew} style={{
-                width: '100%', background: '#0ea5e9', color: 'var(--bg)',
+                width: '100%', background: '#22d3ee', color: 'var(--bg)',
                 fontWeight: 700, padding: 11, borderRadius: 4, border: 'none',
                 fontFamily: 'inherit', fontSize: '0.78rem', letterSpacing: '0.08em',
                 textTransform: 'uppercase', cursor: 'pointer', display: 'flex',

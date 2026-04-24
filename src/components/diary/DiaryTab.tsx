@@ -2,9 +2,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { DiaryEntry } from '../../types';
 
 const STORAGE_KEY = 'srt_diary';
-const ACCENT = '#f59e0b';
-const ACCENT_DIM = 'rgba(245,158,11,0.10)';
-const ACCENT_BORDER = 'rgba(245,158,11,0.35)';
+const ACCENT = '#e879f9';
+const ACCENT_DIM = 'rgba(232,121,249,0.10)';
+const ACCENT_BORDER = 'rgba(232,121,249,0.35)';
 
 const PROMPTS = [
   { id: 'feeling',    q: 'How are you feeling right now?' },
