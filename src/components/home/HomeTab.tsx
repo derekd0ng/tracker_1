@@ -505,17 +505,7 @@ export default function HomeTab({ onNavigate }: Props) {
       <div ref={wrapRef} style={{ width:'100%', height: CH * scale }}>
         <div style={{ width: CW, height: CH, position:'relative', transform:`scale(${scale})`, transformOrigin:'top left' }}>
 
-          {/* SVG background */}
-          <svg width={CW} height={CH} style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'visible' }}>
-            {/* Corpus callosum spine */}
-            <line x1={NL+NAV/2} y1={NY1+NAV/2} x2={NL+NAV/2} y2={NY3+NAV/2} stroke="rgba(255,255,255,0.07)" strokeWidth="1"/>
-            <line x1={NR+NAV/2} y1={NY1+NAV/2} x2={NR+NAV/2} y2={NY3+NAV/2} stroke="rgba(255,255,255,0.07)" strokeWidth="1"/>
-            {[NY1, NY2, NY3].map((ny, i) => (
-              <line key={i} x1={NL+NAV/2} y1={ny+NAV/2} x2={NR+NAV/2} y2={ny+NAV/2} stroke="rgba(255,255,255,0.07)" strokeWidth="1"/>
-            ))}
-          </svg>
-
-          {/* Cards */}
+{/* Cards */}
           {MODULES.map(m => (
             <BrainCard key={m.id}
               style={{ position:'absolute', left: m.cardX, top: m.cardY, width: CARD_W, height: CARD_H, zIndex: 1 }}
