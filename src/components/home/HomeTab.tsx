@@ -373,7 +373,8 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
     <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No medications</div>
   );
 
-  const visible = nextMeds.slice(0, MINI_MAX);
+  const MED_MAX = 3; // tighter cap: count row + slot label + items must fit in CARD_H=180
+  const visible = nextMeds.slice(0, MED_MAX);
   const overflow = nextMeds.length - visible.length;
 
   return (
