@@ -95,6 +95,31 @@ function localTime(d = new Date()) {
   return new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
 }
 
+async function parseTodoIntent(text: string): Promise<{ action: 'add' | 'done' | 'none'; title?: string } | null> {
+  try {
+    const prompt = `Determine if the following message is a to-do action. Return ONLY valid JSON:
+{ "action": "add" | "done" | "none", "title": string | null }
+- "add" if the user wants to add/create a task (e.g. "add to-do: buy groceries", "remind me to call doctor", "I need to...")
+- "done" if the user wants to mark a task as complete (e.g. "done with groceries", "I completed...", "mark ... as done")
+- "none" if it's something else (health update, question, etc.)
+title should be the clean task text without action words.
+Message: "${text}"`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 128, messages: [{ role: 'user', content: prompt }] }),
+    });
+    const data = (await res.json()) as any;
+    const raw = data.content?.[0]?.text ?? '';
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+}
+
 const SLOT_LABELS: Record<string, string> = {
   morning: '🌅 Morning', afternoon: '☀️ Afternoon', evening: '🌆 Evening', night: '🌙 Night',
 };
@@ -145,6 +170,9 @@ export async function registerBotCommands() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         commands: [
+          { command: 'todos',     description: 'List pending to-dos' },
+          { command: 'todo',      description: 'Add a to-do: /todo buy groceries' },
+          { command: 'done',      description: 'Mark to-do done: /done 2' },
           { command: 'meds',      description: 'All pending medications for today' },
           { command: 'morning',   description: 'Pending morning medications' },
           { command: 'afternoon', description: 'Pending afternoon medications' },
@@ -231,14 +259,68 @@ router.post('/webhook', async (req: Request, res: Response) => {
       if (cmd === '/help') {
         await sendMessage(chatId,
           'Commands:\n' +
+          '/todos — list pending to-dos\n' +
+          '/todo <text> — add a new to-do\n' +
+          '/done <number> — mark to-do #N as done\n' +
           '/meds — all pending medications for today\n' +
           '/morning — pending morning meds\n' +
           '/afternoon — pending afternoon meds\n' +
           '/evening — pending evening meds\n' +
           '/night — pending night meds\n\n' +
-          'To log well-being just send a message, e.g.:\n' +
-          '"Feel 7/10, headache 4/10 for 2h, HR 72"',
+          'Send any message or voice note to log well-being, or say\n' +
+          '"add to-do: buy groceries" to add a task.',
         );
+        return;
+      }
+
+      if (cmd === '/todos') {
+        const { rows } = await pool.query(
+          `SELECT id, title, due_date FROM todos WHERE user_id = $1 AND done = false ORDER BY created_at DESC`,
+          [userId],
+        );
+        if (rows.length === 0) {
+          await sendMessage(chatId, '✅ No pending to-dos!');
+        } else {
+          const lines = rows.map((r: any, i: number) =>
+            `${i + 1}. ${r.title}${r.due_date ? ` (due ${String(r.due_date).slice(0,10)})` : ''}`
+          );
+          await sendMessage(chatId, `📋 Pending to-dos:\n${lines.join('\n')}`);
+        }
+        return;
+      }
+
+      if (cmd === '/todo') {
+        const title = text!.slice('/todo'.length).trim();
+        if (!title) {
+          await sendMessage(chatId, 'Usage: /todo <task text>');
+          return;
+        }
+        await pool.query(
+          `INSERT INTO todos (user_id, title) VALUES ($1, $2)`,
+          [userId, title],
+        );
+        await sendMessage(chatId, `✅ Added: "${title}"`);
+        return;
+      }
+
+      if (cmd === '/done') {
+        const numStr = text!.slice('/done'.length).trim();
+        const num = parseInt(numStr, 10);
+        if (isNaN(num) || num < 1) {
+          await sendMessage(chatId, 'Usage: /done <number> — use /todos to see the list');
+          return;
+        }
+        const { rows } = await pool.query(
+          `SELECT id, title FROM todos WHERE user_id = $1 AND done = false ORDER BY created_at DESC`,
+          [userId],
+        );
+        const todo = rows[num - 1];
+        if (!todo) {
+          await sendMessage(chatId, `No to-do #${num}. Use /todos to see the list.`);
+          return;
+        }
+        await pool.query(`UPDATE todos SET done = true, updated_at = now() WHERE id = $1`, [todo.id]);
+        await sendMessage(chatId, `✅ Done: "${todo.title}"`);
         return;
       }
 
@@ -286,7 +368,32 @@ router.post('/webhook', async (req: Request, res: Response) => {
     }
     if (!inputText.trim()) return;
 
-    // ── Parse and insert ──
+    // ── Check for todo intent first ──
+    const todoIntent = await parseTodoIntent(inputText);
+    if (todoIntent?.action === 'add' && todoIntent.title) {
+      await pool.query(`INSERT INTO todos (user_id, title) VALUES ($1, $2)`, [userId, todoIntent.title]);
+      await sendMessage(chatId, `✅ Added to-do: "${todoIntent.title}"`);
+      return;
+    }
+    if (todoIntent?.action === 'done' && todoIntent.title) {
+      const { rows } = await pool.query(
+        `SELECT id, title FROM todos WHERE user_id = $1 AND done = false ORDER BY created_at DESC`,
+        [userId],
+      );
+      const match = rows.find((r: any) =>
+        r.title.toLowerCase().includes(todoIntent.title!.toLowerCase()) ||
+        todoIntent.title!.toLowerCase().includes(r.title.toLowerCase())
+      );
+      if (match) {
+        await pool.query(`UPDATE todos SET done = true, updated_at = now() WHERE id = $1`, [match.id]);
+        await sendMessage(chatId, `✅ Marked done: "${match.title}"`);
+      } else {
+        await sendMessage(chatId, `Couldn't find a matching to-do for "${todoIntent.title}". Use /todos to see the list.`);
+      }
+      return;
+    }
+
+    // ── Parse and insert wellbeing ──
     const parsed = await parseWellbeing(inputText);
 
     const id   = crypto.randomUUID();

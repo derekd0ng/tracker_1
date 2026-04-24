@@ -4,10 +4,12 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { ensureTodosTable } from './db';
 import authRouter       from './routes/auth';
 import medicationsRouter from './routes/medications';
 import habitsRouter     from './routes/habits';
 import wellbeingRouter  from './routes/wellbeing';
+import todosRouter      from './routes/todos';
 import telegramRouter, { registerBotCommands } from './routes/telegram';
 import { startMedicationReminders } from './jobs/medicationReminders';
 
@@ -38,6 +40,7 @@ app.use('/api/auth',        authRouter);
 app.use('/api/medications', medicationsRouter);
 app.use('/api/habits',      habitsRouter);
 app.use('/api/wellbeing',   wellbeingRouter);
+app.use('/api/todos',       todosRouter);
 app.use('/api/telegram',    telegramRouter);
 
 // ── Health check ─────────────────────────────────────────────────────────────
@@ -45,8 +48,9 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT ?? 3001;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  await ensureTodosTable().catch(err => console.error('todos table init:', err));
   startMedicationReminders();
   registerBotCommands();
 });

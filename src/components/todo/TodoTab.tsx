@@ -1,20 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { TodoItem } from '../../types';
 import { IconCheckSquare, IconEmptySquare, IconX, IconPlus } from '../Icons';
+import { api } from '../../api';
 
-const STORAGE_KEY = 'srt_todos';
 const ACCENT = '#f43f5e';
 const ACCENT_DIM = 'rgba(244, 63, 94, 0.12)';
 const ACCENT_BORDER = 'rgba(244, 63, 94, 0.35)';
-
-function loadTodos(): TodoItem[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]'); }
-  catch { return []; }
-}
-
-function saveTodos(items: TodoItem[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-}
 
 function localDateStr(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -34,42 +25,80 @@ function isOverdue(item: TodoItem): boolean {
 }
 
 export default function TodoTab() {
-  const [todos, setTodos] = useState<TodoItem[]>(loadTodos);
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
   const [dueInput, setDueInput] = useState('');
   const [showDone, setShowDone] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { saveTodos(todos); }, [todos]);
+  const load = useCallback(async () => {
+    try {
+      const data = await api.get<TodoItem[]>('/api/todos');
+      setTodos(data);
+    } catch (err) {
+      console.error('load todos:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  function addTodo() {
+  useEffect(() => { load(); }, [load]);
+
+  async function addTodo() {
     const title = input.trim();
     if (!title) return;
-    const item: TodoItem = {
+    const optimistic: TodoItem = {
       id: crypto.randomUUID(),
       title,
       done: false,
       createdAt: new Date().toISOString(),
       dueDate: dueInput || undefined,
     };
-    setTodos(prev => [item, ...prev]);
+    setTodos(prev => [optimistic, ...prev]);
     setInput('');
     setDueInput('');
     inputRef.current?.focus();
+    try {
+      const saved = await api.post<TodoItem>('/api/todos', {
+        id: optimistic.id,
+        title: optimistic.title,
+        done: false,
+        dueDate: optimistic.dueDate ?? null,
+        createdAt: optimistic.createdAt,
+      });
+      setTodos(prev => prev.map(t => t.id === optimistic.id ? saved : t));
+    } catch (err) {
+      console.error('add todo:', err);
+      setTodos(prev => prev.filter(t => t.id !== optimistic.id));
+    }
   }
 
-  function toggle(id: string) {
+  async function toggle(id: string) {
+    const item = todos.find(t => t.id === id);
+    if (!item) return;
     setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+    try {
+      await api.patch(`/api/todos/${id}`, { done: !item.done });
+    } catch (err) {
+      console.error('toggle todo:', err);
+      setTodos(prev => prev.map(t => t.id === id ? { ...t, done: item.done } : t));
+    }
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
     setTodos(prev => prev.filter(t => t.id !== id));
+    try {
+      await api.delete(`/api/todos/${id}`);
+    } catch (err) {
+      console.error('delete todo:', err);
+      load();
+    }
   }
 
   const pending = todos.filter(t => !t.done);
   const done    = todos.filter(t => t.done);
   const overdue = pending.filter(isOverdue);
-
   const today = localDateStr();
   const dueToday = pending.filter(t => t.dueDate === today);
 
@@ -88,11 +117,11 @@ export default function TodoTab() {
         </div>
         <div style={{ display: 'flex', borderTop: '1px solid var(--border)' }}>
           {[
-            { label: 'Total',   value: String(todos.length),   color: 'var(--text-secondary)' },
-            { label: 'Pending', value: String(pending.length), color: ACCENT },
+            { label: 'Total',     value: String(todos.length),   color: 'var(--text-secondary)' },
+            { label: 'Pending',   value: String(pending.length), color: ACCENT },
             { label: 'Due Today', value: String(dueToday.length), color: pending.length > 0 ? ACCENT : 'var(--text-muted)' },
-            { label: 'Overdue', value: String(overdue.length), color: overdue.length > 0 ? 'var(--danger)' : 'var(--text-muted)' },
-            { label: 'Done',    value: String(done.length),    color: 'var(--success)' },
+            { label: 'Overdue',   value: String(overdue.length), color: overdue.length > 0 ? 'var(--danger)' : 'var(--text-muted)' },
+            { label: 'Done',      value: String(done.length),    color: 'var(--success)' },
           ].map((m, i, arr) => (
             <div key={m.label} style={{
               flex: 1, minWidth: 0, padding: '14px 16px',
@@ -155,8 +184,12 @@ export default function TodoTab() {
         </button>
       </div>
 
-      {/* ── Pending tasks ── */}
-      {pending.length === 0 && done.length === 0 ? (
+      {/* ── Task lists ── */}
+      {loading ? (
+        <div className="card" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          Loading…
+        </div>
+      ) : pending.length === 0 && done.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
           No tasks yet — add one above.
         </div>
@@ -177,7 +210,6 @@ export default function TodoTab() {
             </div>
           )}
 
-          {/* ── Done tasks ── */}
           {done.length > 0 && (
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <button
@@ -193,13 +225,9 @@ export default function TodoTab() {
                 </span>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', transform: showDone ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>›</span>
               </button>
-              {showDone && (
-                <div>
-                  {done.map((t, i) => (
-                    <TodoRow key={t.id} item={t} onToggle={toggle} onRemove={remove} isLast={i === done.length - 1} />
-                  ))}
-                </div>
-              )}
+              {showDone && done.map((t, i) => (
+                <TodoRow key={t.id} item={t} onToggle={toggle} onRemove={remove} isLast={i === done.length - 1} />
+              ))}
             </div>
           )}
         </>
@@ -209,10 +237,8 @@ export default function TodoTab() {
 }
 
 function TodoRow({ item, onToggle, onRemove, isLast }: {
-  item: TodoItem;
-  onToggle: (id: string) => void;
-  onRemove: (id: string) => void;
-  isLast: boolean;
+  item: TodoItem; onToggle: (id: string) => void;
+  onRemove: (id: string) => void; isLast: boolean;
 }) {
   const overdue = isOverdue(item);
   return (

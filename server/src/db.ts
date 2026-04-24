@@ -14,3 +14,17 @@ export const pool = new Pool({
 pool.on('error', (err) => {
   console.error('Unexpected postgres pool error:', err);
 });
+
+export async function ensureTodosTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS todos (
+      id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title       TEXT        NOT NULL,
+      done        BOOLEAN     NOT NULL DEFAULT false,
+      due_date    DATE,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+}
