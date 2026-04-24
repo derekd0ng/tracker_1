@@ -604,11 +604,18 @@ export default function HomeTab({ onNavigate }: Props) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 16, position:'relative' }}>
 
-      {/* Background gradient spill — accent colors blended, centered, ~50% of screen */}
+      {/* Background gradient spill */}
+      <style>{`
+        @keyframes gradientSpin {
+          0%   { transform: translate(-50%,-50%) rotate(0deg)   scale(1);    }
+          33%  { transform: translate(-50%,-50%) rotate(120deg) scale(1.08); }
+          66%  { transform: translate(-50%,-50%) rotate(240deg) scale(0.94); }
+          100% { transform: translate(-50%,-50%) rotate(360deg) scale(1);    }
+        }
+      `}</style>
       <div style={{
         position: 'fixed',
         top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
         width: '50vw', height: '50vw',
         borderRadius: '50%',
         background: `conic-gradient(from 0deg,
@@ -622,6 +629,7 @@ export default function HomeTab({ onNavigate }: Props) {
         filter: 'blur(72px)',
         pointerEvents: 'none',
         zIndex: 0,
+        animation: 'gradientSpin 18s ease-in-out infinite',
       }} />
 
       {/* Header */}
