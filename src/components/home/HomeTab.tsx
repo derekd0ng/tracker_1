@@ -432,20 +432,31 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
 function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
   const { fg, fgMuted, fgDim } = C(hov);
   const [tick, setTick] = useState(0);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const currentHour = new Date().getHours();
+  const isLateNight = currentHour < 2;
   const today = localDateStr();
+  const yesterday = localDateStr(new Date(Date.now() - 86400000));
+  const displayDate = isLateNight ? yesterday : today;
+
   const habits = getHabits().filter(h => (h.frequency ?? 'daily') === 'daily');
-  const todayLogs = getHabitLogsForDate(today);
+  const logs = getHabitLogsForDate(displayDate);
+  const doneCount = habits.filter(h => isHabitDone(h.type, h.target, logs.find(l => l.habitId === h.id)?.value)).length;
 
-  const doneCount = habits.filter(h => isHabitDone(h.type, h.target, todayLogs.find(l => l.habitId === h.id)?.value)).length;
+  type Habit = ReturnType<typeof getHabits>[number];
 
-  function toggleHabit(h: ReturnType<typeof getHabits>[number]) {
-    const log = todayLogs.find(l => l.habitId === h.id);
+  function toggleBoolean(h: Habit) {
+    const log = logs.find(l => l.habitId === h.id);
     const isDone = isHabitDone(h.type, h.target, log?.value);
-    if (isDone) {
-      setHabitLog(today, h.id, 0);
-    } else {
-      setHabitLog(today, h.id, h.type === 'boolean' ? 1 : (h.target ?? 1));
-    }
+    setHabitLog(displayDate, h.id, isDone ? 0 : 1);
+    setTick(t => t + 1);
+  }
+
+  function commitNumeric(h: Habit, raw: string) {
+    const val = raw === '' ? 0 : Math.max(0, parseFloat(raw.replace(',', '.')));
+    if (!isNaN(val)) setHabitLog(displayDate, h.id, val);
+    setEditingId(null);
     setTick(t => t + 1);
   }
 
@@ -458,24 +469,73 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
-      <div style={{ display:'flex', alignItems:'baseline', gap: 4 }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap: 4, flexWrap:'wrap' }}>
         <span style={{ fontSize: 28, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{doneCount}</span>
         <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/{habits.length} done</span>
+        {isLateNight && (
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: hov ? 'rgba(0,0,0,0.5)' : 'var(--warning)', fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase' }}>
+            yesterday
+          </span>
+        )}
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
         {visible.map(h => {
-          const log = todayLogs.find(l => l.habitId === h.id);
-          const isDone = isHabitDone(h.type, h.target, log?.value);
+          const log = logs.find(l => l.habitId === h.id);
+          const value = log?.value;
+          const isDone = isHabitDone(h.type, h.target, value);
+          const nameStyle: React.CSSProperties = {
+            fontSize: 12, color: isDone ? fgMuted : fg,
+            fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3,
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex: 1,
+            textDecoration: isDone ? 'line-through' : 'none', opacity: isDone ? 0.6 : 1,
+          };
+
+          if (h.type === 'boolean') {
+            return (
+              <div key={h.id} onClick={e => { e.stopPropagation(); toggleBoolean(h); }}
+                style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', padding:'1px 0' }}>
+                <CheckSq done={isDone} accent={accent} hov={hov} />
+                <span style={nameStyle}>{h.name}</span>
+              </div>
+            );
+          }
+
+          // Numeric habit
           return (
-            <div key={h.id} onClick={e => { e.stopPropagation(); toggleHabit(h); }}
-              style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', padding:'1px 0' }}>
-              <CheckSq done={isDone} accent={accent} hov={hov} />
-              <span style={{
-                fontSize: 12, color: isDone ? fgMuted : fg,
-                fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3,
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                textDecoration: isDone ? 'line-through' : 'none', opacity: isDone ? 0.6 : 1,
-              }}>{h.icon ? `${h.icon} ` : ''}{h.name}</span>
+            <div key={h.id} onClick={e => e.stopPropagation()}
+              style={{ display:'flex', alignItems:'center', gap: 6, padding:'1px 0' }}>
+              {editingId === h.id ? (
+                <input
+                  type="text" inputMode="decimal"
+                  defaultValue={value ?? ''}
+                  autoFocus
+                  onBlur={e => commitNumeric(h, e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter')  commitNumeric(h, e.currentTarget.value);
+                    if (e.key === 'Escape') setEditingId(null);
+                  }}
+                  style={{
+                    width: 44, background: hov ? 'rgba(0,0,0,0.12)' : 'var(--surface-alt)',
+                    border: `1px solid ${hov ? 'rgba(0,0,0,0.2)' : 'var(--border-mid)'}`,
+                    borderRadius: 3, padding: '1px 4px', color: hov ? HOVER_TEXT : fg,
+                    fontSize: 11, fontFamily:"'JetBrains Mono',monospace", textAlign:'right',
+                    outline: 'none', flexShrink: 0,
+                  }}
+                />
+              ) : (
+                <button onClick={() => setEditingId(h.id)}
+                  style={{
+                    width: 44, background: hov ? 'rgba(0,0,0,0.10)' : 'var(--surface-alt)',
+                    border: `1px solid ${hov ? 'rgba(0,0,0,0.15)' : 'var(--border)'}`,
+                    borderRadius: 3, padding: '1px 4px', color: hov ? (isDone ? 'rgba(0,0,0,0.4)' : HOVER_TEXT) : (isDone ? fgMuted : accent),
+                    fontSize: 11, fontFamily:"'JetBrains Mono',monospace", cursor:'pointer', textAlign:'right',
+                    flexShrink: 0,
+                  }}
+                >
+                  {value != null && value > 0 ? `${value}${h.unit ? h.unit[0] : ''}` : '—'}
+                </button>
+              )}
+              <span style={nameStyle}>{h.name}</span>
             </div>
           );
         })}
@@ -506,6 +566,7 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
   }
 
   const { fg, fgMuted, fgDim } = C(hov);
+  const isLateNight = new Date().getHours() < 2;
 
   const pending = todos.filter(t => !t.done);
   const done    = todos.filter(t => t.done);
@@ -520,9 +581,14 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
-      <div style={{ display:'flex', alignItems:'baseline', gap: 4 }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap: 4, flexWrap:'wrap' }}>
         <span style={{ fontSize: 28, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{pending.length}</span>
         <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/{todos.length} pending</span>
+        {isLateNight && (
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: hov ? 'rgba(0,0,0,0.5)' : 'var(--warning)', fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase' }}>
+            yesterday
+          </span>
+        )}
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
       {visible.map(t => (
