@@ -167,32 +167,67 @@ export default function MedicationTab() {
         {/* Right: Sidebar */}
         <div className="med-sidebar">
 
-          <div className="prescriptions-card">
-            <h3 className="prescriptions-title">Prescriptions</h3>
-            <div className="prescriptions-stats-grid">
-              <div className="prescriptions-stat">
-                <span className="prescriptions-stat-val">{activeCount}</span>
-                <span className="prescriptions-stat-lbl">Active</span>
+          <div style={{
+            background: 'var(--surface)', borderRadius: 4, padding: 20,
+            border: '2px solid rgba(14,165,233,0.4)',
+            borderTop: '3px solid #0ea5e9',
+          }}>
+            <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text)', margin: '0 0 16px' }}>
+              Prescriptions
+            </p>
+
+            {/* Divided stat row */}
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ flex: 1, padding: '14px 12px', textAlign: 'center', borderRight: '1px solid var(--border)' }}>
+                <span style={{ display: 'block', fontSize: '2rem', fontWeight: 700, color: '#0ea5e9', lineHeight: 1, letterSpacing: '-1px', fontFamily: "'JetBrains Mono', monospace" }}>{activeCount}</span>
+                <span style={{ display: 'block', fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', marginTop: 5 }}>Active</span>
               </div>
-              <div className="prescriptions-stat">
-                <span className="prescriptions-stat-val">{completedCount}</span>
-                <span className="prescriptions-stat-lbl">Completed</span>
+              <div style={{ flex: 1, padding: '14px 12px', textAlign: 'center' }}>
+                <span style={{ display: 'block', fontSize: '2rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1, letterSpacing: '-1px', fontFamily: "'JetBrains Mono', monospace" }}>{completedCount}</span>
+                <span style={{ display: 'block', fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', marginTop: 5 }}>Completed</span>
               </div>
             </div>
-            <button className="prescriptions-btn-primary" onClick={openNew}>
-              <IconPlus size={18} />
-              Add Medication
-            </button>
-            <button className="prescriptions-btn-secondary" onClick={() => setShowList(true)}>
-              <IconList size={16} />
-              View Full List
-            </button>
-            {meds.length > 0 && (
-              <button className="prescriptions-btn-ghost" onClick={() => setShowBulk(true)}>
-                <IconLayers size={14} />
-                Bulk Input
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={openNew} style={{
+                width: '100%', background: '#0ea5e9', color: 'var(--bg)',
+                fontWeight: 700, padding: 11, borderRadius: 4, border: 'none',
+                fontFamily: 'inherit', fontSize: '0.78rem', letterSpacing: '0.08em',
+                textTransform: 'uppercase', cursor: 'pointer', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'opacity 0.12s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                <IconPlus size={16} /> Add Medication
               </button>
-            )}
+              <button onClick={() => setShowList(true)} style={{
+                width: '100%', background: 'transparent', color: 'var(--text)',
+                fontWeight: 600, padding: 11, borderRadius: 4, border: '1px solid var(--border-mid)',
+                fontFamily: 'inherit', fontSize: '0.78rem', letterSpacing: '0.08em',
+                textTransform: 'uppercase', cursor: 'pointer', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'background 0.12s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <IconList size={15} /> View Full List
+              </button>
+              {meds.length > 0 && (
+                <button onClick={() => setShowBulk(true)} style={{
+                  width: '100%', background: 'transparent', color: 'var(--text-muted)',
+                  fontWeight: 600, padding: 11, borderRadius: 4, border: '1px solid var(--border)',
+                  fontFamily: 'inherit', fontSize: '0.78rem', letterSpacing: '0.08em',
+                  textTransform: 'uppercase', cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'background 0.12s',
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <IconLayers size={13} /> Bulk Input
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="med-tip-card">
