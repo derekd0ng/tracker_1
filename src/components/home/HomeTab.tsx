@@ -3,6 +3,7 @@ import type { TabId } from '../../types';
 import {
   getWellbeingEntries, getMedications, getMedLogs, getMedLogsForDate,
   getHabits, getHabitLogs, getHabitLogsForDate,
+  toggleMedLog, setHabitLog,
 } from '../../storage';
 
 interface Props { onNavigate: (tab: TabId) => void }
@@ -51,13 +52,13 @@ function computeStreak(habitId: string, allLogs: {habitId:string;date:string;val
 }
 
 // ── Canvas constants ──────────────────────────────────────────────────────────
-const CW = 1440, CH = 660;
+const CW = 1440, CH = 628;
 const CARD_W = 380, CARD_H = 180;
 const NAV = 64;
 const HAB_NAV_W = 130, HAB_NAV_H = 76;
 
-// Row Y — 20px margins, 40px gaps between rows
-const R1Y = 20, R2Y = 240, R3Y = 460;
+// Row Y — 20px margins, 24px gaps between rows
+const R1Y = 20, R2Y = 224, R3Y = 428;
 
 // Row X — symmetric around CX=720
 const R1_LX = 270, R1_RX = 790;
@@ -205,42 +206,66 @@ function NavIcon({ id, size, color }: { id: string; size: number; color: string 
 
 // ── Mini card contents ────────────────────────────────────────────────────────
 
+// Shared hover-aware color helper
+const C = (hov: boolean) => ({
+  fg:      hov ? HOVER_TEXT         : '#e2e2e2',
+  fgMuted: hov ? 'rgba(0,0,0,0.5)' : '#555555',
+  fgDim:   hov ? 'rgba(0,0,0,0.3)' : '#383838',
+  bg:      hov ? 'rgba(0,0,0,0.12)': '#121212',
+  border:  hov ? 'rgba(0,0,0,0.15)': '#1e1e1e',
+});
+
+const MINI_MAX = 5; // max rows before "+X more"
+
+function CheckSq({ done, accent, hov }: { done: boolean; accent: string; hov: boolean }) {
+  const col = done ? (hov ? 'rgba(0,0,0,0.6)' : accent) : (hov ? 'rgba(0,0,0,0.25)' : '#383838');
+  return (
+    <svg width={13} height={13} viewBox="0 0 16 16" fill="none"
+      stroke={col} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round"
+      style={{ flexShrink: 0 }}>
+      <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+      {done && <polyline points="5,8 7,10 11,6"/>}
+    </svg>
+  );
+}
+
 function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
+  const { fg, fgMuted, bg, border } = C(hov);
   const entries = getWellbeingEntries().sort((a,b) => b.date.localeCompare(a.date)||b.time.localeCompare(a.time));
   const latest = entries[0];
   const latestHR  = entries.find(e => e.heartRate != null);
   const latestSpo = entries.find(e => e.spo2 != null);
 
   if (!latest) return (
-    <div style={{ fontSize: 11, color: '#555', fontFamily: "'JetBrains Mono', monospace" }}>No entries yet</div>
+    <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No entries yet</div>
   );
 
   const metrics = [
-    { l:'HR',   v: latestHR?.heartRate,  u:'bpm', c:'#f87171' },
-    { l:'SPO₂', v: latestSpo?.spo2,      u:'%',   c:'#34d399' },
-    { l:'FEEL', v: latest.overallFeel,   u:'/10', c: accent    },
+    { l:'HR',   v: latestHR?.heartRate, u:'bpm', c: hov ? HOVER_TEXT : '#f87171' },
+    { l:'SPO₂', v: latestSpo?.spo2,     u:'%',   c: hov ? HOVER_TEXT : '#34d399' },
+    { l:'FEEL', v: latest.overallFeel,  u:'/10', c: hov ? HOVER_TEXT : accent    },
   ];
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 7 }}>
       {latest.overallFeel != null && (
         <div style={{ display:'flex', alignItems:'baseline', gap: 5 }}>
-          <span style={{ fontSize: 32, fontWeight: 700, color: accent, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{latest.overallFeel}</span>
-          <span style={{ fontSize: 11, color: '#555', fontFamily:"'JetBrains Mono',monospace" }}>/10 feel</span>
+          <span style={{ fontSize: 32, fontWeight: 700, color: hov ? HOVER_TEXT : accent, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{latest.overallFeel}</span>
+          <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/10 feel</span>
         </div>
       )}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 4 }}>
         {metrics.map(m => (
-          <div key={m.l} style={{ background:'#121212', borderRadius: 2, padding:'5px 6px', border:'1px solid #1e1e1e' }}>
-            <div style={{ fontSize: 7.5, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>{m.l}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: m.v != null ? m.c : '#333', fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.3 }}>
-              {m.v ?? '—'}<span style={{ fontSize: 8, color:'#333' }}>{m.v != null ? m.u : ''}</span>
+          <div key={m.l} style={{ background: bg, borderRadius: 2, padding:'5px 6px', border:`1px solid ${border}` }}>
+            <div style={{ fontSize: 7.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>{m.l}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: m.v != null ? m.c : fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.3 }}>
+              {m.v ?? '—'}<span style={{ fontSize: 8, color: fgMuted }}>{m.v != null ? m.u : ''}</span>
             </div>
           </div>
         ))}
       </div>
       {latest.symptoms.length > 0 && (
-        <div style={{ fontSize: 9.5, color:'#555', fontFamily:"'JetBrains Mono',monospace", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+        <div style={{ fontSize: 9.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {latest.symptoms.map(s => s.name).join(' · ')}
         </div>
       )}
@@ -248,89 +273,135 @@ function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
   );
 }
 
+const SLOT_ORDER = ['morning','afternoon','evening','night'] as const;
+type Slot = typeof SLOT_ORDER[number];
+const SLOT_LABEL: Record<Slot, string> = { morning:'Morning', afternoon:'Afternoon', evening:'Evening', night:'Night' };
+
+function currentSlotIndex() {
+  const h = new Date().getHours();
+  if (h >= 8 && h < 13) return 0;
+  if (h >= 13 && h < 17) return 1;
+  if (h >= 17 && h < 20) return 2;
+  return 3;
+}
+
 function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
+  const { fg, fgMuted, fgDim } = C(hov);
+  const [tick, setTick] = useState(0);
   const today = localDateStr();
   const meds = getMedications().filter(m => m.active && (!m.startDate || m.startDate <= today));
   const logs = getMedLogsForDate(today);
-  const allLogs = getMedLogs();
 
   const totalDoses = meds.reduce((n,m) => n + m.timesOfDay.length, 0);
-  const takenDoses = meds.reduce((n,m) => n + m.timesOfDay.filter(t =>
-    logs.some(l => l.medicationId === m.id && l.timeOfDay === t && l.taken)
+  const takenDoses = meds.reduce((n,m) => n + m.timesOfDay.filter(s =>
+    logs.some(l => l.medicationId === m.id && l.timeOfDay === s && l.taken)
   ).length, 0);
-  const pct = totalDoses > 0 ? Math.round(takenDoses / totalDoses * 100) : 0;
 
-  const slots = ['morning','afternoon','evening','night'] as const;
+  // Find next slot with pending meds
+  const ci = currentSlotIndex();
+  let nextSlot: Slot | null = null;
+  let nextMeds: typeof meds = [];
+  for (let i = 0; i < SLOT_ORDER.length; i++) {
+    const slot = SLOT_ORDER[(ci + i) % SLOT_ORDER.length];
+    const slotMeds = meds.filter(m => m.timesOfDay.includes(slot));
+    const pending = slotMeds.filter(m => !logs.some(l => l.medicationId === m.id && l.timeOfDay === slot && (l.taken || l.skipped)));
+    if (pending.length > 0) { nextSlot = slot; nextMeds = pending; break; }
+  }
+
+  function toggleMed(medId: string, slot: Slot) {
+    toggleMedLog(today, medId, slot);
+    setTick(t => t + 1);
+  }
 
   if (meds.length === 0) return (
-    <div style={{ fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>No medications</div>
+    <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No medications</div>
   );
 
+  const visible = nextMeds.slice(0, MINI_MAX);
+  const overflow = nextMeds.length - visible.length;
+
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 7 }}>
-      <div style={{ display:'flex', alignItems:'baseline', gap: 5 }}>
-        <span style={{ fontSize: 30, fontWeight: 700, color: accent, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{takenDoses}</span>
-        <span style={{ fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>/{totalDoses} taken</span>
+    <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap: 4 }}>
+        <span style={{ fontSize: 26, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{takenDoses}</span>
+        <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/{totalDoses} taken</span>
       </div>
-      <div style={{ height: 2.5, background:'#121212', borderRadius: 1, overflow:'hidden' }}>
-        <div style={{ width:`${pct}%`, height:'100%', background: accent }}/>
-      </div>
-      <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
-        {slots.map(slot => {
-          const slotMeds = meds.filter(m => m.timesOfDay.includes(slot));
-          if (slotMeds.length === 0) return null;
-          const taken = slotMeds.filter(m => logs.some(l => l.medicationId === m.id && l.timeOfDay === slot && l.taken)).length;
-          return (
-            <div key={slot} style={{ display:'flex', justifyContent:'space-between' }}>
-              <span style={{ fontSize: 9.5, color:'#555', fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase', letterSpacing:'0.05em' }}>{slot}</span>
-              <span style={{ fontSize: 9.5, color: taken === slotMeds.length ? '#22c55e' : '#555', fontFamily:"'JetBrains Mono',monospace" }}>{taken}/{slotMeds.length}</span>
-            </div>
-          );
-        })}
-      </div>
+      {nextSlot ? (
+        <>
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: fgMuted, fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase' }}>
+            Next up · {SLOT_LABEL[nextSlot]}
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
+            {visible.map(m => (
+              <div key={m.id} onClick={e => { e.stopPropagation(); toggleMed(m.id, nextSlot!); }}
+                style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', padding:'1px 0' }}>
+                <CheckSq done={false} accent={accent} hov={hov} />
+                <span style={{ fontSize: 10.5, color: fg, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {m.name}{m.dose ? ` · ${m.dose}` : ''}
+                </span>
+              </div>
+            ))}
+            {overflow > 0 && <div style={{ fontSize: 9.5, color: fgDim, fontFamily:"'JetBrains Mono',monospace" }}>+{overflow} more</div>}
+          </div>
+        </>
+      ) : (
+        <div style={{ fontSize: 10, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>✓ All done for today</div>
+      )}
     </div>
   );
 }
 
 function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
+  const { fg, fgMuted, fgDim } = C(hov);
+  const [tick, setTick] = useState(0);
   const today = localDateStr();
   const habits = getHabits().filter(h => (h.frequency ?? 'daily') === 'daily');
   const todayLogs = getHabitLogsForDate(today);
-  const allLogs = getHabitLogs();
 
-  const done = habits.filter(h => {
+  const doneCount = habits.filter(h => isHabitDone(h.type, h.target, todayLogs.find(l => l.habitId === h.id)?.value)).length;
+
+  function toggleHabit(h: ReturnType<typeof getHabits>[number]) {
     const log = todayLogs.find(l => l.habitId === h.id);
-    return isHabitDone(h.type, h.target, log?.value);
-  }).length;
-
-  const bestStreak = habits.length > 0 ? Math.max(0, ...habits.map(h => computeStreak(h.id, allLogs))) : 0;
+    const isDone = isHabitDone(h.type, h.target, log?.value);
+    if (isDone) {
+      setHabitLog(today, h.id, 0);
+    } else {
+      setHabitLog(today, h.id, h.type === 'boolean' ? 1 : (h.target ?? 1));
+    }
+    setTick(t => t + 1);
+  }
 
   if (habits.length === 0) return (
-    <div style={{ fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>No habits yet</div>
+    <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No habits yet</div>
   );
 
+  const visible = habits.slice(0, MINI_MAX);
+  const overflow = habits.length - visible.length;
+
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
-      <div style={{ display:'flex', gap: 16 }}>
-        <div>
-          <div style={{ fontSize: 8, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>TODAY</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: accent, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.1 }}>{done}/{habits.length}</div>
-        </div>
-        {bestStreak > 0 && (
-          <div>
-            <div style={{ fontSize: 8, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>STREAK</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color:'#f97316', fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.1 }}>{bestStreak}d</div>
-          </div>
-        )}
+    <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap: 4 }}>
+        <span style={{ fontSize: 26, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{doneCount}</span>
+        <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/{habits.length} done</span>
       </div>
-      <div style={{ display:'flex', gap: 4, flexWrap:'wrap' }}>
-        {habits.map(h => {
+      <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
+        {visible.map(h => {
           const log = todayLogs.find(l => l.habitId === h.id);
           const isDone = isHabitDone(h.type, h.target, log?.value);
           return (
-            <div key={h.id} style={{ width: 8, height: 8, borderRadius: 1, background: isDone ? accent : '#121212', border: `1px solid ${isDone ? accent : '#2a2a2a'}` }}/>
+            <div key={h.id} onClick={e => { e.stopPropagation(); toggleHabit(h); }}
+              style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', padding:'1px 0' }}>
+              <CheckSq done={isDone} accent={accent} hov={hov} />
+              <span style={{
+                fontSize: 10.5, color: isDone ? fgMuted : fg,
+                fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3,
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                textDecoration: isDone ? 'line-through' : 'none', opacity: isDone ? 0.6 : 1,
+              }}>{h.icon ? `${h.icon} ` : ''}{h.name}</span>
+            </div>
           );
         })}
+        {overflow > 0 && <div style={{ fontSize: 9.5, color: fgDim, fontFamily:"'JetBrains Mono',monospace" }}>+{overflow} more</div>}
       </div>
     </div>
   );
@@ -356,9 +427,7 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
     });
   }
 
-  const fg      = hov ? HOVER_TEXT : '#e2e2e2';
-  const fgMuted = hov ? 'rgba(0,0,0,0.5)' : '#555';
-  const fgDim   = hov ? 'rgba(0,0,0,0.35)' : '#383838';
+  const { fg, fgMuted, fgDim } = C(hov);
 
   const pending = todos.filter(t => !t.done);
   const done    = todos.filter(t => t.done);
@@ -420,8 +489,10 @@ function DiaryMini({ accent, hov }: { accent: string; hov: boolean }) {
   const latest = sorted[0];
   const thisMonth = entries.filter(e => e.date?.startsWith(localDateStr().slice(0,7))).length;
 
+  const { fg, fgMuted } = C(hov);
+
   if (!latest) return (
-    <div style={{ fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>No entries yet</div>
+    <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No entries yet</div>
   );
 
   const d = new Date(latest.date + 'T00:00:00');
@@ -429,21 +500,22 @@ function DiaryMini({ accent, hov }: { accent: string; hov: boolean }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 7 }}>
-      <div style={{ fontSize: 8.5, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>LAST ENTRY · {dateLabel.toUpperCase()}</div>
-      <div style={{ fontSize: 11, color:'#e2e2e2', fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.6, flex: 1,
+      <div style={{ fontSize: 8.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>LAST ENTRY · {dateLabel.toUpperCase()}</div>
+      <div style={{ fontSize: 11, color: fg, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.6, flex: 1,
         overflow:'hidden', display:'-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient:'vertical' } as React.CSSProperties}>
         {latest.freeText}
       </div>
-      <div style={{ fontSize: 9.5, color: accent, fontFamily:"'JetBrains Mono',monospace" }}>{thisMonth} entries this month</div>
+      <div style={{ fontSize: 9.5, color: hov ? 'rgba(0,0,0,0.5)' : accent, fontFamily:"'JetBrains Mono',monospace" }}>{thisMonth} entries this month</div>
     </div>
   );
 }
 
 function CalMini({ accent }: { accent: string }) {
+  const { fgMuted, fgDim } = C(false);
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
-      <div style={{ fontSize: 8.5, color:'#555', fontFamily:"'JetBrains Mono',monospace", marginBottom: 1 }}>COMING SOON</div>
-      <div style={{ fontSize: 10.5, color:'#383838', fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.6 }}>
+      <div style={{ fontSize: 8.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", marginBottom: 1 }}>COMING SOON</div>
+      <div style={{ fontSize: 10.5, color: fgDim, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.6 }}>
         Calendar integration will let you see appointments, reminders, and events alongside your recovery data.
       </div>
     </div>
