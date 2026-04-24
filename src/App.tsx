@@ -93,12 +93,31 @@ export default function App() {
   }
 
   // ── App ───────────────────────────────────────────────────────────────────
+
+  // Home tab: full-width, no sidebar
+  if (activeTab === 'home') {
+    return (
+      <div className="app">
+        <main style={{ width: '100%', minHeight: '100vh', padding: '32px 40px 60px' }}>
+          <HomeTab onNavigate={setActiveTab} />
+        </main>
+        {/* Mobile bottom nav still available */}
+        <nav className="bottom-tabbar" data-active={activeTab}>
+          {['home','dashboard','wellbeing','medication','habits','todo','diary'].map(id => (
+            <button key={id} className={`bottom-tab${activeTab === id ? ' active' : ''}`} onClick={() => setActiveTab(id as any)}>
+              <span className="bottom-tab-label" style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{id}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <Navigation activeTab={activeTab} onChange={setActiveTab} user={user} onLogout={handleLogout} />
       <main className="app-main">
         <div className="content-center">
-          {activeTab === 'home'       && <HomeTab onNavigate={setActiveTab} />}
           {activeTab === 'dashboard'  && <DashboardTab onNavigate={setActiveTab} user={user} onUserUpdate={u => setUser(u)} />}
           {activeTab === 'wellbeing'  && <div className="wb-theme"><WellbeingTab /></div>}
           {activeTab === 'medication' && <MedicationTab />}
