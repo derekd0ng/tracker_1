@@ -17,7 +17,7 @@ type AuthState = 'checking' | 'unauthenticated' | 'loading' | 'ready';
 interface User { id: string; email: string; name?: string | null; }
 
 export default function App() {
-  const [activeTab, setActiveTab]   = useState<TabId>('dashboard');
+  const [activeTab, setActiveTab]   = useState<TabId>('home');
   const [authState, setAuthState]   = useState<AuthState>('checking');
   const [user, setUser]             = useState<User | null>(null);
 
