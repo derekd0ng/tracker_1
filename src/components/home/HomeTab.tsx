@@ -400,9 +400,6 @@ function CalMini({ accent }: { accent: string }) {
 
 // ── CenterGoals ───────────────────────────────────────────────────────────────
 function CenterGoals({ pct, done, total }: { pct: number; done: number; total: number }) {
-  const r = 54, cx = CENTER_SQ / 2, cy = CENTER_SQ / 2;
-  const circumference = 2 * Math.PI * r;
-  const dash = (pct / 100) * circumference;
 
   return (
     <div style={{
@@ -415,19 +412,6 @@ function CenterGoals({ pct, done, total }: { pct: number; done: number; total: n
       alignItems: 'center', justifyContent: 'center',
       gap: 2,
     }}>
-      {/* Progress ring */}
-      <svg width={CENTER_SQ} height={CENTER_SQ} style={{ position: 'absolute', inset: 0 }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1e1e1e" strokeWidth="3"/>
-        <circle
-          cx={cx} cy={cy} r={r}
-          fill="none" stroke="#e2e2e2" strokeWidth="3"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference}`}
-          transform={`rotate(-90 ${cx} ${cy})`}
-          style={{ transition: 'stroke-dasharray 0.6s ease' }}
-        />
-      </svg>
-
       {/* Text */}
       <span style={{ fontSize: 28, fontWeight: 700, color: '#e2e2e2', fontFamily:"'JetBrains Mono',monospace", lineHeight: 1, position: 'relative' }}>
         {pct}<span style={{ fontSize: 13, color: '#555' }}>%</span>
