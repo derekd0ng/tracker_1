@@ -58,6 +58,10 @@ const R2_LX = 20,  R2_RX = 830;
 const R3_LX = 219, R3_RX = 631;
 const R1Y = 30, R2Y = 270, R3Y = 510;
 
+const CENTER_SQ = 160;
+const CENTER_X = CW / 2 - CENTER_SQ / 2;
+const CENTER_Y = R2Y + CARD_H / 2 - CENTER_SQ / 2;
+
 const NL = 513, NR = 573;
 const NY1 = R1Y + (CARD_H - NAV) / 2;
 const NY2 = R2Y + (CARD_H - NAV) / 2;
@@ -90,7 +94,7 @@ const MODULES: Module[] = [
     cardInnerEdgeX:R2_LX+CARD_W, cardCY:R2Y+CARD_H/2 },
   { id:'todo',        label:'TO-DOS',      shortLabel:'TO-DOS', col:ACCENTS.todo,
     cardX:R2_RX, cardY:R2Y,
-    navX:R2_RX - HAB_NAV_W - 60, navY:R2Y+CARD_H/2-HAB_NAV_H/2,
+    navX:R2_RX - HAB_NAV_W - 20, navY:R2Y+CARD_H/2-HAB_NAV_H/2,
     navW:HAB_NAV_W, navH:HAB_NAV_H, side:'right',
     cardInnerEdgeX:R2_RX, cardCY:R2Y+CARD_H/2 },
   { id:'diary',       label:'DIARY',       shortLabel:'LOG', col:ACCENTS.diary,
@@ -391,6 +395,52 @@ function CalMini({ accent }: { accent: string }) {
   );
 }
 
+// ── CenterGoals ───────────────────────────────────────────────────────────────
+function CenterGoals({ pct, done, total }: { pct: number; done: number; total: number }) {
+  const r = 54, cx = CENTER_SQ / 2, cy = CENTER_SQ / 2;
+  const circumference = 2 * Math.PI * r;
+  const dash = (pct / 100) * circumference;
+
+  return (
+    <div style={{
+      position: 'absolute', left: CENTER_X, top: CENTER_Y,
+      width: CENTER_SQ, height: CENTER_SQ, zIndex: 3,
+      background: '#0d0d0d',
+      border: '2px solid #2a2a2a',
+      borderRadius: 4,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: 2,
+    }}>
+      {/* Progress ring */}
+      <svg width={CENTER_SQ} height={CENTER_SQ} style={{ position: 'absolute', inset: 0 }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1e1e1e" strokeWidth="3"/>
+        <circle
+          cx={cx} cy={cy} r={r}
+          fill="none" stroke="#e2e2e2" strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circumference}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
+          style={{ transition: 'stroke-dasharray 0.6s ease' }}
+        />
+      </svg>
+
+      {/* Text */}
+      <span style={{ fontSize: 28, fontWeight: 700, color: '#e2e2e2', fontFamily:"'JetBrains Mono',monospace", lineHeight: 1, position: 'relative' }}>
+        {pct}<span style={{ fontSize: 13, color: '#555' }}>%</span>
+      </span>
+      <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', fontFamily:"'JetBrains Mono',monospace", position: 'relative' }}>
+        Daily Goals
+      </span>
+      {total > 0 && (
+        <span style={{ fontSize: 9, color: '#383838', fontFamily:"'JetBrains Mono',monospace", position: 'relative', marginTop: 2 }}>
+          {done}/{total}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ── HomeTab ───────────────────────────────────────────────────────────────────
 export default function HomeTab({ onNavigate }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -494,6 +544,9 @@ export default function HomeTab({ onNavigate }: Props) {
                 module={m} onNavigate={onNavigate}/>
             </div>
           ))}
+
+          {/* Center goals square */}
+          <CenterGoals pct={pct} done={takenMeds + doneHabits} total={totalGoals} />
         </div>
       </div>
     </div>
