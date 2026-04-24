@@ -7,10 +7,10 @@ import {
 
 interface Props { onNavigate: (tab: TabId) => void }
 
-// ── Accent colors per module — Option A (green → violet arc) ─────────────────
+// ── Accent colors per module — Option B (emerald → orchid arc) ───────────────
 const ACCENTS: Record<string, string> = {
-  wellbeing:   '#22c55e',
-  medications: '#06b6d4',
+  wellbeing:   '#34d399',
+  medications: '#22d3ee',
   habits:      '#60a5fa',
   todo:        '#818cf8',
   diary:       '#a78bfa',
