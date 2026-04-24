@@ -378,32 +378,39 @@ export default function HabitsTab() {
 
         {/* Right: Sidebar */}
         <div className="med-sidebar">
-          <div className="prescriptions-card">
-            <h3 className="prescriptions-title">My Habits</h3>
-            <div className="prescriptions-stats-grid">
-              <div className="prescriptions-stat">
-                <span className="prescriptions-stat-val">{habits.length}</span>
-                <span className="prescriptions-stat-lbl">Total</span>
+          <div className="habits-sidebar-card">
+            <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text)', margin: '0 0 16px' }}>
+              My Habits
+            </p>
+
+            {/* Divided stat row */}
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ flex: 1, padding: '14px 12px', textAlign: 'center', borderRight: '1px solid var(--border)' }}>
+                <span style={{ display: 'block', fontSize: '2rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1, letterSpacing: '-1px', fontFamily: "'JetBrains Mono', monospace" }}>{habits.length}</span>
+                <span style={{ display: 'block', fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', marginTop: 5 }}>Total</span>
               </div>
-              <div className="prescriptions-stat">
-                <span className="prescriptions-stat-val">{todayDone}</span>
-                <span className="prescriptions-stat-lbl">Done Today</span>
+              <div style={{ flex: 1, padding: '14px 12px', textAlign: 'center' }}>
+                <span style={{ display: 'block', fontSize: '2rem', fontWeight: 700, color: 'var(--accent)', lineHeight: 1, letterSpacing: '-1px', fontFamily: "'JetBrains Mono', monospace" }}>{todayDone}</span>
+                <span style={{ display: 'block', fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', marginTop: 5 }}>Today</span>
               </div>
             </div>
-            <button className="prescriptions-btn-primary" onClick={openNew}>
-              <IconPlus size={18} />
-              Add Habit
-            </button>
-            <button className="prescriptions-btn-secondary" onClick={() => setShowList(true)}>
-              <IconList size={16} />
-              View Full List
-            </button>
-            {habits.length > 0 && (
-              <button className="prescriptions-btn-ghost" onClick={() => setShowBulk(true)}>
-                <IconLayers size={14} />
-                Bulk Input
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button className="habits-sidebar-btn-primary" onClick={openNew}>
+                <IconPlus size={16} />
+                Add Habit
               </button>
-            )}
+              <button className="habits-sidebar-btn-secondary" onClick={() => setShowList(true)}>
+                <IconList size={15} />
+                View Full List
+              </button>
+              {habits.length > 0 && (
+                <button className="habits-sidebar-btn-ghost" onClick={() => setShowBulk(true)}>
+                  <IconLayers size={13} />
+                  Bulk Input
+                </button>
+              )}
+            </div>
           </div>
 
           {/* <HabitInsight habits={habits} allLogs={allLogs} /> */}

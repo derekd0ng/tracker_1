@@ -1694,9 +1694,9 @@ input[type='range'] {
 .habits-sidebar-card {
   background: var(--surface);
   border-radius: 4px;
-  padding: 24px 24px 14px;
-  height: 310px;
-  border: 1px solid var(--border);
+  padding: 20px;
+  border: 2px solid var(--border-mid);
+  border-top: 3px solid var(--accent);
   box-shadow: none;
 }
 
@@ -1743,65 +1743,66 @@ input[type='range'] {
 
 .habits-sidebar-btn-primary {
   width: 100%;
-  background: rgba(255,255,255,0.07);
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
   font-weight: 700;
-  padding: 12px;
+  padding: 11px;
   border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.10);
+  border: none;
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: background 0.12s, border-color 0.12s;
-  margin-bottom: 10px;
+  gap: 7px;
+  transition: opacity 0.12s;
 }
-.habits-sidebar-btn-primary:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.15);
-}
+.habits-sidebar-btn-primary:hover { opacity: 0.88; }
 
 .habits-sidebar-btn-secondary {
   width: 100%;
-  background: rgba(255,255,255,0.04);
+  background: transparent;
   color: var(--text);
   font-weight: 600;
-  padding: 12px;
+  padding: 11px;
   border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid var(--border-mid);
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: background 0.12s;
+  gap: 7px;
+  transition: background 0.12s, border-color 0.12s;
 }
-.habits-sidebar-btn-secondary:hover { background: rgba(255,255,255,0.08); }
+.habits-sidebar-btn-secondary:hover { background: rgba(255,255,255,0.04); border-color: var(--border-hi); }
 
 .habits-sidebar-btn-ghost {
   width: 100%;
-  background: none;
-  border: none;
+  background: transparent;
+  border: 1px solid var(--border);
   color: var(--text-muted);
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 0;
-  margin-top: 10px;
+  padding: 11px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  opacity: 0.7;
-  transition: opacity 0.12s;
+  gap: 7px;
+  transition: background 0.12s, color 0.12s;
 }
-.habits-sidebar-btn-ghost:hover { opacity: 1; }
+.habits-sidebar-btn-ghost:hover { background: rgba(255,255,255,0.03); color: var(--text); }
 
 /* ── Habits redesign ─────────────────────────────────────────────────────── */
 
@@ -2203,21 +2204,14 @@ input[type='range'] {
   --border-focus:#a78bfa;
 }
 .hab-theme .habits-sidebar-card {
-  border-color: rgba(167, 139, 250, 0.14);
-  box-shadow: none;
+  border-color: rgba(167, 139, 250, 0.4);
+  border-top-color: #a78bfa;
 }
 .hab-theme .habits-sidebar-stat {
   background: rgba(167, 139, 250, 0.07);
   border-color: rgba(167, 139, 250, 0.1);
 }
-.hab-theme .habits-sidebar-btn-primary {
-  background: rgba(167, 139, 250, 0.15);
-  border-color: rgba(167, 139, 250, 0.25);
-}
-.hab-theme .habits-sidebar-btn-primary:hover {
-  background: rgba(167, 139, 250, 0.22);
-  border-color: rgba(167, 139, 250, 0.4);
-}
+/* primary already uses var(--accent) which is #a78bfa in hab-theme */
 .hab-theme .habit-progress-fill {
   background: #a78bfa;
   box-shadow: none;
