@@ -13,7 +13,7 @@ const ACCENTS: Record<string, string> = {
   medications: '#22d3ee',
   habits:      '#60a5fa',
   todo:        '#818cf8',
-  diary:       '#a78bfa',
+  diary:       '#e879f9',
   calendar:    '#c084fc',
 };
 
