@@ -35,6 +35,32 @@ export default function TodoTab() {
   const load = useCallback(async () => {
     try {
       const data = await api.get<TodoItem[]>('/api/todos');
+
+      // One-time migration: push any todos still in localStorage that aren't in the server yet
+      const LEGACY_KEY = 'srt_todos';
+      const legacyRaw = localStorage.getItem(LEGACY_KEY);
+      if (legacyRaw) {
+        try {
+          const legacy: TodoItem[] = JSON.parse(legacyRaw);
+          const serverIds = new Set(data.map((t: TodoItem) => t.id));
+          const toMigrate = legacy.filter(t => !serverIds.has(t.id));
+          if (toMigrate.length > 0) {
+            await Promise.all(toMigrate.map(t =>
+              api.post('/api/todos', {
+                id: t.id, title: t.title, done: t.done,
+                dueDate: t.dueDate ?? null, createdAt: t.createdAt,
+              }).catch(() => {})
+            ));
+            // Reload after migration
+            const fresh = await api.get<TodoItem[]>('/api/todos');
+            setTodos(fresh);
+            localStorage.removeItem(LEGACY_KEY);
+            return;
+          }
+        } catch { /* ignore */ }
+        localStorage.removeItem(LEGACY_KEY);
+      }
+
       setTodos(data);
     } catch (err) {
       console.error('load todos:', err);

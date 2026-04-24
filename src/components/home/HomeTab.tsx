@@ -337,9 +337,13 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
 }
 
 function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
-  const todos = (() => {
-    try { return JSON.parse(localStorage.getItem('srt_todos') ?? '[]'); } catch { return []; }
-  })() as { title: string; done: boolean }[];
+  const [todos, setTodos] = useState<{ title: string; done: boolean }[]>([]);
+  useEffect(() => {
+    import('../../api').then(({ api }) =>
+      api.get<{ title: string; done: boolean }[]>('/api/todos')
+        .then(setTodos).catch(() => {})
+    );
+  }, []);
 
   const pending = todos.filter(t => !t.done);
 
