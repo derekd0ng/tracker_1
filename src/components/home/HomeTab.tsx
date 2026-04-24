@@ -229,91 +229,46 @@ function CheckSq({ done, accent, hov }: { done: boolean; accent: string; hov: bo
   );
 }
 
-// ── Wb status helpers (mirrors WellbeingSnapshot) ────────────────────────────
-const WB_STATUS: Record<string, string> = {
-  good:'#34d399', warning:'#facc15', caution:'#fb923c', bad:'#f87171', neutral:'#888888',
-};
-function wbStatus(v: number, ranges: [number,string][]): string {
-  for (const [thresh, s] of ranges) if (v >= thresh) return WB_STATUS[s];
-  return WB_STATUS.neutral;
-}
-const feelSC  = (v: number) => wbStatus(v, [[8,'good'],[6,'warning'],[3,'caution'],[0,'bad']]);
-const spo2SC  = (v: number) => wbStatus(v, [[95,'good'],[92,'warning'],[90,'caution'],[0,'bad']]);
-const sleepSC = (v: number) => wbStatus(v, [[80,'good'],[60,'warning'],[40,'caution'],[0,'bad']]);
-const sysSC   = (v: number) => v >= 150 ? WB_STATUS.bad : v >= 135 ? WB_STATUS.caution : v >= 120 ? WB_STATUS.warning : v >= 90 ? WB_STATUS.good : WB_STATUS.warning;
-const diaSC   = (v: number) => v > 100  ? WB_STATUS.bad : v >= 85  ? WB_STATUS.caution : v >= 80  ? WB_STATUS.warning : v >= 60 ? WB_STATUS.good : WB_STATUS.warning;
-const hrSC    = (hr: number, avg: number|null) => {
-  if (!avg) return WB_STATUS.good;
-  const p = Math.abs(hr - avg) / avg;
-  return p <= 0.10 ? WB_STATUS.good : p <= 0.20 ? WB_STATUS.warning : p <= 0.30 ? WB_STATUS.caution : WB_STATUS.bad;
-};
-const sympSC  = (i: number) => i <= 1 ? WB_STATUS.neutral : i <= 4 ? WB_STATUS.warning : i <= 7 ? WB_STATUS.caution : WB_STATUS.bad;
-const stronger = (a: string, b: string) => {
-  const rank: Record<string,number> = { [WB_STATUS.bad]:4,[WB_STATUS.caution]:3,[WB_STATUS.warning]:2,[WB_STATUS.good]:1,[WB_STATUS.neutral]:0 };
-  return (rank[a] ?? 0) >= (rank[b] ?? 0) ? a : b;
-};
-
-const WB_MAX_CELLS = 6;
-
 function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
-  const { fgMuted, bg, border } = C(hov);
+  const { fg, fgMuted, bg, border } = C(hov);
   const entries = getWellbeingEntries().sort((a,b) => b.date.localeCompare(a.date)||b.time.localeCompare(a.time));
-  const latest  = entries[0];
-  const latestHR  = entries.find(e => e.heartRate  != null);
-  const latestBP  = entries.find(e => e.systolicBP != null && e.diastolicBP != null);
-  const latestSpo = entries.find(e => e.spo2       != null);
-  const sleepHabitId = getHabits().find(h => /sleep/i.test(h.name))?.id;
-  const latestSleep = sleepHabitId
-    ? getHabitLogs().filter(l => l.habitId === sleepHabitId && l.value > 0).sort((a,b) => b.date.localeCompare(a.date))[0] ?? null
-    : null;
-  const thirtyAgo = (() => { const d = new Date(); d.setDate(d.getDate()-30); return localDateStr(d); })();
-  const avgHr = (() => {
-    const vals = entries.filter(e => e.date >= thirtyAgo && e.heartRate != null).map(e => e.heartRate as number);
-    return vals.length ? vals.reduce((s,v)=>s+v,0)/vals.length : null;
-  })();
+  const latest = entries[0];
+  const latestHR  = entries.find(e => e.heartRate != null);
+  const latestSpo = entries.find(e => e.spo2 != null);
 
   if (!latest) return (
     <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No entries yet</div>
   );
 
-  type Cell = { label: string; value: string; unit: string; color: string; isNone?: boolean };
-  const cells: Cell[] = [];
-
-  if (latest.overallFeel != null)
-    cells.push({ label:'Feel', value:String(latest.overallFeel), unit:'/10', color:feelSC(latest.overallFeel) });
-  if (latestHR?.heartRate != null)
-    cells.push({ label:'HR', value:String(latestHR.heartRate), unit:'bpm', color:hrSC(latestHR.heartRate, avgHr) });
-  if (latestBP?.systolicBP != null && latestBP?.diastolicBP != null)
-    cells.push({ label:'BP', value:`${latestBP.systolicBP}/${latestBP.diastolicBP}`, unit:'mmHg', color:stronger(sysSC(latestBP.systolicBP), diaSC(latestBP.diastolicBP)) });
-  if (latestSpo?.spo2 != null)
-    cells.push({ label:'SpO₂', value:String(latestSpo.spo2), unit:'%', color:spo2SC(latestSpo.spo2) });
-  if (latestSleep)
-    cells.push({ label:'Sleep', value:String(latestSleep.value), unit:'/100', color:sleepSC(latestSleep.value) });
-  if (latest.symptoms.length === 0)
-    cells.push({ label:'Symptoms', value:'None', unit:'', color:WB_STATUS.neutral, isNone:true });
-  else
-    latest.symptoms.forEach(s => cells.push({ label:s.name, value:String(s.intensity), unit:'/10', color:sympSC(s.intensity) }));
-
-  const overflow = cells.length > WB_MAX_CELLS ? cells.length - WB_MAX_CELLS + 1 : 0;
-  const visible  = overflow > 0
-    ? [...cells.slice(0, WB_MAX_CELLS - 1), { label:'', value:`+${overflow}`, unit:' more', color:WB_STATUS.neutral, isNone:true }]
-    : cells;
+  const metrics = [
+    { l:'HR',   v: latestHR?.heartRate, u:'bpm', c: hov ? HOVER_TEXT : '#f87171' },
+    { l:'SPO₂', v: latestSpo?.spo2,     u:'%',   c: hov ? HOVER_TEXT : '#34d399' },
+    { l:'FEEL', v: latest.overallFeel,  u:'/10', c: hov ? HOVER_TEXT : accent    },
+  ];
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 4 }}>
-      {visible.map((m, i) => (
-        <div key={i} style={{ background: bg, borderRadius: 2, padding:'5px 6px', border:`1px solid ${border}` }}>
-          <div style={{ fontSize: 7, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase', letterSpacing:'0.06em', marginBottom: 2 }}>{m.label}</div>
-          {m.isNone ? (
-            <div style={{ fontSize: 11, fontWeight: 700, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.2 }}>{m.value}</div>
-          ) : (
-            <div style={{ display:'flex', alignItems:'baseline', gap: 2 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: hov ? HOVER_TEXT : m.color, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.2 }}>{m.value}</span>
-              <span style={{ fontSize: 7, color: fgMuted }}>{m.unit}</span>
-            </div>
-          )}
+    <div style={{ display:'flex', flexDirection:'column', gap: 7 }}>
+      {latest.overallFeel != null && (
+        <div style={{ display:'flex', alignItems:'baseline', gap: 5 }}>
+          <span style={{ fontSize: 32, fontWeight: 700, color: hov ? HOVER_TEXT : accent, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{latest.overallFeel}</span>
+          <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/10 feel</span>
         </div>
-      ))}
+      )}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 4 }}>
+        {metrics.map(m => (
+          <div key={m.l} style={{ background: bg, borderRadius: 2, padding:'5px 6px', border:`1px solid ${border}` }}>
+            <div style={{ fontSize: 7.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>{m.l}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: m.v != null ? m.c : fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.3 }}>
+              {m.v ?? '—'}<span style={{ fontSize: 8, color: fgMuted }}>{m.v != null ? m.u : ''}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {latest.symptoms.length > 0 && (
+        <div style={{ fontSize: 9.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          {latest.symptoms.map(s => s.name).join(' · ')}
+        </div>
+      )}
     </div>
   );
 }
