@@ -272,33 +272,42 @@ function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
   if (latest.symptoms.length === 0)   cells.push({ l:'Symptoms', v:'None', u:'', c:WB_SC.neutral, isNone:true });
   else latest.symptoms.forEach(s =>   cells.push({ l:s.name, v:String(s.intensity), u:'/10', c:sympSC(s.intensity) }));
 
-  const MAX = 6;
+  const MAX = 5;
   const overflow = cells.length > MAX ? cells.length - MAX + 1 : 0;
   const visible  = overflow > 0
     ? [...cells.slice(0, MAX-1), { l:'', v:`+${overflow}`, u:' more', c:WB_SC.neutral, isNone:true }]
     : cells;
 
+  const dividerColor = hov ? 'rgba(0,0,0,0.15)' : 'var(--border)';
+
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 6 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap: 0, height:'100%' }}>
       {/* Big feel number */}
       {latest.overallFeel != null && (
-        <div style={{ display:'flex', alignItems:'baseline', gap: 5 }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap: 5, paddingBottom: 8 }}>
           <span style={{ fontSize: 30, fontWeight: 700, color: hov ? HOVER_TEXT : feelSC(latest.overallFeel), fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{latest.overallFeel}</span>
           <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/10 feel</span>
         </div>
       )}
-      {/* Metrics grid */}
+      {/* Horizontal divided strip — mirrors well-being tab overview */}
       {visible.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 3 }}>
-          {visible.map((m,i) => (
-            <div key={i} style={{ background: bg, borderRadius: 2, padding:'4px 6px', border:`1px solid ${border}` }}>
-              <div style={{ fontSize: 7, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase', letterSpacing:'0.05em' }}>{m.l}</div>
+        <div style={{ display:'flex', borderTop: `1px solid ${dividerColor}`, marginLeft: -14, marginRight: -14 }}>
+          {visible.map((m, i) => (
+            <div key={i} style={{
+              flex: 1, minWidth: 0,
+              padding: '6px 8px',
+              borderRight: i === visible.length - 1 ? 'none' : `1px solid ${dividerColor}`,
+              display: 'flex', flexDirection: 'column', gap: 2,
+            }}>
+              <span style={{ fontSize: 6.5, fontWeight: 700, letterSpacing: '0.06em', color: fgMuted, textTransform: 'uppercase', fontFamily:"'JetBrains Mono',monospace", whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                {m.l}
+              </span>
               {m.isNone ? (
-                <div style={{ fontSize: 10, fontWeight: 700, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.2 }}>{m.v}</div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
               ) : (
                 <div style={{ display:'flex', alignItems:'baseline', gap: 1 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: hov ? HOVER_TEXT : m.c, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1.2 }}>{m.v}</span>
-                  <span style={{ fontSize: 7, color: fgMuted }}>{m.u}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: hov ? HOVER_TEXT : m.c, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
+                  <span style={{ fontSize: 6.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>{m.u}</span>
                 </div>
               )}
             </div>
