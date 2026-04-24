@@ -5,6 +5,7 @@ import WellbeingTab from './components/wellbeing/WellbeingTab';
 import MedicationTab from './components/medication/MedicationTab';
 import HabitsTab from './components/habits/HabitsTab';
 import TodoTab from './components/todo/TodoTab';
+import DiaryTab from './components/diary/DiaryTab';
 import AuthScreen from './components/auth/AuthScreen';
 import { setAccessToken, AUTH_LOGOUT_EVENT, tryRefresh } from './api';
 import { initStorage } from './storage';
@@ -101,6 +102,7 @@ export default function App() {
           {activeTab === 'medication' && <MedicationTab />}
           {activeTab === 'habits'     && <div className="hab-theme"><HabitsTab /></div>}
           {activeTab === 'todo'       && <div className="todo-theme"><TodoTab /></div>}
+          {activeTab === 'diary'      && <div className="diary-theme"><DiaryTab /></div>}
         </div>
       </main>
     </div>

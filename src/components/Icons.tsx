@@ -263,6 +263,15 @@ export const IconStar = ({ size = 16, color = 'currentColor' }: IconProps) => (
   </svg>
 );
 
+export const IconDiary = ({ size = 16, color = 'currentColor' }: IconProps) => (
+  <svg {...base(size, color)}>
+    <path d="M4 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+    <line x1="5" y1="6" x2="11" y2="6"/>
+    <line x1="5" y1="9" x2="11" y2="9"/>
+    <line x1="5" y1="12" x2="8"  y2="12"/>
+  </svg>
+);
+
 export const IconTodo = ({ size = 16, color = 'currentColor' }: IconProps) => (
   <svg {...base(size, color)}>
     <rect x="2" y="2" width="12" height="12" rx="1.5"/>

@@ -61,7 +61,14 @@ export interface MedicationLog {
   changedAt?: number;      // Date.now() of last taken/skipped action, for sorting
 }
 
-export type TabId = 'dashboard' | 'wellbeing' | 'medication' | 'habits' | 'todo';
+export type TabId = 'dashboard' | 'wellbeing' | 'medication' | 'habits' | 'todo' | 'diary';
+
+export interface DiaryEntry {
+  date: string;
+  freeText: string;
+  prompts: Record<string, string>;
+  updatedAt: string;
+}
 
 export interface TodoItem {
   id: string;
