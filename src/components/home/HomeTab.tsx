@@ -372,7 +372,12 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
   );
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap: 4 }}>
+        <span style={{ fontSize: 26, fontWeight: 700, color: fg, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{pending.length}</span>
+        <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/{todos.length} pending</span>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
       {visible.map(t => (
         <div
           key={t.id}
@@ -400,6 +405,7 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
           +{overflow} more
         </div>
       )}
+      </div>
     </div>
   );
 }
