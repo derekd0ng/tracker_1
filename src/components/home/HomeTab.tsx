@@ -7,15 +7,18 @@ import {
 
 interface Props { onNavigate: (tab: TabId) => void }
 
-// ── Accent colors per module ──────────────────────────────────────────────────
+// ── Accent colors per module — Option A (green → violet arc) ─────────────────
 const ACCENTS: Record<string, string> = {
   wellbeing:   '#22c55e',
-  medications: '#0ea5e9',
-  habits:      '#a78bfa',
-  todo:        '#f43f5e',
-  diary:       '#f59e0b',
-  calendar:    '#06b6d4',
+  medications: '#06b6d4',
+  habits:      '#60a5fa',
+  todo:        '#818cf8',
+  diary:       '#a78bfa',
+  calendar:    '#c084fc',
 };
+
+// All Option A colors are mid-bright → dark text (#080808) readable on hover fill
+const HOVER_TEXT = '#080808';
 
 function hexToRgb(hex: string) {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -125,7 +128,7 @@ function BrainCard({ module, onNavigate, style, children }: {
       style={{
         background: hov && !isCalendar ? module.col : '#0d0d0d',
         border: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
-        color: hov && !isCalendar ? '#080808' : '#e2e2e2',
+        color: hov && !isCalendar ? HOVER_TEXT : '#e2e2e2',
         borderRadius: 4,
         cursor: isCalendar ? 'default' : 'pointer',
         padding: '12px 14px 10px',
@@ -137,7 +140,7 @@ function BrainCard({ module, onNavigate, style, children }: {
     >
       <div style={{
         fontSize: 8.5, fontWeight: 700, letterSpacing: '0.12em',
-        color: hov && !isCalendar ? '#080808' : module.col,
+        color: hov && !isCalendar ? HOVER_TEXT : module.col,
         fontFamily: "'JetBrains Mono', monospace",
         marginBottom: 9, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
@@ -175,10 +178,10 @@ function BrainNav({ module, onNavigate, style }: {
         ...style,
       }}
     >
-      <NavIcon id={module.id} size={isRect ? 14 : 16} color={hov && !isCalendar ? '#080808' : col} />
+      <NavIcon id={module.id} size={isRect ? 14 : 16} color={hov && !isCalendar ? HOVER_TEXT : col} />
       <div style={{
         fontSize: isRect ? 10 : 7, fontWeight: 700, letterSpacing: '0.08em',
-        color: hov && !isCalendar ? '#080808' : col,
+        color: hov && !isCalendar ? HOVER_TEXT : col,
         fontFamily: "'JetBrains Mono', monospace", textAlign: 'center', lineHeight: 1.1,
       }}>
         {module.shortLabel}
@@ -340,7 +343,7 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
 
   const pending = todos.filter(t => !t.done);
 
-  const fg      = hov ? '#080808' : '#e2e2e2';
+  const fg      = hov ? HOVER_TEXT : '#e2e2e2';
   const fgMuted = hov ? 'rgba(0,0,0,0.5)' : '#555';
   const dot     = hov ? 'rgba(0,0,0,0.6)' : accent;
 
