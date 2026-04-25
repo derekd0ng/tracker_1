@@ -1106,8 +1106,8 @@ export default function HomeTab({ onNavigate, user, onLogout }: Props) {
           }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="8" cy="8" r="2"/>
-            <path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M12.6 3.4l-1.06 1.06M4.46 11.54l-1.06 1.06"/>
+            <path d="M5.5 3.7L6.3 1.7H9.7L10.5 3.7L12.6 3.4L14.3 6.3L13 8L14.3 9.7L12.6 12.6L10.5 12.3L9.7 14.3H6.3L5.5 12.3L3.4 12.6L1.7 9.7L3 8L1.7 6.3L3.4 3.4Z"/>
+            <circle cx="8" cy="8" r="2.5"/>
           </svg>
         </button>
       </div>
