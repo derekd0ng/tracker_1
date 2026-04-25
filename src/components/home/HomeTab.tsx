@@ -925,8 +925,9 @@ export default function HomeTab({ onNavigate, user }: Props) {
               <div style={{
                 position: 'absolute', top: 'calc(100% + 6px)', left: 0,
                 background: '#0f0f0f', border: '1px solid #2a2a2a',
-                borderRadius: 6, overflow: 'hidden', zIndex: 200, minWidth: 180,
+                borderRadius: 6, zIndex: 200, minWidth: 153,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                display: 'flex', flexDirection: 'column', gap: 4, padding: 6,
               }}>
                 {([
                   { id: 'home',       label: 'Home',        col: '#e2e2e2' },
@@ -935,15 +936,15 @@ export default function HomeTab({ onNavigate, user }: Props) {
                   { id: 'habits',     label: 'Habits',       col: '#60a5fa' },
                   { id: 'todo',       label: 'To-dos',       col: '#818cf8' },
                   { id: 'diary',      label: 'Diary',        col: '#e879f9' },
-                ] as { id: TabId; label: string; col: string }[]).map((tab, i) => (
+                ] as { id: TabId; label: string; col: string }[]).map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => { onNavigate(tab.id); setMenuOpen(false); }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      width: '100%', padding: '11px 16px',
-                      background: 'transparent', border: 'none',
-                      borderTop: i > 0 ? '1px solid #1a1a1a' : 'none',
+                      width: '100%', padding: '10px 12px',
+                      background: 'transparent',
+                      border: '1px solid #1e1e1e', borderRadius: 4,
                       color: tab.col, fontSize: 13, fontWeight: 600,
                       fontFamily: 'Space Grotesk, sans-serif',
                       cursor: 'pointer', textAlign: 'left', letterSpacing: '0.01em',
