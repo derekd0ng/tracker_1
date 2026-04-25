@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TabId } from '../../types';
+import WellbeingForm from '../wellbeing/WellbeingForm';
 import {
   getWellbeingEntries, getMedications, getMedLogs, getMedLogsForDate,
   getHabits, getHabitLogs, getHabitLogsForDate,
@@ -115,9 +116,10 @@ const MODULES: Module[] = [
 ];
 
 // ── BrainCard ─────────────────────────────────────────────────────────────────
-function BrainCard({ module, onNavigate, style, children }: {
+function BrainCard({ module, onNavigate, style, children, actionButton }: {
   module: Module; onNavigate: (id: TabId) => void;
   style: React.CSSProperties; children: (hov: boolean) => React.ReactNode;
+  actionButton?: (hov: boolean) => React.ReactNode;
 }) {
   const [hov, setHov] = useState(false);
   const isCalendar = module.id === 'calendar';
@@ -148,7 +150,9 @@ function BrainCard({ module, onNavigate, style, children }: {
         marginBottom: 9, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <span>{module.label}</span>
-        {!isCalendar && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          {actionButton?.(hov && !isCalendar)}
+          {!isCalendar && (
           <button
             onClick={() => onNavigate(module.id as TabId)}
             style={{
@@ -167,7 +171,8 @@ function BrainCard({ module, onNavigate, style, children }: {
               <polyline points="4,2 8,6 4,10"/>
             </svg>
           </button>
-        )}
+          )}
+        </div>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>{children(hov && !isCalendar)}</div>
     </div>
@@ -568,7 +573,7 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
 
 const TODO_MAX = 5;
 
-function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
+function TodoMini({ accent, hov, refreshKey }: { accent: string; hov: boolean; refreshKey?: number }) {
   const [todos, setTodos] = useState<{ id: string; title: string; done: boolean }[]>([]);
 
   useEffect(() => {
@@ -576,7 +581,7 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
       api.get<{ id: string; title: string; done: boolean }[]>('/api/todos')
         .then(setTodos).catch(() => {})
     );
-  }, []);
+  }, [refreshKey]);
 
   async function toggle(id: string, done: boolean) {
     setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !done } : t));
@@ -717,10 +722,66 @@ function CenterGoals({ pct, done, total }: { pct: number; done: number; total: n
   );
 }
 
+// ── QuickTodoModal ────────────────────────────────────────────────────────────
+function QuickTodoModal({ accent, onClose, onAdded }: { accent: string; onClose: () => void; onAdded: () => void }) {
+  const [title, setTitle] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  async function submit() {
+    const t = title.trim();
+    if (!t) return;
+    const { api } = await import('../../api');
+    try {
+      await api.post('/api/todos', {
+        id: crypto.randomUUID(), title: t, done: false,
+        dueDate: dueDate || null, createdAt: new Date().toISOString(),
+      });
+      onAdded();
+      onClose();
+    } catch (err) { console.error('add todo:', err); }
+  }
+
+  return (
+    <div className="overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal" style={{ maxWidth: 400 }}>
+        <div className="modal-header">
+          <p className="modal-title">Add To-Do</p>
+          <button className="btn btn-ghost" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px 20px' }}>
+          <input
+            ref={inputRef}
+            className="input"
+            placeholder="What needs to be done?"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') onClose(); }}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 11, color: 'var(--fg-muted)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>Due date (optional)</label>
+            <input type="date" className="input" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button className="btn btn-primary" onClick={submit} disabled={!title.trim()}>Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── HomeTab ───────────────────────────────────────────────────────────────────
 export default function HomeTab({ onNavigate }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [showWbForm, setShowWbForm] = useState(false);
+  const [showTodoForm, setShowTodoForm] = useState(false);
+  const [todoRefreshKey, setTodoRefreshKey] = useState(0);
+  const [wbTick, setWbTick] = useState(0);
 
   useEffect(() => {
     function upd() {
@@ -757,13 +818,34 @@ export default function HomeTab({ onNavigate }: Props) {
 
   const cardContent = (m: Module, hov: boolean) => {
     switch (m.id) {
-      case 'wellbeing':  return <WbMini accent={m.col} hov={hov} />;
+      case 'wellbeing':  return <WbMini key={wbTick} accent={m.col} hov={hov} />;
       case 'medication': return <MedMini accent={m.col} hov={hov} />;
       case 'habits':     return <HabMini accent={m.col} hov={hov} />;
-      case 'todo':       return <TodoMini accent={m.col} hov={hov} />;
+      case 'todo':       return <TodoMini accent={m.col} hov={hov} refreshKey={todoRefreshKey} />;
       case 'diary':      return <DiaryMini accent={m.col} hov={hov} />;
       case 'calendar':   return <CalMini accent={m.col} />;
     }
+  };
+
+  const btnStyle = (col: string, hov: boolean): React.CSSProperties => ({
+    background: hov ? 'rgba(0,0,0,0.15)' : `rgba(${hexToRgb(col)},0.12)`,
+    border: `1px solid ${hov ? 'rgba(0,0,0,0.3)' : col}`,
+    borderRadius: 3,
+    color: hov ? HOVER_TEXT : col,
+    fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
+    fontFamily: "'JetBrains Mono', monospace",
+    padding: '4px 8px',
+    cursor: 'pointer', lineHeight: 1, whiteSpace: 'nowrap',
+  });
+
+  const cardActionButton = (m: Module) => {
+    if (m.id === 'wellbeing') return (hov: boolean) => (
+      <button style={btnStyle(m.col, hov)} onClick={() => setShowWbForm(true)}>+ Log</button>
+    );
+    if (m.id === 'todo') return (hov: boolean) => (
+      <button style={btnStyle(m.col, hov)} onClick={() => setShowTodoForm(true)}>+ Add</button>
+    );
+    return undefined;
   };
 
   return (
@@ -817,7 +899,8 @@ export default function HomeTab({ onNavigate }: Props) {
           {MODULES.map(m => (
             <BrainCard key={m.id}
               style={{ position:'absolute', left: m.cardX, top: m.cardY, width: CARD_W, height: CARD_H, zIndex: 1 }}
-              module={m} onNavigate={onNavigate}>
+              module={m} onNavigate={onNavigate}
+              actionButton={cardActionButton(m)}>
               {(hov) => cardContent(m, hov)}
             </BrainCard>
           ))}
@@ -826,6 +909,32 @@ export default function HomeTab({ onNavigate }: Props) {
           <CenterGoals pct={pct} done={takenMeds + doneHabits} total={totalGoals} />
         </div>
       </div>
+
+      {/* Well-being log modal */}
+      {showWbForm && (
+        <div className="overlay" onClick={e => { if (e.target === e.currentTarget) setShowWbForm(false); }}>
+          <div className="modal">
+            <div className="modal-header">
+              <p className="modal-title">New Log</p>
+              <button className="btn btn-ghost" onClick={() => setShowWbForm(false)}>✕</button>
+            </div>
+            <WellbeingForm
+              onSaved={() => { setShowWbForm(false); setWbTick(t => t + 1); }}
+              onCancel={() => setShowWbForm(false)}
+              sleepHabitId={getHabits().find(h => /sleep/i.test(h.name))?.id}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Quick add to-do modal */}
+      {showTodoForm && (
+        <QuickTodoModal
+          accent={ACCENTS.todo}
+          onClose={() => setShowTodoForm(false)}
+          onAdded={() => setTodoRefreshKey(k => k + 1)}
+        />
+      )}
     </div>
   );
 }
