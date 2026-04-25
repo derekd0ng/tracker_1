@@ -787,7 +787,9 @@ function QuickTodoModal({ accent, onClose, onAdded }: { accent: string; onClose:
 // ── HomeTab ───────────────────────────────────────────────────────────────────
 export default function HomeTab({ onNavigate, user }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showWbForm, setShowWbForm] = useState(false);
   const [showTodoForm, setShowTodoForm] = useState(false);
   const [todoRefreshKey, setTodoRefreshKey] = useState(0);
@@ -825,6 +827,15 @@ export default function HomeTab({ onNavigate, user }: Props) {
 
   const totalGoals = totalMeds + habits.length;
   const pct = totalGoals > 0 ? Math.round(((takenMeds + doneHabits) / totalGoals) * 100) : 0;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [menuOpen]);
 
   const cardContent = (m: Module, hov: boolean) => {
     switch (m.id) {
@@ -890,8 +901,62 @@ export default function HomeTab({ onNavigate, user }: Props) {
 
       {/* Header */}
       <div style={{ borderBottom:'1px solid #1e1e1e', paddingBottom: 14, display:'flex', alignItems:'center', position:'relative', zIndex: 1 }}>
-        {/* Left: app name */}
-        <div style={{ flex: 1 }}>
+        {/* Left: nav button + app name */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Home / nav toggle button */}
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              style={{
+                width: 36, height: 36, flexShrink: 0,
+                background: menuOpen ? '#1e1e1e' : 'transparent',
+                border: `1px solid ${menuOpen ? '#3a3a3a' : '#2a2a2a'}`,
+                borderRadius: 4, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#e2e2e2', transition: 'all 0.15s',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 8.5L8 3L14 8.5V14H10.5V10H5.5V14H2V8.5Z"/>
+              </svg>
+            </button>
+            {menuOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+                background: '#0f0f0f', border: '1px solid #2a2a2a',
+                borderRadius: 6, overflow: 'hidden', zIndex: 200, minWidth: 180,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              }}>
+                {([
+                  { id: 'home',       label: 'Home',        col: '#e2e2e2' },
+                  { id: 'dashboard',  label: 'Dashboard',   col: '#f97316' },
+                  { id: 'wellbeing',  label: 'Well-being',  col: '#34d399' },
+                  { id: 'medication', label: 'Medications',  col: '#22d3ee' },
+                  { id: 'habits',     label: 'Habits',       col: '#60a5fa' },
+                  { id: 'todo',       label: 'To-dos',       col: '#818cf8' },
+                  { id: 'diary',      label: 'Diary',        col: '#e879f9' },
+                ] as { id: TabId; label: string; col: string }[]).map((tab, i) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => { onNavigate(tab.id); setMenuOpen(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      width: '100%', padding: '11px 16px',
+                      background: 'transparent', border: 'none',
+                      borderTop: i > 0 ? '1px solid #1a1a1a' : 'none',
+                      color: tab.col, fontSize: 13, fontWeight: 600,
+                      fontFamily: 'Space Grotesk, sans-serif',
+                      cursor: 'pointer', textAlign: 'left', letterSpacing: '0.01em',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <span style={{ fontSize: '1.3rem', fontWeight: 700, letterSpacing: '0.12em', color: '#e2e2e2', fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase' }}>
             Octarine
           </span>
