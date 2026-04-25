@@ -163,7 +163,7 @@ function BrainCard({ module, onNavigate, style, children }: {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 10L10 2M5 2h5v5"/>
             </svg>
           </button>
