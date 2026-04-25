@@ -65,8 +65,8 @@ body::after {
 }
 
 .app-main {
-  margin-left: 240px;
-  padding: 32px 32px 60px;
+  margin-left: 0;
+  padding: 32px 32px 60px 80px;
   min-height: 100vh;
 }
 

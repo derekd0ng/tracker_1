@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Navigation from './components/Navigation';
+import AppNav from './components/AppNav';
 import DashboardTab from './components/dashboard/DashboardTab';
 import WellbeingTab from './components/wellbeing/WellbeingTab';
 import MedicationTab from './components/medication/MedicationTab';
@@ -94,14 +94,16 @@ export default function App() {
 
   // ── App ───────────────────────────────────────────────────────────────────
 
-  // Home tab: full-width, no sidebar
+  const appNav = <AppNav onNavigate={setActiveTab} user={user} onLogout={handleLogout} />;
+
+  // Home tab: full-width canvas layout
   if (activeTab === 'home') {
     return (
       <div className="app">
+        {appNav}
         <main style={{ width: '100%', minHeight: '100vh', padding: '24px 24px 40px' }}>
           <HomeTab onNavigate={setActiveTab} user={user} onLogout={handleLogout} />
         </main>
-        {/* Mobile bottom nav still available */}
         <nav className="bottom-tabbar" data-active={activeTab}>
           {['home','dashboard','wellbeing','medication','habits','todo','diary'].map(id => (
             <button key={id} className={`bottom-tab${activeTab === id ? ' active' : ''}`} onClick={() => setActiveTab(id as any)}>
@@ -115,7 +117,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Navigation activeTab={activeTab} onChange={setActiveTab} user={user} onLogout={handleLogout} />
+      {appNav}
       <main className="app-main">
         <div className="content-center">
           {activeTab === 'dashboard'  && <DashboardTab onNavigate={setActiveTab} user={user} onUserUpdate={u => setUser(u)} />}
