@@ -94,7 +94,7 @@ export default function App() {
 
   // ── App ───────────────────────────────────────────────────────────────────
 
-  const appNav = <AppNav onNavigate={setActiveTab} user={user} onLogout={handleLogout} />;
+  const appNav = <AppNav activeTab={activeTab} onNavigate={setActiveTab} user={user} onLogout={handleLogout} />;
 
   // Home tab: full-width canvas layout
   if (activeTab === 'home') {

@@ -891,12 +891,8 @@ export default function HomeTab({ onNavigate, user }: Props) {
 
       {/* Header */}
       <div style={{ borderBottom:'1px solid #1e1e1e', paddingBottom: 14, display:'flex', alignItems:'center', position:'relative', zIndex: 10 }}>
-        {/* Left: app name */}
-        <div style={{ flex: 1 }}>
-          <span style={{ fontSize: '1.3rem', fontWeight: 700, letterSpacing: '0.12em', color: '#e2e2e2', fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase' }}>
-            Octarine
-          </span>
-        </div>
+        {/* Left spacer — OCTARINE is shown in AppNav fixed button */}
+        <div style={{ flex: 1 }} />
         {/* Centre: greeting + date on one row */}
         <div style={{ display:'flex', alignItems:'baseline', gap: 10 }}>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing:'-0.02em', color:'#e2e2e2', fontFamily:'Space Grotesk,sans-serif', whiteSpace:'nowrap' }}>
