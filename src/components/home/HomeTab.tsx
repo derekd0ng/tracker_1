@@ -914,6 +914,57 @@ export default function HomeTab({ onNavigate, user }: Props) {
       <div ref={wrapRef} style={{ width:'100%', height: CH * scale, position:'relative', zIndex: 1 }}>
         <div style={{ width: CW, height: CH, position:'relative', transform:`scale(${scale})`, transformOrigin:'top left' }}>
 
+{/* Connector lines */}
+          <svg style={{ position:'absolute', top:0, left:0, width:CW, height:CH, zIndex:0, pointerEvents:'none' }}>
+            {(() => {
+              const S = 'rgba(255,255,255,0.18)';
+              const sw = 1;
+              // Derived from canvas constants
+              const cLeft  = CENTER_X;              // 648
+              const cRight = CENTER_X + CENTER_SQ;  // 792
+              const cTop   = CENTER_Y;              // 242
+              const cBot   = CENTER_Y + CENTER_SQ;  // 386
+              const cMidY  = CENTER_Y + CENTER_SQ / 2; // 314
+
+              // Card inner-edge midpoints
+              const wbR  = R1_LX + CARD_W;  const wbCY  = R1Y + CARD_H / 2; // 650, 110
+              const mdL  = R1_RX;            const mdCY  = wbCY;              // 790, 110
+              const hbR  = R2_LX + CARD_W;  const hbCY  = R2Y + CARD_H / 2; // 515, 314
+              const tdL  = R2_RX;            const tdCY  = hbCY;              // 925, 314
+              const dyR  = R3_LX + CARD_W;  const dyCY  = R3Y + CARD_H / 2; // 650, 518
+              const calL = R3_RX;            const calCY = dyCY;              // 790, 518
+
+              // Card bottom/top inner edges for vertical connections
+              const wbBot  = R1Y + CARD_H; const habTop = R2Y; // 200, 224
+              const habBot = R2Y + CARD_H; const dyTop  = R3Y; // 404, 428
+              const mdBot  = R1Y + CARD_H; const tdTop  = R2Y;
+              const tdBot  = R2Y + CARD_H; const calTop = R3Y;
+
+              return (
+                <>
+                  {/* Card → center */}
+                  <line x1={wbR}  y1={wbCY}  x2={cLeft}  y2={cTop}   stroke={S} strokeWidth={sw}/>
+                  <line x1={mdL}  y1={mdCY}  x2={cRight} y2={cTop}   stroke={S} strokeWidth={sw}/>
+                  <line x1={hbR}  y1={hbCY}  x2={cLeft}  y2={cMidY}  stroke={S} strokeWidth={sw}/>
+                  <line x1={tdL}  y1={tdCY}  x2={cRight} y2={cMidY}  stroke={S} strokeWidth={sw}/>
+                  <line x1={dyR}  y1={dyCY}  x2={cLeft}  y2={cBot}   stroke={S} strokeWidth={sw}/>
+                  <line x1={calL} y1={calCY} x2={cRight} y2={cBot}   stroke={S} strokeWidth={sw}/>
+
+                  {/* Row 1 horizontal (WB ↔ Medications) */}
+                  <line x1={wbR} y1={wbCY} x2={mdL} y2={mdCY} stroke={S} strokeWidth={sw}/>
+                  {/* Row 3 horizontal (Diary ↔ Calendar) */}
+                  <line x1={dyR} y1={dyCY} x2={calL} y2={calCY} stroke={S} strokeWidth={sw}/>
+
+                  {/* Vertical column: between adjacent rows via inner edge corners */}
+                  <line x1={wbR}  y1={wbBot}  x2={hbR}  y2={habTop} stroke={S} strokeWidth={sw}/>
+                  <line x1={hbR}  y1={habBot} x2={dyR}  y2={dyTop}  stroke={S} strokeWidth={sw}/>
+                  <line x1={mdL}  y1={mdBot}  x2={tdL}  y2={tdTop}  stroke={S} strokeWidth={sw}/>
+                  <line x1={tdL}  y1={tdBot}  x2={calL} y2={calTop} stroke={S} strokeWidth={sw}/>
+                </>
+              );
+            })()}
+          </svg>
+
 {/* Cards */}
           {MODULES.map(m => (
             <BrainCard key={m.id}
