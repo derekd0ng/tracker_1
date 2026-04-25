@@ -143,7 +143,7 @@ function BrainCard({ module, onNavigate, style, children }: {
       }}
     >
       <div style={{
-        fontSize: 14, fontWeight: 700, letterSpacing: '0.12em',
+        fontSize: 12.5, fontWeight: 700, letterSpacing: '0.12em',
         color: hov && !isCalendar ? HOVER_TEXT : module.col,
         fontFamily: "'JetBrains Mono', monospace",
         marginBottom: 9, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
