@@ -930,29 +930,7 @@ export default function HomeTab({ onNavigate, user }: Props) {
                 />
               ));
 
-              // Card → card neighbour lines (hardcoded pairs)
-              const centers = Object.fromEntries(
-                MODULES.map(m => [m.id, { x: m.cardX + CARD_W / 2, y: m.cardY + CARD_H / 2 }])
-              );
-              const PAIRS: [string, string][] = [
-                ['wellbeing',  'medication'],
-                ['wellbeing',  'habits'],
-                ['medication', 'todo'],
-                ['habits',     'diary'],
-                ['todo',       'calendar'],
-                ['diary',      'calendar'],
-              ];
-              const neighbourLines = PAIRS.map(([idA, idB]) => {
-                const a = centers[idA], b = centers[idB];
-                return (
-                  <line key={`nb-${idA}-${idB}`}
-                    x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                    stroke={S} strokeWidth={1}
-                  />
-                );
-              });
-
-              return [...spokeLines, ...neighbourLines];
+              return spokeLines;
             })()}
           </svg>
 
