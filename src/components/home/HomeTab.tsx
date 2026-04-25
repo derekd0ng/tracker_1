@@ -63,7 +63,7 @@ const R1Y = 20, R2Y = 224, R3Y = 428;
 // Row X — symmetric around CX=720
 const R1_LX = 270, R1_RX = 790;
 const R3_LX = 270, R3_RX = 790;
-const R2_LX = 20,  R2_RX = 1040;
+const R2_LX = 135, R2_RX = 925;
 
 const NL = 654, NR = 722;
 const NY1 = R1Y + (CARD_H - NAV) / 2;   // 78
@@ -103,7 +103,7 @@ const MODULES: Module[] = [
     cardInnerEdgeX:R2_LX+CARD_W, cardCY:R2Y+CARD_H/2 },
   { id:'todo',        label:'TO-DOS',      shortLabel:'TO-DOS', col:ACCENTS.todo,
     cardX:R2_RX, cardY:R2Y,
-    navX:R2_RX-HAB_NAV_W-20, navY:R2Y+CARD_H/2-HAB_NAV_H/2,
+    navX:R2_RX-HAB_NAV_W/2, navY:R2Y+CARD_H/2-HAB_NAV_H/2,
     navW:HAB_NAV_W, navH:HAB_NAV_H, side:'right',
     cardInnerEdgeX:R2_RX, cardCY:R2Y+CARD_H/2 },
   { id:'diary',       label:'DIARY',       shortLabel:'LOG', col:ACCENTS.diary,
