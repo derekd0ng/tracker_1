@@ -156,9 +156,9 @@ function BrainCard({ module, onNavigate, style, children }: {
               border: `1px solid ${hov ? 'rgba(0,0,0,0.3)' : module.col}`,
               borderRadius: 3,
               color: hov ? HOVER_TEXT : module.col,
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+              fontSize: 12, fontWeight: 700, letterSpacing: '0.05em',
               fontFamily: "'JetBrains Mono', monospace",
-              padding: '2px 7px',
+              padding: '3px 9px',
               cursor: 'pointer', lineHeight: 1,
             }}
           >
