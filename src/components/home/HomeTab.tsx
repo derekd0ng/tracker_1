@@ -914,20 +914,46 @@ export default function HomeTab({ onNavigate, user }: Props) {
       <div ref={wrapRef} style={{ width:'100%', height: CH * scale, position:'relative', zIndex: 1 }}>
         <div style={{ width: CW, height: CH, position:'relative', transform:`scale(${scale})`, transformOrigin:'top left' }}>
 
-{/* Connector lines — center of middle square to center of each card, rendered behind cards */}
+{/* Connector lines — behind cards */}
           <svg style={{ position:'absolute', top:0, left:0, width:CW, height:CH, zIndex:0, pointerEvents:'none' }}>
             {(() => {
-              const cx = CENTER_X + CENTER_SQ / 2; // 720
-              const cy = CENTER_Y + CENTER_SQ / 2; // 314
               const S  = 'rgba(255,255,255,0.18)';
-              const cards = MODULES.filter(m => m.id !== 'calendar').concat(MODULES.filter(m => m.id === 'calendar'));
-              return MODULES.map(m => (
-                <line key={m.id}
+              const cx = CENTER_X + CENTER_SQ / 2;
+              const cy = CENTER_Y + CENTER_SQ / 2;
+
+              // Centre → each card
+              const spokeLines = MODULES.map(m => (
+                <line key={`spoke-${m.id}`}
                   x1={cx} y1={cy}
                   x2={m.cardX + CARD_W / 2} y2={m.cardY + CARD_H / 2}
                   stroke={S} strokeWidth={1}
                 />
               ));
+
+              // Card → 2 closest neighbours (deduplicated)
+              const centers = MODULES.map(m => ({ id: m.id, x: m.cardX + CARD_W / 2, y: m.cardY + CARD_H / 2 }));
+              const pairs = new Set<string>();
+              centers.forEach(a => {
+                const sorted = centers
+                  .filter(b => b.id !== a.id)
+                  .map(b => ({ id: b.id, x: b.x, y: b.y, d: Math.hypot(b.x - a.x, b.y - a.y) }))
+                  .sort((p, q) => p.d - q.d)
+                  .slice(0, 2);
+                sorted.forEach(b => pairs.add([a.id, b.id].sort().join('|')));
+              });
+              const neighbourLines = [...pairs].map(key => {
+                const [idA, idB] = key.split('|');
+                const a = centers.find(c => c.id === idA)!;
+                const b = centers.find(c => c.id === idB)!;
+                return (
+                  <line key={`nb-${key}`}
+                    x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                    stroke={S} strokeWidth={1}
+                  />
+                );
+              });
+
+              return [...spokeLines, ...neighbourLines];
             })()}
           </svg>
 
