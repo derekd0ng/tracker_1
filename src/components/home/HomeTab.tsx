@@ -159,7 +159,7 @@ function BrainCard({ module, onNavigate, style, children, actionButton }: {
         fontFamily: "'JetBrains Mono', monospace",
         marginBottom: 9, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <span>{module.label}</span>
+        <span>/ {module.label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           {actionButton?.(hov && !isCalendar)}
           {!isCalendar && (
