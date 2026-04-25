@@ -75,14 +75,22 @@ export default function App() {
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#080808', flexDirection: 'column', gap: 16,
+        background: '#0d0d0d', flexDirection: 'column',
       }}>
-        <div style={{ width: 36, height: 36, border: '3px solid rgba(34,211,238,0.2)',
-          borderTopColor: '#22d3ee', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          {authState === 'loading' ? 'Loading your data…' : 'Checking session…'}
-        </p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <style>{`
+          @keyframes sq { 0%,60%,100% { opacity:0.1; transform:scaleY(0.5); } 30% { opacity:1; transform:scaleY(1); } }
+        `}</style>
+        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:'1.3rem', fontWeight:700, letterSpacing:'0.14em', color:'#e2e2e2', marginBottom:28 }}>
+          /Octarine
+        </span>
+        <div style={{ display:'flex', gap:7, marginBottom:22 }}>
+          {[0,1,2].map(i => (
+            <div key={i} style={{ width:7, height:7, background:'#22d3ee', borderRadius:1, animation:`sq 1.4s ease-in-out ${i*0.22}s infinite` }} />
+          ))}
+        </div>
+        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10, letterSpacing:'0.14em', color:'#444', textTransform:'uppercase' }}>
+          {authState === 'loading' ? 'loading your data' : 'checking session'}
+        </span>
       </div>
     );
   }
