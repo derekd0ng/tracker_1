@@ -102,7 +102,7 @@ export default function App() {
       <div className="app">
         {appNav}
         <main style={{ width: '100%', minHeight: '100vh', padding: '24px 24px 40px' }}>
-          <HomeTab onNavigate={setActiveTab} user={user} onLogout={handleLogout} />
+          <HomeTab onNavigate={setActiveTab} user={user} />
         </main>
         <nav className="bottom-tabbar" data-active={activeTab}>
           {['home','dashboard','wellbeing','medication','habits','todo','diary'].map(id => (
