@@ -156,7 +156,7 @@ export default function AppNav({ activeTab, onNavigate, user, onLogout }: Props)
           color: '#e2e2e2', fontFamily: "'JetBrains Mono', monospace",
           textTransform: 'uppercase', userSelect: 'none',
         }}>
-          / Octarine
+          /Octarine
         </span>
       </div>
 
