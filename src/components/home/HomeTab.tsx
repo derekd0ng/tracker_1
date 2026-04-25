@@ -930,23 +930,22 @@ export default function HomeTab({ onNavigate, user }: Props) {
                 />
               ));
 
-              // Card → 2 closest neighbours (deduplicated)
-              const centers = MODULES.map(m => ({ id: m.id, x: m.cardX + CARD_W / 2, y: m.cardY + CARD_H / 2 }));
-              const pairs = new Set<string>();
-              centers.forEach(a => {
-                const sorted = centers
-                  .filter(b => b.id !== a.id)
-                  .map(b => ({ id: b.id, x: b.x, y: b.y, d: Math.hypot(b.x - a.x, b.y - a.y) }))
-                  .sort((p, q) => p.d - q.d)
-                  .slice(0, 2);
-                sorted.forEach(b => pairs.add([a.id, b.id].sort().join('|')));
-              });
-              const neighbourLines = [...pairs].map(key => {
-                const [idA, idB] = key.split('|');
-                const a = centers.find(c => c.id === idA)!;
-                const b = centers.find(c => c.id === idB)!;
+              // Card → card neighbour lines (hardcoded pairs)
+              const centers = Object.fromEntries(
+                MODULES.map(m => [m.id, { x: m.cardX + CARD_W / 2, y: m.cardY + CARD_H / 2 }])
+              );
+              const PAIRS: [string, string][] = [
+                ['wellbeing',  'medication'],
+                ['wellbeing',  'habits'],
+                ['medication', 'todo'],
+                ['habits',     'diary'],
+                ['todo',       'calendar'],
+                ['diary',      'calendar'],
+              ];
+              const neighbourLines = PAIRS.map(([idA, idB]) => {
+                const a = centers[idA], b = centers[idB];
                 return (
-                  <line key={`nb-${key}`}
+                  <line key={`nb-${idA}-${idB}`}
                     x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                     stroke={S} strokeWidth={1}
                   />
