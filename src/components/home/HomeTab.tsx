@@ -674,7 +674,7 @@ function CenterGoals({ pct, done, total }: { pct: number; done: number; total: n
       position: 'absolute', left: CENTER_X, top: CENTER_Y,
       width: CENTER_SQ, height: CENTER_SQ, zIndex: 3,
       background: '#0d0d0d',
-      border: '2px solid #2a2a2a',
+      border: '2px solid #ffffff',
       borderRadius: 4,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
