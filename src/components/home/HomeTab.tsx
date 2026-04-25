@@ -230,6 +230,7 @@ function BrainNav({ module, onNavigate, style }: {
 function NavIcon({ id, size, color }: { id: string; size: number; color: string }) {
   const p = { width: size, height: size, stroke: color, strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' as const };
   switch (id) {
+    case 'home':        return <svg {...p} viewBox="0 0 16 16"><path d="M2 8.5L8 3L14 8.5V14H10.5V10H5.5V14H2V8.5Z"/></svg>;
     case 'wellbeing':   return <svg {...p} viewBox="0 0 16 16"><path d="M8 13S2.5 9.5 2.5 5.5a3.5 3.5 0 0 1 5.5-2.9 3.5 3.5 0 0 1 5.5 2.9C13.5 9.5 8 13 8 13z"/></svg>;
     case 'medication':  return <svg {...p} viewBox="0 0 16 16"><rect x="2" y="4" width="12" height="9" rx="1.5"/><path d="M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><line x1="8" y1="6.5" x2="8" y2="10.5"/><line x1="6" y1="8.5" x2="10" y2="8.5"/></svg>;
     case 'habits':      return <svg {...p} viewBox="0 0 16 16"><polyline points="2,8 6,12 14,4"/></svg>;
@@ -929,7 +930,6 @@ export default function HomeTab({ onNavigate, user }: Props) {
               }}>
                 {([
                   { id: 'home',       label: 'Home',        col: '#e2e2e2' },
-                  { id: 'dashboard',  label: 'Dashboard',   col: '#f97316' },
                   { id: 'wellbeing',  label: 'Well-being',  col: '#34d399' },
                   { id: 'medication', label: 'Medications',  col: '#22d3ee' },
                   { id: 'habits',     label: 'Habits',       col: '#60a5fa' },
@@ -951,6 +951,7 @@ export default function HomeTab({ onNavigate, user }: Props) {
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
+                    <NavIcon id={tab.id} size={14} color={tab.col} />
                     {tab.label}
                   </button>
                 ))}
