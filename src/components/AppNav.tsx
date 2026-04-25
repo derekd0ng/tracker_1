@@ -150,16 +150,14 @@ export default function AppNav({ activeTab, onNavigate, user, onLogout }: Props)
           )}
         </div>
 
-        {/* OCTARINE brand — only on home tab */}
-        {activeTab === 'home' && (
-          <span style={{
-            fontSize: '1.3rem', fontWeight: 700, letterSpacing: '0.12em',
-            color: '#e2e2e2', fontFamily: "'JetBrains Mono', monospace",
-            textTransform: 'uppercase', userSelect: 'none',
-          }}>
-            Octarine
-          </span>
-        )}
+        {/* OCTARINE brand */}
+        <span style={{
+          fontSize: '1.3rem', fontWeight: 700, letterSpacing: '0.12em',
+          color: '#e2e2e2', fontFamily: "'JetBrains Mono', monospace",
+          textTransform: 'uppercase', userSelect: 'none',
+        }}>
+          Octarine
+        </span>
       </div>
 
       {/* ── Bottom-left: settings button ── */}
