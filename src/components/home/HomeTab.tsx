@@ -123,7 +123,6 @@ function BrainCard({ module, onNavigate, style, children }: {
   const isCalendar = module.id === 'calendar';
   return (
     <div
-      onClick={() => !isCalendar && onNavigate(module.id as TabId)}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
@@ -134,7 +133,7 @@ function BrainCard({ module, onNavigate, style, children }: {
         borderLeft: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
         color: hov && !isCalendar ? HOVER_TEXT : '#e2e2e2',
         borderRadius: 4,
-        cursor: isCalendar ? 'default' : 'pointer',
+        cursor: 'default',
         padding: '12px 14px 10px',
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
@@ -149,7 +148,23 @@ function BrainCard({ module, onNavigate, style, children }: {
         marginBottom: 9, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <span>{module.label}</span>
-        {hov && !isCalendar && <span style={{ opacity: 0.5, fontSize: 10 }}>→</span>}
+        {!isCalendar && (
+          <button
+            onClick={() => onNavigate(module.id as TabId)}
+            style={{
+              background: hov ? 'rgba(0,0,0,0.15)' : `rgba(${hexToRgb(module.col)},0.12)`,
+              border: `1px solid ${hov ? 'rgba(0,0,0,0.3)' : module.col}`,
+              borderRadius: 3,
+              color: hov ? HOVER_TEXT : module.col,
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+              fontFamily: "'JetBrains Mono', monospace",
+              padding: '2px 7px',
+              cursor: 'pointer', lineHeight: 1,
+            }}
+          >
+            →
+          </button>
+        )}
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>{children(hov && !isCalendar)}</div>
     </div>
@@ -414,7 +429,7 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
             {visible.map(m => (
-              <div key={m.id} onClick={e => { e.stopPropagation(); toggleMed(m.id, nextSlot!); }}
+              <div key={m.id} onClick={() => toggleMed(m.id, nextSlot!)}
                 style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', padding:'1px 0' }}>
                 <CheckSq done={false} accent={accent} hov={hov} />
                 <span style={{ fontSize: 12, color: fg, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -495,7 +510,7 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
 
           if (h.type === 'boolean') {
             return (
-              <div key={h.id} onClick={e => { e.stopPropagation(); toggleBoolean(h); }}
+              <div key={h.id} onClick={() => toggleBoolean(h)}
                 style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', padding:'1px 0' }}>
                 <CheckSq done={isDone} accent={accent} hov={hov} />
                 <span style={nameStyle}>{h.name}</span>
@@ -505,7 +520,7 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
 
           // Numeric habit
           return (
-            <div key={h.id} onClick={e => e.stopPropagation()}
+            <div key={h.id}
               style={{ display:'flex', alignItems:'center', gap: 6, padding:'1px 0' }}>
               {editingId === h.id ? (
                 <input
@@ -597,7 +612,7 @@ function TodoMini({ accent, hov }: { accent: string; hov: boolean }) {
       {visible.map(t => (
         <div
           key={t.id}
-          onClick={e => { e.stopPropagation(); toggle(t.id, t.done); }}
+          onClick={() => toggle(t.id, t.done)}
           style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', borderRadius: 2, padding: '1px 0' }}
         >
           {/* Check icon */}
