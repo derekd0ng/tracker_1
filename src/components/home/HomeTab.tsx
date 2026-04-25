@@ -158,11 +158,14 @@ function BrainCard({ module, onNavigate, style, children }: {
               color: hov ? HOVER_TEXT : module.col,
               fontSize: 12, fontWeight: 700, letterSpacing: '0.05em',
               fontFamily: "'JetBrains Mono', monospace",
-              padding: '3px 9px',
+              padding: '4px 8px',
               cursor: 'pointer', lineHeight: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            →
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 10L10 2M5 2h5v5"/>
+            </svg>
           </button>
         )}
       </div>
