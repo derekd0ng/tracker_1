@@ -927,7 +927,7 @@ export default function HomeTab({ onNavigate, user }: Props) {
                 background: '#0f0f0f', border: '1px solid #2a2a2a',
                 borderRadius: 6, zIndex: 200, minWidth: 153,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                display: 'flex', flexDirection: 'column', gap: 4, padding: 6,
+                display: 'flex', flexDirection: 'column', gap: 2, padding: '4px 0',
               }}>
                 {([
                   { id: 'home',       label: 'Home',        col: '#e2e2e2' },
@@ -942,9 +942,8 @@ export default function HomeTab({ onNavigate, user }: Props) {
                     onClick={() => { onNavigate(tab.id); setMenuOpen(false); }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      width: '100%', padding: '10px 12px',
-                      background: 'transparent',
-                      border: '1px solid #1e1e1e', borderRadius: 4,
+                      width: '100%', padding: '9px 14px',
+                      background: 'transparent', border: 'none',
                       color: tab.col, fontSize: 13, fontWeight: 600,
                       fontFamily: 'Space Grotesk, sans-serif',
                       cursor: 'pointer', textAlign: 'left', letterSpacing: '0.01em',
