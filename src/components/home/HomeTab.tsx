@@ -330,15 +330,15 @@ function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
                 padding: '5px 8px',
                 display: 'flex', flexDirection: 'column', gap: 2,
               }}>
-                <span style={{ fontSize: 6.5, fontWeight: 700, letterSpacing: '0.06em', color: fgMuted, textTransform: 'uppercase', fontFamily:"'JetBrains Mono',monospace", whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: fgMuted, textTransform: 'uppercase', fontFamily:"'JetBrains Mono',monospace", whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {m.l}
                 </span>
                 {m.isNone ? (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
                 ) : (
                   <div style={{ display:'flex', alignItems:'baseline', gap: 1 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: hov ? HOVER_TEXT : m.c, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
-                    <span style={{ fontSize: 6.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>{m.u}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: hov ? HOVER_TEXT : m.c, fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{m.v}</span>
+                    <span style={{ fontSize: 8, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>{m.u}</span>
                   </div>
                 )}
               </div>
