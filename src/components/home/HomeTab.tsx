@@ -901,7 +901,7 @@ export default function HomeTab({ onNavigate, user }: Props) {
       }} />
 
       {/* Header */}
-      <div style={{ borderBottom:'1px solid #1e1e1e', paddingBottom: 14, display:'flex', alignItems:'center', position:'relative', zIndex: 1 }}>
+      <div style={{ borderBottom:'1px solid #1e1e1e', paddingBottom: 14, display:'flex', alignItems:'center', position:'relative', zIndex: 10 }}>
         {/* Left: nav button + app name */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* Home / nav toggle button */}
