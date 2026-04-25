@@ -7,7 +7,17 @@ import {
   toggleMedLog, setHabitLog,
 } from '../../storage';
 
-interface Props { onNavigate: (tab: TabId) => void }
+interface Props {
+  onNavigate: (tab: TabId) => void;
+  user?: { id: string; email: string; name?: string | null } | null;
+}
+
+function greetingPrefix(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
 // ── Accent colors per module — Option B (emerald → orchid arc) ───────────────
 const ACCENTS: Record<string, string> = {
@@ -775,7 +785,7 @@ function QuickTodoModal({ accent, onClose, onAdded }: { accent: string; onClose:
 }
 
 // ── HomeTab ───────────────────────────────────────────────────────────────────
-export default function HomeTab({ onNavigate }: Props) {
+export default function HomeTab({ onNavigate, user }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [showWbForm, setShowWbForm] = useState(false);
@@ -879,16 +889,28 @@ export default function HomeTab({ onNavigate }: Props) {
       }} />
 
       {/* Header */}
-      <div style={{ borderBottom:'1px solid #1e1e1e', paddingBottom: 14, display:'flex', alignItems:'baseline', gap: 12, position:'relative', zIndex: 1 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing:'-0.02em', color:'#e2e2e2', fontFamily:'Space Grotesk,sans-serif' }}>
-          Home
-        </h1>
-        <span style={{ fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>{dateLabel}</span>
-        {totalGoals > 0 && (
-          <span style={{ marginLeft:'auto', fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>
-            <span style={{ color:'#e2e2e2', fontWeight: 700 }}>{pct}%</span> daily goals
+      <div style={{ borderBottom:'1px solid #1e1e1e', paddingBottom: 14, display:'flex', alignItems:'center', position:'relative', zIndex: 1 }}>
+        {/* Left: app name */}
+        <div style={{ flex: 1 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.22em', color: '#e2e2e2', fontFamily: "'JetBrains Mono', monospace" }}>
+            OCTARINE
           </span>
-        )}
+        </div>
+        {/* Centre: greeting + date */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap: 3 }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing:'-0.02em', color:'#e2e2e2', fontFamily:'Space Grotesk,sans-serif', whiteSpace:'nowrap' }}>
+            Welcome back, {user?.name?.split(' ')[0] || 'there'}
+          </h1>
+          <span style={{ fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>{dateLabel}</span>
+        </div>
+        {/* Right: daily goals pct */}
+        <div style={{ flex: 1, display:'flex', justifyContent:'flex-end' }}>
+          {totalGoals > 0 && (
+            <span style={{ fontSize: 11, color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>
+              <span style={{ color:'#e2e2e2', fontWeight: 700 }}>{pct}%</span> daily goals
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Canvas */}

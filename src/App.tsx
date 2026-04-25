@@ -99,7 +99,7 @@ export default function App() {
     return (
       <div className="app">
         <main style={{ width: '100%', minHeight: '100vh', padding: '24px 24px 40px' }}>
-          <HomeTab onNavigate={setActiveTab} />
+          <HomeTab onNavigate={setActiveTab} user={user} />
         </main>
         {/* Mobile bottom nav still available */}
         <nav className="bottom-tabbar" data-active={activeTab}>
