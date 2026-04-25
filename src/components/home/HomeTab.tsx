@@ -70,7 +70,7 @@ const NY1 = R1Y + (CARD_H - NAV) / 2;   // 78
 const NY2 = R2Y + (CARD_H - NAV) / 2;   // 298
 const NY3 = R3Y + (CARD_H - NAV) / 2;   // 518
 
-const CENTER_SQ = 180;
+const CENTER_SQ = 144;
 const CENTER_X = CW / 2 - CENTER_SQ / 2;             // 630
 const CENTER_Y = R2Y + CARD_H / 2 - CENTER_SQ / 2;   // 150+90-90 = 240
 
