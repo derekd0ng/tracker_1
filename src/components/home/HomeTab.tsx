@@ -128,7 +128,10 @@ function BrainCard({ module, onNavigate, style, children }: {
       onMouseLeave={() => setHov(false)}
       style={{
         background: hov && !isCalendar ? module.col : '#0d0d0d',
-        border: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
+        borderTop: `3px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
+        borderRight: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
+        borderBottom: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
+        borderLeft: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
         color: hov && !isCalendar ? HOVER_TEXT : '#e2e2e2',
         borderRadius: 4,
         cursor: isCalendar ? 'default' : 'pointer',
