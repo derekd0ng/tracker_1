@@ -588,7 +588,7 @@ function HabMini({ accent, hov }: { accent: string; hov: boolean }) {
   );
 }
 
-const TODO_MAX = 4;
+const TODO_MAX = 3;
 
 function TodoMini({ accent, hov, refreshKey }: { accent: string; hov: boolean; refreshKey?: number }) {
   const [todos, setTodos] = useState<{ id: string; title: string; done: boolean }[]>([]);
