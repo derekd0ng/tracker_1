@@ -398,17 +398,16 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
     logs.some(l => l.medicationId === m.id && l.timeOfDay === s && l.taken)
   ).length, 0);
 
-  // Find next slot with pending meds (for late-night: scan all slots of yesterday; else normal)
-  const ci = isLateNight ? 3 : currentSlotIndex(); // night=3 when late-night
+  // Scan from morning every time so overdue earlier slots surface first.
+  // Late-night: scan yesterday's slots starting from night (wrapping).
+  const ci = isLateNight ? 3 : 0;
   let nextSlot: Slot | null = null;
   let nextMeds: typeof meds = [];
   for (let i = 0; i < SLOT_ORDER.length; i++) {
     const slot = SLOT_ORDER[(ci + i) % SLOT_ORDER.length];
-    // Native meds in this slot that haven't been taken/skipped/moved-away
     const nativePending = meds
       .filter(m => m.timesOfDay.includes(slot))
       .filter(m => !logs.some(l => l.medicationId === m.id && l.timeOfDay === slot && (l.taken || l.skipped || l.movedTo)));
-    // Meds moved INTO this slot that haven't been taken/skipped yet
     const movedInPending = meds
       .filter(m => !m.timesOfDay.includes(slot))
       .filter(m => logs.some(l => l.medicationId === m.id && l.movedTo === slot))
@@ -416,6 +415,10 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
     const pending = [...nativePending, ...movedInPending];
     if (pending.length > 0) { nextSlot = slot; nextMeds = pending; break; }
   }
+
+  // A slot is "Late" when its window has already passed and it still has outstanding meds
+  const isLate = !isLateNight && nextSlot !== null &&
+    SLOT_ORDER.indexOf(nextSlot) < currentSlotIndex();
 
   function toggleMed(medId: string, slot: Slot) {
     toggleMedLog(displayDate, medId, slot);
@@ -443,8 +446,11 @@ function MedMini({ accent, hov }: { accent: string; hov: boolean }) {
       </div>
       {nextSlot ? (
         <>
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: fgMuted, fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase' }}>
-            Next up · {SLOT_LABEL[nextSlot]}
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: fgMuted, fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase', display:'flex', alignItems:'center', gap: 5 }}>
+            <span>{isLate ? 'Overdue' : 'Next up'} · {SLOT_LABEL[nextSlot]}</span>
+            {isLate && (
+              <span style={{ color: hov ? 'rgba(0,0,0,0.5)' : 'var(--warning)', letterSpacing: '0.06em' }}>· Late</span>
+            )}
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap: 3 }}>
             {visible.map(m => (
