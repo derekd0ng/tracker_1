@@ -5,13 +5,20 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 const router = Router();
 router.use(requireAuth);
 
+const SELECT_COLS = `
+  id, title, color, description,
+  TO_CHAR(date, 'YYYY-MM-DD')       AS date,
+  TO_CHAR(start_time, 'HH24:MI')    AS start_time,
+  TO_CHAR(end_time,   'HH24:MI')    AS end_time
+`;
+
 function rowToEvent(r: any) {
   return {
     id:          r.id,
     title:       r.title,
-    date:        String(r.date).slice(0, 10),
-    startTime:   r.start_time ? String(r.start_time).slice(0, 5) : undefined,
-    endTime:     r.end_time   ? String(r.end_time).slice(0, 5)   : undefined,
+    date:        r.date as string,
+    startTime:   r.start_time ?? undefined,
+    endTime:     r.end_time   ?? undefined,
     description: r.description ?? undefined,
     color:       r.color ?? undefined,
   };
@@ -22,7 +29,7 @@ router.get('/', async (req: AuthRequest, res) => {
   try {
     const { from = '2000-01-01', to = '2100-12-31' } = req.query as Record<string, string>;
     const { rows } = await pool.query(
-      `SELECT * FROM calendar_events
+      `SELECT ${SELECT_COLS} FROM calendar_events
        WHERE user_id = $1 AND date >= $2 AND date <= $3
        ORDER BY date, start_time NULLS LAST`,
       [req.userId, from, to],
@@ -41,7 +48,8 @@ router.post('/', async (req: AuthRequest, res) => {
     if (!title || !date) return res.status(400).json({ error: 'title and date required' }) as any;
     const { rows } = await pool.query(
       `INSERT INTO calendar_events (user_id, title, date, start_time, end_time, description, color)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING ${SELECT_COLS}`,
       [req.userId, title, date, startTime ?? null, endTime ?? null, description ?? null, color ?? null],
     );
     res.json(rowToEvent(rows[0]));
@@ -59,7 +67,8 @@ router.put('/:id', async (req: AuthRequest, res) => {
     const { rows } = await pool.query(
       `UPDATE calendar_events
        SET title=$1, date=$2, start_time=$3, end_time=$4, description=$5, color=$6, updated_at=now()
-       WHERE id=$7 AND user_id=$8 RETURNING *`,
+       WHERE id=$7 AND user_id=$8
+       RETURNING ${SELECT_COLS}`,
       [title, date, startTime ?? null, endTime ?? null, description ?? null, color ?? null, req.params.id, req.userId],
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' }) as any;

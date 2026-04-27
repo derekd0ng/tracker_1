@@ -149,7 +149,10 @@ Message: "${text}"`;
 
 async function getEvents(userId: string, from: string, to: string) {
   const { rows } = await pool.query(
-    `SELECT title, date, start_time, end_time, description
+    `SELECT title, description,
+            TO_CHAR(date,       'YYYY-MM-DD') AS date,
+            TO_CHAR(start_time, 'HH24:MI')   AS start_time,
+            TO_CHAR(end_time,   'HH24:MI')   AS end_time
      FROM calendar_events
      WHERE user_id = $1 AND date >= $2 AND date <= $3
      ORDER BY date, start_time NULLS LAST`,
