@@ -156,6 +156,7 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
   const today = localDateStr();
 
   const latestEntry = sorted[0] ?? null;
+  const latestFeel  = sorted.find(e => e.overallFeel != null) ?? null;
   const latestHR    = sorted.find(e => e.heartRate  != null) ?? null;
   const latestBP    = sorted.find(e => e.systolicBP != null && e.diastolicBP != null) ?? null;
   const latestSpO2  = sorted.find(e => e.spo2       != null) ?? null;
@@ -256,9 +257,10 @@ export default function WellbeingSnapshot({ onSaved, navButton }: Props) {
           type Metric = { label: string; value: string; unit: string; color: string; isNone?: boolean };
           const metrics: Metric[] = [];
 
-          if (latestEntry.overallFeel != null) {
-            const s = toStatus(feelColor(latestEntry.overallFeel));
-            metrics.push({ label: 'Feel', value: String(latestEntry.overallFeel), unit: '/10', color: STATUS_COLOR[s] });
+          if (latestFeel) {
+            const s = toStatus(feelColor(latestFeel.overallFeel!));
+            const suffix = latestFeel.date !== latestEntry.date ? ` (${shortDate(latestFeel.date)})` : '';
+            metrics.push({ label: `Feel${suffix}`, value: String(latestFeel.overallFeel), unit: '/10', color: STATUS_COLOR[s] });
           }
           if (latestHR) {
             const s = toStatus(hrColor(latestHR.heartRate!, avgHr));

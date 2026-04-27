@@ -282,6 +282,7 @@ function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
   const { fgMuted, bg, border } = C(hov);
   const entries = getWellbeingEntries().sort((a,b) => b.date.localeCompare(a.date)||b.time.localeCompare(a.time));
   const latest    = entries[0];
+  const latestFeel = entries.find(e => e.overallFeel != null);
   const latestHR  = entries.find(e => e.heartRate  != null);
   const latestBP  = entries.find(e => e.systolicBP != null && e.diastolicBP != null);
   const latestSpo = entries.find(e => e.spo2       != null);
@@ -320,10 +321,10 @@ function WbMini({ accent, hov }: { accent: string; hov: boolean }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', justifyContent:'space-between' }}>
-      {/* Big feel number */}
-      {latest.overallFeel != null && (
+      {/* Big feel number — use last available reading even if latest entry has no score */}
+      {latestFeel != null && (
         <div style={{ display:'flex', alignItems:'baseline', gap: 5, paddingBottom: 7 }}>
-          <span style={{ fontSize: 30, fontWeight: 700, color: hov ? HOVER_TEXT : feelSC(latest.overallFeel), fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{latest.overallFeel}</span>
+          <span style={{ fontSize: 30, fontWeight: 700, color: hov ? HOVER_TEXT : feelSC(latestFeel.overallFeel!), fontFamily:"'JetBrains Mono',monospace", lineHeight: 1 }}>{latestFeel.overallFeel}</span>
           <span style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>/10 feel</span>
         </div>
       )}
