@@ -690,15 +690,52 @@ function DiaryMini({ accent, hov }: { accent: string; hov: boolean }) {
 }
 
 function CalMini({ accent, hov }: { accent: string; hov: boolean }) {
-  const { fgMuted } = C(hov);
-  const today = new Date();
-  const monthLabel = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+  const [events, setEvents] = useState<{ id: string; title: string; date: string; startTime?: string; color?: string }[]>([]);
+  const { fg, fgMuted } = C(hov);
+
+  useEffect(() => {
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    import('../../api').then(({ api }) =>
+      api.get<{ id: string; title: string; date: string; startTime?: string; color?: string }[]>(`/api/calendar?from=${todayStr}`)
+        .then(data => {
+          const sorted = [...data].sort((a, b) =>
+            a.date.localeCompare(b.date) || (a.startTime ?? '99:99').localeCompare(b.startTime ?? '99:99')
+          );
+          setEvents(sorted.slice(0, 2));
+        })
+        .catch(() => {})
+    );
+  }, []);
+
+  function fmtEvent(e: { date: string; startTime?: string }) {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const tom = new Date(now); tom.setDate(now.getDate() + 1);
+    const tomStr = `${tom.getFullYear()}-${String(tom.getMonth()+1).padStart(2,'0')}-${String(tom.getDate()).padStart(2,'0')}`;
+    const dateLabel = e.date === todayStr ? 'Today' : e.date === tomStr ? 'Tomorrow'
+      : new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (!e.startTime) return dateLabel;
+    const [h, mm] = e.startTime.split(':').map(Number);
+    return `${dateLabel} · ${h % 12 || 12}:${String(mm).padStart(2,'0')} ${h < 12 ? 'am' : 'pm'}`;
+  }
+
+  if (events.length === 0) return (
+    <div style={{ fontSize: 11, color: fgMuted, fontFamily:"'JetBrains Mono',monospace" }}>No upcoming events</div>
+  );
+
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 6 }}>
-      <div style={{ fontSize: 8.5, color: hov ? 'rgba(0,0,0,0.5)' : accent, fontFamily:"'JetBrains Mono',monospace", fontWeight:700, letterSpacing:'0.1em' }}>{monthLabel}</div>
-      <div style={{ fontSize: 11, color: fgMuted, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.5 }}>
-        Open to view and manage your events and appointments.
-      </div>
+    <div style={{ display:'flex', flexDirection:'column', gap: 7 }}>
+      {events.map(ev => (
+        <div key={ev.id} style={{ display:'flex', flexDirection:'column', gap: 1 }}>
+          <div style={{ fontSize: 9, fontWeight:700, letterSpacing:'0.06em', fontFamily:"'JetBrains Mono',monospace", color: hov ? 'rgba(0,0,0,0.5)' : (ev.color ?? accent) }}>
+            {fmtEvent(ev)}
+          </div>
+          <div style={{ fontSize: 12, fontWeight:600, fontFamily:'Space Grotesk,sans-serif', color: fg, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {ev.title}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
