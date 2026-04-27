@@ -160,11 +160,12 @@ async function getEvents(userId: string, from: string, to: string) {
 
 async function parseTodoIntent(text: string): Promise<{ action: 'add' | 'done' | 'none'; title?: string } | null> {
   try {
-    const prompt = `Determine if the following message is a to-do action. Return ONLY valid JSON:
+    const prompt = `Determine if the following message is a to-do task action. Return ONLY valid JSON:
 { "action": "add" | "done" | "none", "title": string | null }
 - "add" if the user wants to add/create a task (e.g. "add to-do: buy groceries", "remind me to call doctor", "I need to...")
 - "done" if the user wants to mark a task as complete (e.g. "done with groceries", "I completed...", "mark ... as done")
-- "none" if it's something else (health update, question, etc.)
+- "none" if it's a health update, calendar event/appointment, question, or anything else
+IMPORTANT: calendar events, appointments, meetings, and scheduled events are NOT to-dos — return "none" for those.
 title should be the clean task text without action words.
 Message: "${text}"`;
 
@@ -507,32 +508,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
     }
     if (!inputText.trim()) return;
 
-    // ── Check for todo intent first ──
-    const todoIntent = await parseTodoIntent(inputText);
-    if (todoIntent?.action === 'add' && todoIntent.title) {
-      await pool.query(`INSERT INTO todos (user_id, title) VALUES ($1, $2)`, [userId, todoIntent.title]);
-      await sendMessage(chatId, `✅ Added to-do: "${todoIntent.title}"`);
-      return;
-    }
-    if (todoIntent?.action === 'done' && todoIntent.title) {
-      const { rows } = await pool.query(
-        `SELECT id, title FROM todos WHERE user_id = $1 AND done = false ORDER BY created_at DESC`,
-        [userId],
-      );
-      const match = rows.find((r: any) =>
-        r.title.toLowerCase().includes(todoIntent.title!.toLowerCase()) ||
-        todoIntent.title!.toLowerCase().includes(r.title.toLowerCase())
-      );
-      if (match) {
-        await pool.query(`UPDATE todos SET done = true, updated_at = now() WHERE id = $1`, [match.id]);
-        await sendMessage(chatId, `✅ Marked done: "${match.title}"`);
-      } else {
-        await sendMessage(chatId, `Couldn't find a matching to-do for "${todoIntent.title}". Use /todos to see the list.`);
-      }
-      return;
-    }
-
-    // ── Check for calendar intent ──
+    // ── Check for calendar intent first (more specific than todos) ──
     const calIntent = await parseCalendarIntent(inputText, localDate());
     if (calIntent?.action === 'add' && calIntent.title && calIntent.date) {
       await pool.query(
@@ -562,6 +538,31 @@ router.post('/webhook', async (req: Request, res: Response) => {
           lines.push(`• ${e.title}${time}`);
         }
         await sendMessage(chatId, lines.join('\n'));
+      }
+      return;
+    }
+
+    // ── Check for todo intent ──
+    const todoIntent = await parseTodoIntent(inputText);
+    if (todoIntent?.action === 'add' && todoIntent.title) {
+      await pool.query(`INSERT INTO todos (user_id, title) VALUES ($1, $2)`, [userId, todoIntent.title]);
+      await sendMessage(chatId, `✅ Added to-do: "${todoIntent.title}"`);
+      return;
+    }
+    if (todoIntent?.action === 'done' && todoIntent.title) {
+      const { rows } = await pool.query(
+        `SELECT id, title FROM todos WHERE user_id = $1 AND done = false ORDER BY created_at DESC`,
+        [userId],
+      );
+      const match = rows.find((r: any) =>
+        r.title.toLowerCase().includes(todoIntent.title!.toLowerCase()) ||
+        todoIntent.title!.toLowerCase().includes(r.title.toLowerCase())
+      );
+      if (match) {
+        await pool.query(`UPDATE todos SET done = true, updated_at = now() WHERE id = $1`, [match.id]);
+        await sendMessage(chatId, `✅ Marked done: "${match.title}"`);
+      } else {
+        await sendMessage(chatId, `Couldn't find a matching to-do for "${todoIntent.title}". Use /todos to see the list.`);
       }
       return;
     }
