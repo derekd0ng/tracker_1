@@ -32,6 +32,130 @@ function fmt12(hhmm: string) {
   return `${h % 12 || 12}:${String(mm).padStart(2,'0')} ${h < 12 ? 'am' : 'pm'}`;
 }
 
+// ── ICS parser ──────────────────────────────────────────────────────────────
+
+function unfoldICS(raw: string): string {
+  // ICS lines can be folded with \r\n followed by a space or tab
+  return raw.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
+}
+
+function getICSField(block: string, key: string): string | null {
+  // Matches KEY: or KEY;param=...: at the start of a line
+  const m = block.match(new RegExp(`^${key}(?:;[^:]*)?:(.*)`, 'm'));
+  return m ? m[1].trim() : null;
+}
+
+function parseICSDate(raw: string | null): { date: string; time?: string } | null {
+  if (!raw) return null;
+  // Strip timezone suffix Z or any trailing chars after seconds
+  const clean = raw.replace(/Z$/, '').split('T');
+  const datePart = clean[0];
+  const timePart = clean[1];
+  if (datePart.length !== 8) return null;
+  const date = `${datePart.slice(0,4)}-${datePart.slice(4,6)}-${datePart.slice(6,8)}`;
+  const year = parseInt(datePart.slice(0,4));
+  if (year < MIN_YEAR || year > MAX_YEAR) return null;
+  const time = timePart ? `${timePart.slice(0,2)}:${timePart.slice(2,4)}` : undefined;
+  return { date, time };
+}
+
+function unescape(s: string): string {
+  return s.replace(/\\n/gi, ' ').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+}
+
+function parseICS(text: string): CalendarEvent[] {
+  const unfolded = unfoldICS(text);
+  const events: CalendarEvent[] = [];
+  const blocks = unfolded.split(/BEGIN:VEVENT/i);
+
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i];
+    const summary = getICSField(block, 'SUMMARY');
+    if (!summary) continue;
+
+    const dtstart = getICSField(block, 'DTSTART');
+    const dtend   = getICSField(block, 'DTEND');
+    const desc    = getICSField(block, 'DESCRIPTION');
+    const loc     = getICSField(block, 'LOCATION');
+
+    const start = parseICSDate(dtstart);
+    if (!start) continue;
+    const end = parseICSDate(dtend);
+
+    const description = [desc, loc].filter(Boolean).map(unescape).join(' · ') || undefined;
+
+    events.push({
+      id:          crypto.randomUUID(),
+      title:       unescape(summary),
+      date:        start.date,
+      startTime:   start.time,
+      endTime:     end?.time,
+      description,
+    });
+  }
+  return events;
+}
+
+// ── ICS import preview modal ─────────────────────────────────────────────────
+
+function ICSImportModal({ events, onImport, onClose }: {
+  events: CalendarEvent[];
+  onImport: (events: CalendarEvent[]) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function doImport() {
+    setLoading(true);
+    await onImport(events);
+    setDone(true);
+    setLoading(false);
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:500, padding:20 }}
+      onClick={e => { if (e.target === e.currentTarget && !loading) onClose(); }}>
+      <div style={{ width:'100%', maxWidth:480, background:'#111', borderTop:`3px solid ${ACCENT}`, border:`1px solid #2a2a2a`, borderTopColor:ACCENT, borderRadius:4, padding:'24px 24px 20px', boxShadow:'0 16px 48px rgba(0,0,0,0.7)', display:'flex', flexDirection:'column', gap:16, maxHeight:'80vh' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11, fontWeight:700, letterSpacing:'0.12em', color:ACCENT }}>
+            /import ics — {events.length} event{events.length !== 1 ? 's' : ''} found
+          </span>
+          {!loading && <button onClick={onClose} style={{ background:'none', border:'none', color:'#555', cursor:'pointer', fontSize:18 }}>✕</button>}
+        </div>
+
+        {/* Event list */}
+        <div style={{ overflowY:'auto', display:'flex', flexDirection:'column', gap:6, flex:1 }}>
+          {events.map(ev => (
+            <div key={ev.id} style={{ padding:'9px 12px', background:'#0d0d0d', border:'1px solid #2a2a2a', borderLeft:`3px solid ${ACCENT}`, borderRadius:3 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:'#e2e2e2', fontFamily:'Space Grotesk,sans-serif' }}>{ev.title}</div>
+              <div style={{ fontSize:11, color:'#666', fontFamily:"'JetBrains Mono',monospace", marginTop:2 }}>
+                {ev.date}{ev.startTime ? ` · ${fmt12(ev.startTime)}` : ''}{ev.endTime ? ` – ${fmt12(ev.endTime)}` : ''}
+              </div>
+              {ev.description && <div style={{ fontSize:11, color:'#555', marginTop:2, fontFamily:'Space Grotesk,sans-serif' }}>{ev.description}</div>}
+            </div>
+          ))}
+        </div>
+
+        {done ? (
+          <div style={{ textAlign:'center', fontFamily:"'JetBrains Mono',monospace", fontSize:12, color:'#34d399' }}>
+            ✓ {events.length} event{events.length !== 1 ? 's' : ''} imported
+          </div>
+        ) : (
+          <button onClick={doImport} disabled={loading} style={{
+            padding:'11px 0', background:ACCENT, border:'none', borderRadius:4,
+            color:'#080808', fontSize:12, fontWeight:700, fontFamily:"'JetBrains Mono',monospace",
+            letterSpacing:'0.08em', cursor: loading ? 'default' : 'pointer',
+            opacity: loading ? 0.6 : 1,
+          }}>
+            {loading ? `Importing…` : `Import ${events.length} event${events.length !== 1 ? 's' : ''}`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Event form modal ────────────────────────────────────────────────────────
 
 interface FormProps {
@@ -177,6 +301,8 @@ export default function CalendarTab() {
   const [showForm, setShowForm]         = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>();
   const [loading, setLoading]           = useState(true);
+  const [icsEvents, setIcsEvents]       = useState<CalendarEvent[] | null>(null);
+  const icsRef = useRef<HTMLInputElement>(null);
 
   async function fetchEvents() {
     setLoading(true);
@@ -205,6 +331,36 @@ export default function CalendarTab() {
   }
 
   function eventsOn(date: string) { return events.filter(e => e.date === date); }
+
+  function handleICSFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const parsed = parseICS(reader.result as string);
+      setIcsEvents(parsed.length ? parsed : []);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  async function importICSEvents(toImport: CalendarEvent[]) {
+    const imported: CalendarEvent[] = [];
+    for (const ev of toImport) {
+      try {
+        const saved: CalendarEvent = await api.post('/api/calendar', {
+          title: ev.title, date: ev.date,
+          startTime: ev.startTime, endTime: ev.endTime,
+          description: ev.description,
+        });
+        imported.push(saved);
+      } catch (err) { console.error('import event failed:', err); }
+    }
+    setEvents(prev => {
+      const ids = new Set(prev.map(e => e.id));
+      return [...prev, ...imported.filter(e => !ids.has(e.id))];
+    });
+  }
 
   function openNew(date: string) { setSelectedDate(date); setEditingEvent(undefined); setShowForm(true); }
   function openEdit(ev: CalendarEvent) { setEditingEvent(ev); setShowForm(true); }
@@ -261,6 +417,12 @@ export default function CalendarTab() {
             onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.color = ACCENT; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
           >↻</button>
+          <button onClick={() => icsRef.current?.click()} title="Import .ics"
+            style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:700, letterSpacing:'0.06em', padding:'3px 8px', background:'transparent', border:`1px solid #2a2a2a`, borderRadius:3, color:'#555', cursor:'pointer' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.color = ACCENT; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
+          >↑ ICS</button>
+          <input ref={icsRef} type="file" accept=".ics,text/calendar" style={{ display:'none' }} onChange={handleICSFile} />
         </div>
 
         <button onClick={nextMonth} disabled={year >= MAX_YEAR && month === 11}
@@ -400,6 +562,14 @@ export default function CalendarTab() {
           </div>
         )}
       </div>
+
+      {icsEvents !== null && (
+        <ICSImportModal
+          events={icsEvents}
+          onImport={importICSEvents}
+          onClose={() => setIcsEvents(null)}
+        />
+      )}
 
       {showForm && (
         <EventForm
