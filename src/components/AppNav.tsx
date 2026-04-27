@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { TabId } from '../types';
 import TelegramConnect from './TelegramConnect';
 import { exportData, exportAsXlsx, importData } from '../storage';
@@ -6,10 +7,9 @@ import {
   IconHome, IconDashboard, IconWellbeing, IconMedications,
   IconHabits, IconTodo, IconDiary,
 } from './Icons';
+import { TAB_TO_PATH, pathToTab } from '../routes';
 
 interface Props {
-  activeTab: TabId;
-  onNavigate: (tab: TabId) => void;
   user?: { id: string; email: string; name?: string | null } | null;
   onLogout?: () => void;
 }
@@ -51,7 +51,11 @@ const NAV_TABS: { id: TabId; label: string }[] = [
   { id: 'diary',      label: 'Diary'       },
 ];
 
-export default function AppNav({ activeTab, onNavigate, user, onLogout }: Props) {
+export default function AppNav({ user, onLogout }: Props) {
+  const navigate   = useNavigate();
+  const { pathname } = useLocation();
+  const activeTab  = pathToTab(pathname);
+  const onNavigate = (tab: TabId) => navigate(TAB_TO_PATH[tab]);
   const navRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const importFileRef = useRef<HTMLInputElement>(null);

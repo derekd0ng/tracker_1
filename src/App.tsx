@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import AppNav from './components/AppNav';
 import DashboardTab from './components/dashboard/DashboardTab';
 import WellbeingTab from './components/wellbeing/WellbeingTab';
@@ -11,17 +12,33 @@ import AuthScreen from './components/auth/AuthScreen';
 import { setAccessToken, AUTH_LOGOUT_EVENT, tryRefresh } from './api';
 import { initStorage } from './storage';
 import type { TabId } from './types';
+import { TAB_TO_PATH, pathToTab } from './routes';
 
 type AuthState = 'checking' | 'unauthenticated' | 'loading' | 'ready';
-
 interface User { id: string; email: string; name?: string | null; }
 
-export default function App() {
-  const [activeTab, setActiveTab]   = useState<TabId>('home');
-  const [authState, setAuthState]   = useState<AuthState>('checking');
-  const [user, setUser]             = useState<User | null>(null);
+const Loader = ({ state }: { state: 'checking' | 'loading' }) => (
+  <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0d0d', flexDirection: 'column' }}>
+    <style>{`@keyframes sq { 0%,60%,100%{opacity:0.1;transform:scaleY(0.5)}30%{opacity:1;transform:scaleY(1)} }`}</style>
+    <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:'1.3rem', fontWeight:700, letterSpacing:'0.14em', color:'#e2e2e2', marginBottom:28 }}>/Octarine</span>
+    <div style={{ display:'flex', gap:7, marginBottom:22 }}>
+      {[0,1,2].map(i => <div key={i} style={{ width:7, height:7, background:'#22d3ee', borderRadius:1, animation:`sq 1.4s ease-in-out ${i*0.22}s infinite` }} />)}
+    </div>
+    <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10, letterSpacing:'0.14em', color:'#444', textTransform:'uppercase' }}>
+      {state === 'loading' ? 'loading your data' : 'checking session'}
+    </span>
+  </div>
+);
 
-  // On mount: restore session from localStorage token, fall back to refresh cookie
+export default function App() {
+  const [authState, setAuthState] = useState<AuthState>('checking');
+  const [user, setUser]           = useState<User | null>(null);
+  const navigate  = useNavigate();
+  const location  = useLocation();
+
+  const activeTab = pathToTab(location.pathname);
+  const go = (tab: TabId) => navigate(TAB_TO_PATH[tab]);
+
   useEffect(() => {
     async function restoreSession() {
       const { getAccessToken, api } = await import('./api');
@@ -29,7 +46,6 @@ export default function App() {
         const ok = await tryRefresh();
         if (!ok) { setAuthState('unauthenticated'); return; }
       }
-      // Token is now set — fetch user profile then boot storage
       try {
         const data = await api.get<{ user: User }>('/api/auth/me');
         setUser(data.user);
@@ -41,7 +57,6 @@ export default function App() {
     }
     restoreSession();
 
-    // Listen for session expiry during use
     function onLogout() { setUser(null); setAuthState('unauthenticated'); }
     window.addEventListener(AUTH_LOGOUT_EVENT, onLogout);
     return () => window.removeEventListener(AUTH_LOGOUT_EVENT, onLogout);
@@ -49,13 +64,8 @@ export default function App() {
 
   async function bootStorage() {
     setAuthState('loading');
-    try {
-      await initStorage();
-      setAuthState('ready');
-    } catch (err) {
-      console.error('Failed to load data:', err);
-      setAuthState('unauthenticated');
-    }
+    try { await initStorage(); setAuthState('ready'); }
+    catch { setAuthState('unauthenticated'); }
   }
 
   async function handleAuth(authedUser: User) {
@@ -70,72 +80,54 @@ export default function App() {
     import('./api').then(({ api }) => api.post('/api/auth/logout').catch(() => {}));
   }
 
-  // ── Loading / checking ────────────────────────────────────────────────────
-  if (authState === 'checking' || authState === 'loading') {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#0d0d0d', flexDirection: 'column',
-      }}>
-        <style>{`
-          @keyframes sq { 0%,60%,100% { opacity:0.1; transform:scaleY(0.5); } 30% { opacity:1; transform:scaleY(1); } }
-        `}</style>
-        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:'1.3rem', fontWeight:700, letterSpacing:'0.14em', color:'#e2e2e2', marginBottom:28 }}>
-          /Octarine
-        </span>
-        <div style={{ display:'flex', gap:7, marginBottom:22 }}>
-          {[0,1,2].map(i => (
-            <div key={i} style={{ width:7, height:7, background:'#22d3ee', borderRadius:1, animation:`sq 1.4s ease-in-out ${i*0.22}s infinite` }} />
-          ))}
-        </div>
-        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10, letterSpacing:'0.14em', color:'#444', textTransform:'uppercase' }}>
-          {authState === 'loading' ? 'loading your data' : 'checking session'}
-        </span>
-      </div>
-    );
-  }
+  if (authState === 'checking' || authState === 'loading') return <Loader state={authState} />;
+  if (authState === 'unauthenticated') return <AuthScreen onAuth={handleAuth} />;
 
-  // ── Unauthenticated ───────────────────────────────────────────────────────
-  if (authState === 'unauthenticated') {
-    return <AuthScreen onAuth={handleAuth} />;
-  }
+  const appNav = <AppNav user={user} onLogout={handleLogout} />;
 
-  // ── App ───────────────────────────────────────────────────────────────────
-
-  const appNav = <AppNav activeTab={activeTab} onNavigate={setActiveTab} user={user} onLogout={handleLogout} />;
-
-  // Home tab: full-width canvas layout
-  if (activeTab === 'home') {
-    return (
-      <div className="app">
-        {appNav}
-        <main style={{ width: '100%', minHeight: '100vh', padding: '24px 24px 40px' }}>
-          <HomeTab onNavigate={setActiveTab} user={user} />
-        </main>
-        <nav className="bottom-tabbar" data-active={activeTab}>
-          {['home','dashboard','wellbeing','medication','habits','todo','diary'].map(id => (
-            <button key={id} className={`bottom-tab${activeTab === id ? ' active' : ''}`} onClick={() => setActiveTab(id as any)}>
-              <span className="bottom-tab-label" style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{id}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-    );
-  }
+  const bottomNav = (
+    <nav className="bottom-tabbar" data-active={activeTab}>
+      {(['home','dashboard','wellbeing','medication','habits','todo','diary'] as TabId[]).map(id => (
+        <button key={id} className={`bottom-tab${activeTab === id ? ' active' : ''}`} onClick={() => go(id)}>
+          <span className="bottom-tab-label" style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{id}</span>
+        </button>
+      ))}
+    </nav>
+  );
 
   return (
-    <div className="app">
-      {appNav}
-      <main className="app-main">
-        <div className="content-center">
-          {activeTab === 'dashboard'  && <DashboardTab onNavigate={setActiveTab} user={user} onUserUpdate={u => setUser(u)} />}
-          {activeTab === 'wellbeing'  && <div className="wb-theme"><WellbeingTab /></div>}
-          {activeTab === 'medication' && <MedicationTab />}
-          {activeTab === 'habits'     && <div className="hab-theme"><HabitsTab /></div>}
-          {activeTab === 'todo'       && <div className="todo-theme"><TodoTab /></div>}
-          {activeTab === 'diary'      && <div className="diary-theme"><DiaryTab /></div>}
+    <Routes>
+      {/* Home — full-width canvas */}
+      <Route path="/" element={
+        <div className="app">
+          {appNav}
+          <main style={{ width: '100%', minHeight: '100vh', padding: '24px 24px 40px' }}>
+            <HomeTab onNavigate={go} user={user} />
+          </main>
+          {bottomNav}
         </div>
-      </main>
-    </div>
+      } />
+
+      {/* Standard tabs */}
+      <Route path="/*" element={
+        <div className="app">
+          {appNav}
+          <main className="app-main">
+            <div className="content-center">
+              <Routes>
+                <Route path="/dashboard"  element={<DashboardTab onNavigate={go} user={user} onUserUpdate={u => setUser(u)} />} />
+                <Route path="/wellbeing"  element={<div className="wb-theme"><WellbeingTab /></div>} />
+                <Route path="/meds"       element={<MedicationTab />} />
+                <Route path="/habits"     element={<div className="hab-theme"><HabitsTab /></div>} />
+                <Route path="/todos"      element={<div className="todo-theme"><TodoTab /></div>} />
+                <Route path="/diary"      element={<div className="diary-theme"><DiaryTab /></div>} />
+                <Route path="*"           element={<Navigate to="/" replace />} />
+              </Routes>
+            </div>
+          </main>
+          {bottomNav}
+        </div>
+      } />
+    </Routes>
   );
 }
