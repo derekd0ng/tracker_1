@@ -478,7 +478,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
         );
         const storedDate2 = ins[0]?.date ?? eventDate;
         const timeStr = startTime ? ` at ${fmt12(startTime)}` : '';
-        await sendMessage(chatId, `✅ Event added: "${title}" on ${fmtDate(storedDate2)}${timeStr}\n(stored date: ${storedDate2})`);
+        await sendMessage(chatId, `✅ Event added: "${title}" on ${fmtDate(storedDate2)}${timeStr}`);
         return;
       }
 
@@ -522,7 +522,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
       );
       const storedDate = inserted[0]?.date ?? calIntent.date;
       const timeStr = calIntent.startTime ? ` at ${fmt12(calIntent.startTime)}` : '';
-      await sendMessage(chatId, `✅ Event added: "${calIntent.title}" on ${fmtDate(storedDate)}${timeStr}\n(stored date: ${storedDate})`);
+      await sendMessage(chatId, `✅ Event added: "${calIntent.title}" on ${fmtDate(storedDate)}${timeStr}`);
       return;
     }
     if (calIntent?.action === 'list') {
