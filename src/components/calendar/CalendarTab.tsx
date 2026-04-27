@@ -414,7 +414,7 @@ export default function CalendarTab() {
   const selectedEvents = selectedDate ? eventsOn(selectedDate) : [];
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:16, maxWidth:900 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
 
       {/* ── Header ── */}
       <div className="card" style={{ padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
