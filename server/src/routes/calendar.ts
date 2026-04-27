@@ -79,6 +79,24 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// POST /api/calendar/fetch-ics  — proxy-fetch an ICS URL (bypasses browser CORS)
+router.post('/fetch-ics', async (req: AuthRequest, res) => {
+  try {
+    let { url } = req.body as { url?: string };
+    if (!url) return res.status(400).json({ error: 'url required' }) as any;
+    // webcal:// is just https:// with a different scheme
+    url = url.replace(/^webcal:\/\//i, 'https://').replace(/^http:\/\//i, 'https://');
+    const upstream = await fetch(url, { headers: { 'User-Agent': 'OctarineCalendar/1.0' } });
+    if (!upstream.ok) return res.status(400).json({ error: `Upstream returned ${upstream.status}` }) as any;
+    const ics = await upstream.text();
+    if (!ics.includes('BEGIN:VCALENDAR')) return res.status(400).json({ error: 'URL does not appear to be a valid ICS feed' }) as any;
+    res.json({ ics });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch ICS URL' });
+  }
+});
+
 // DELETE /api/calendar/:id
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {

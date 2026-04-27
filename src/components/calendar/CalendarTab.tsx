@@ -302,6 +302,10 @@ export default function CalendarTab() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>();
   const [loading, setLoading]           = useState(true);
   const [icsEvents, setIcsEvents]       = useState<CalendarEvent[] | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [icsUrl, setIcsUrl]             = useState('');
+  const [icsUrlLoading, setIcsUrlLoading] = useState(false);
+  const [icsUrlError, setIcsUrlError]   = useState('');
   const icsRef = useRef<HTMLInputElement>(null);
 
   async function fetchEvents() {
@@ -342,6 +346,23 @@ export default function CalendarTab() {
     };
     reader.readAsText(file);
     e.target.value = '';
+  }
+
+  async function fetchICSUrl() {
+    if (!icsUrl.trim()) return;
+    setIcsUrlLoading(true);
+    setIcsUrlError('');
+    try {
+      const { ics } = await api.post<{ ics: string }>('/api/calendar/fetch-ics', { url: icsUrl.trim() });
+      const parsed = parseICS(ics);
+      setIcsEvents(parsed);
+      setShowUrlInput(false);
+      setIcsUrl('');
+    } catch (err: any) {
+      setIcsUrlError(err?.message ?? 'Failed to fetch ICS URL');
+    } finally {
+      setIcsUrlLoading(false);
+    }
   }
 
   async function importICSEvents(toImport: CalendarEvent[]) {
@@ -417,11 +438,14 @@ export default function CalendarTab() {
             onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.color = ACCENT; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
           >↻</button>
-          <button onClick={() => icsRef.current?.click()} title="Import .ics"
+          <button onClick={() => icsRef.current?.click()} title="Import .ics file"
             style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:700, letterSpacing:'0.06em', padding:'3px 8px', background:'transparent', border:`1px solid #2a2a2a`, borderRadius:3, color:'#555', cursor:'pointer' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.color = ACCENT; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
           >↑ ICS</button>
+          <button onClick={() => { setShowUrlInput(v => !v); setIcsUrlError(''); }} title="Import from ICS URL"
+            style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:700, letterSpacing:'0.06em', padding:'3px 8px', background: showUrlInput ? ACCENT : 'transparent', border:`1px solid ${showUrlInput ? ACCENT : '#2a2a2a'}`, borderRadius:3, color: showUrlInput ? '#080808' : '#555', cursor:'pointer' }}
+          >↑ URL</button>
           <input ref={icsRef} type="file" accept=".ics,text/calendar" style={{ display:'none' }} onChange={handleICSFile} />
         </div>
 
@@ -431,6 +455,31 @@ export default function CalendarTab() {
           onMouseLeave={e => (e.currentTarget.style.color = year >= MAX_YEAR && month === 11 ? '#333' : '#aaa')}
         >›</button>
       </div>
+
+      {/* ── ICS URL input bar ── */}
+      {showUrlInput && (
+        <div className="card" style={{ padding:'12px 16px', display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+          <input
+            value={icsUrl}
+            onChange={e => setIcsUrl(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && fetchICSUrl()}
+            placeholder="Paste webcal:// or https:// ICS link…"
+            autoFocus
+            style={{ flex:1, minWidth:200, padding:'8px 11px', background:'#0d0d0d', border:`1px solid #2a2a2a`, borderRadius:4, color:'#e2e2e2', fontSize:13, fontFamily:'Space Grotesk,sans-serif', outline:'none' }}
+            onFocus={e => (e.target.style.borderColor = ACCENT)}
+            onBlur={e => (e.target.style.borderColor = '#2a2a2a')}
+          />
+          <button onClick={fetchICSUrl} disabled={icsUrlLoading || !icsUrl.trim()} style={{
+            padding:'8px 14px', background:ACCENT, border:'none', borderRadius:4,
+            color:'#080808', fontSize:12, fontWeight:700, fontFamily:"'JetBrains Mono',monospace",
+            cursor: icsUrlLoading || !icsUrl.trim() ? 'default' : 'pointer',
+            opacity: icsUrlLoading || !icsUrl.trim() ? 0.6 : 1,
+          }}>
+            {icsUrlLoading ? 'Fetching…' : 'Fetch'}
+          </button>
+          {icsUrlError && <span style={{ width:'100%', fontSize:11, color:'#f87171', fontFamily:"'JetBrains Mono',monospace" }}>✕ {icsUrlError}</span>}
+        </div>
+      )}
 
       <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
 
