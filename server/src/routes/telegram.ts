@@ -130,7 +130,12 @@ Return ONLY valid JSON:
 - "add" if the user wants to create/schedule an event or appointment
 - "list" if the user wants to see events (rangeStart/rangeEnd = date range to show; null = next 7 days)
 - "none" if it's a health update, to-do, or something else
-For relative dates ("tomorrow", "next Monday", "this week") resolve to absolute ISO dates from today.
+Date resolution rules (strictly follow these):
+- A bare weekday like "Thursday" = the NEAREST upcoming Thursday from today (1–6 days away), NOT next week.
+- "next Thursday" = the Thursday of the following week (7–13 days away).
+- "tomorrow" = today + 1 day.
+- "this week" = today through the coming Sunday.
+- Always resolve to absolute YYYY-MM-DD dates.
 Use 24h HH:MM for times. title should be the clean event name only.
 Message: "${text}"`;
 
