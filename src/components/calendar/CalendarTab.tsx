@@ -486,7 +486,7 @@ export default function CalendarTab() {
         {/* ── Calendar grid ── */}
         <div className="card" style={{ flex:1, padding:0, overflow:'hidden' }}>
           {/* Day-of-week headers */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--border)' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,minmax(0,1fr))', borderBottom:'1px solid var(--border)' }}>
             {DOW.map(d => (
               <div key={d} style={{ padding:'8px 0', textAlign:'center', fontSize:10, fontWeight:700, letterSpacing:'0.1em', color:'#555', fontFamily:"'JetBrains Mono',monospace" }}>
                 {d}
@@ -495,7 +495,7 @@ export default function CalendarTab() {
           </div>
 
           {/* Day cells */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,minmax(0,1fr))' }}>
             {cells.map((day, i) => {
               if (!day) return <div key={`e${i}`} style={{ minHeight:80, borderRight: (i+1)%7===0 ? 'none' : '1px solid var(--border)', borderBottom:'1px solid var(--border)' }} />;
               const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
