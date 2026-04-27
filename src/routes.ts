@@ -8,6 +8,7 @@ export const TAB_TO_PATH: Record<TabId, string> = {
   habits:     '/habits',
   todo:       '/todos',
   diary:      '/diary',
+  calendar:   '/calendar',
 };
 
 const PATH_TO_TAB: Record<string, TabId> = Object.fromEntries(

@@ -15,6 +15,27 @@ pool.on('error', (err) => {
   console.error('Unexpected postgres pool error:', err);
 });
 
+export async function ensureCalendarTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS calendar_events (
+      id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title       TEXT        NOT NULL,
+      date        DATE        NOT NULL,
+      start_time  TIME,
+      end_time    TIME,
+      description TEXT,
+      color       TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_calendar_events_user_date
+    ON calendar_events (user_id, date)
+  `);
+}
+
 export async function ensureDiaryTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS diary_entries (

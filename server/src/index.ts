@@ -4,13 +4,14 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { ensureTodosTable, ensureDiaryTable } from './db';
+import { ensureTodosTable, ensureDiaryTable, ensureCalendarTable } from './db';
 import authRouter       from './routes/auth';
 import medicationsRouter from './routes/medications';
 import habitsRouter     from './routes/habits';
 import wellbeingRouter  from './routes/wellbeing';
 import todosRouter      from './routes/todos';
 import diaryRouter      from './routes/diary';
+import calendarRouter   from './routes/calendar';
 import telegramRouter, { registerBotCommands } from './routes/telegram';
 import { startMedicationReminders } from './jobs/medicationReminders';
 
@@ -43,6 +44,7 @@ app.use('/api/habits',      habitsRouter);
 app.use('/api/wellbeing',   wellbeingRouter);
 app.use('/api/todos',       todosRouter);
 app.use('/api/diary',       diaryRouter);
+app.use('/api/calendar',    calendarRouter);
 app.use('/api/telegram',    telegramRouter);
 
 // ── Health check ─────────────────────────────────────────────────────────────
@@ -54,6 +56,7 @@ app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   await ensureTodosTable().catch(err => console.error('todos table init:', err));
   await ensureDiaryTable().catch(err => console.error('diary table init:', err));
+  await ensureCalendarTable().catch(err => console.error('calendar table init:', err));
   startMedicationReminders();
   registerBotCommands();
 });

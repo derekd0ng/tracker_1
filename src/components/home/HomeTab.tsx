@@ -86,7 +86,7 @@ const CENTER_X = CW / 2 - CENTER_SQ / 2;             // 630
 const CENTER_Y = R2Y + CARD_H / 2 - CENTER_SQ / 2;   // 150+90-90 = 240
 
 interface Module {
-  id: TabId | 'calendar';
+  id: TabId;
   label: string;
   shortLabel: string;
   col: string;
@@ -132,48 +132,42 @@ function BrainCard({ module, onNavigate, style, children, actionButton }: {
   actionButton?: (hov: boolean) => React.ReactNode;
 }) {
   const [hov, setHov] = useState(false);
-  const isCalendar = module.id === 'calendar';
   return (
     <div
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: hov && !isCalendar ? module.col : '#0d0d0d',
-        borderTop: `3px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
-        borderRight: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
-        borderBottom: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
-        borderLeft: `1px solid ${isCalendar ? 'rgba(6,182,212,0.25)' : module.col}`,
-        color: hov && !isCalendar ? HOVER_TEXT : '#e2e2e2',
-        borderRadius: 4,
-        cursor: 'default',
+        background: hov ? module.col : '#0d0d0d',
+        borderTop: `3px solid ${module.col}`,
+        borderRight: `1px solid ${module.col}`,
+        borderBottom: `1px solid ${module.col}`,
+        borderLeft: `1px solid ${module.col}`,
+        color: hov ? HOVER_TEXT : '#e2e2e2',
+        borderRadius: 4, cursor: 'default',
         padding: '12px 14px 10px',
         display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-        transition: 'all 0.18s',
+        overflow: 'hidden', transition: 'all 0.18s',
         ...style,
       }}
     >
       <div style={{
         fontSize: 12.5, fontWeight: 700, letterSpacing: '0.12em',
-        color: hov && !isCalendar ? HOVER_TEXT : module.col,
+        color: hov ? HOVER_TEXT : module.col,
         fontFamily: "'JetBrains Mono', monospace",
         marginBottom: 9, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <span>/{module.label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          {actionButton?.(hov && !isCalendar)}
-          {!isCalendar && (
+          {actionButton?.(hov)}
           <button
-            onClick={() => onNavigate(module.id as TabId)}
+            onClick={() => onNavigate(module.id)}
             style={{
               background: hov ? 'rgba(0,0,0,0.15)' : `rgba(${hexToRgb(module.col)},0.12)`,
               border: `1px solid ${hov ? 'rgba(0,0,0,0.3)' : module.col}`,
-              borderRadius: 3,
-              color: hov ? HOVER_TEXT : module.col,
+              borderRadius: 3, color: hov ? HOVER_TEXT : module.col,
               fontSize: 12, fontWeight: 700, letterSpacing: '0.05em',
               fontFamily: "'JetBrains Mono', monospace",
-              padding: '4px 8px',
-              cursor: 'pointer', lineHeight: 1,
+              padding: '4px 8px', cursor: 'pointer', lineHeight: 1,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -181,10 +175,9 @@ function BrainCard({ module, onNavigate, style, children, actionButton }: {
               <polyline points="4,2 8,6 4,10"/>
             </svg>
           </button>
-          )}
         </div>
       </div>
-      <div style={{ flex: 1, minHeight: 0 }}>{children(hov && !isCalendar)}</div>
+      <div style={{ flex: 1, minHeight: 0 }}>{children(hov)}</div>
     </div>
   );
 }
@@ -195,30 +188,27 @@ function BrainNav({ module, onNavigate, style }: {
 }) {
   const [hov, setHov] = useState(false);
   const isRect = !!(module.navW && module.navH);
-  const isCalendar = module.id === 'calendar';
   const col = module.col;
   return (
     <div
-      onClick={() => !isCalendar && onNavigate(module.id as TabId)}
+      onClick={() => onNavigate(module.id)}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: hov && !isCalendar ? col : `rgba(${hexToRgb(col)},0.08)`,
-        border: `1px solid ${isCalendar ? 'rgba(6,182,212,0.3)' : col}`,
-        borderRadius: 4,
-        cursor: isCalendar ? 'default' : 'pointer',
+        background: hov ? col : `rgba(${hexToRgb(col)},0.08)`,
+        border: `1px solid ${col}`,
+        borderRadius: 4, cursor: 'pointer',
         display: 'flex', flexDirection: isRect ? 'row' : 'column',
         alignItems: 'center', justifyContent: 'center',
         gap: isRect ? 8 : 4,
-        opacity: isCalendar ? 0.4 : 1,
         transition: 'all 0.15s',
         ...style,
       }}
     >
-      <NavIcon id={module.id} size={isRect ? 14 : 16} color={hov && !isCalendar ? HOVER_TEXT : col} />
+      <NavIcon id={module.id} size={isRect ? 14 : 16} color={hov ? HOVER_TEXT : col} />
       <div style={{
         fontSize: isRect ? 10 : 7, fontWeight: 700, letterSpacing: '0.08em',
-        color: hov && !isCalendar ? HOVER_TEXT : col,
+        color: hov ? HOVER_TEXT : col,
         fontFamily: "'JetBrains Mono', monospace", textAlign: 'center', lineHeight: 1.1,
       }}>
         {module.shortLabel}
@@ -237,6 +227,7 @@ function NavIcon({ id, size, color }: { id: string; size: number; color: string 
     case 'todo':        return <svg {...p} viewBox="0 0 16 16"><line x1="5" y1="4" x2="14" y2="4"/><line x1="5" y1="8" x2="14" y2="8"/><line x1="5" y1="12" x2="14" y2="12"/><polyline points="2,3.5 3,4.5 4,2.5"/><polyline points="2,7.5 3,8.5 4,6.5"/></svg>;
     case 'diary':       return <svg {...p} viewBox="0 0 16 16"><rect x="3" y="1" width="10" height="13" rx="1.5"/><line x1="6" y1="5" x2="10" y2="5"/><line x1="6" y1="8" x2="10" y2="8"/><line x1="6" y1="11" x2="9" y2="11"/></svg>;
     case 'calendar':    return <svg {...p} viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><line x1="1.5" y1="6.5" x2="14.5" y2="6.5"/><line x1="5" y1="1" x2="5" y2="4"/><line x1="11" y1="1" x2="11" y2="4"/></svg>;
+    case 'dashboard':   return <svg {...p} viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1"/><rect x="9" y="1.5" width="5.5" height="5.5" rx="1"/><rect x="1.5" y="9" width="5.5" height="5.5" rx="1"/><rect x="9" y="9" width="5.5" height="5.5" rx="1"/></svg>;
     default: return null;
   }
 }
@@ -698,13 +689,15 @@ function DiaryMini({ accent, hov }: { accent: string; hov: boolean }) {
   );
 }
 
-function CalMini({ accent }: { accent: string }) {
-  const { fgMuted, fgDim } = C(false);
+function CalMini({ accent, hov }: { accent: string; hov: boolean }) {
+  const { fgMuted } = C(hov);
+  const today = new Date();
+  const monthLabel = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap: 5 }}>
-      <div style={{ fontSize: 8.5, color: fgMuted, fontFamily:"'JetBrains Mono',monospace", marginBottom: 1 }}>COMING SOON</div>
-      <div style={{ fontSize: 10.5, color: fgDim, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.6 }}>
-        Calendar integration will let you see appointments, reminders, and events alongside your recovery data.
+    <div style={{ display:'flex', flexDirection:'column', gap: 6 }}>
+      <div style={{ fontSize: 8.5, color: hov ? 'rgba(0,0,0,0.5)' : accent, fontFamily:"'JetBrains Mono',monospace", fontWeight:700, letterSpacing:'0.1em' }}>{monthLabel}</div>
+      <div style={{ fontSize: 11, color: fgMuted, fontFamily:'Space Grotesk,sans-serif', lineHeight: 1.5 }}>
+        Open to view and manage your events and appointments.
       </div>
     </div>
   );
@@ -841,7 +834,7 @@ export default function HomeTab({ onNavigate, user }: Props) {
       case 'habits':     return <HabMini accent={m.col} hov={hov} />;
       case 'todo':       return <TodoMini accent={m.col} hov={hov} refreshKey={todoRefreshKey} />;
       case 'diary':      return <DiaryMini accent={m.col} hov={hov} />;
-      case 'calendar':   return <CalMini accent={m.col} />;
+      case 'calendar':   return <CalMini accent={m.col} hov={hov} />;
     }
   };
 

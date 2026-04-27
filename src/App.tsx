@@ -7,6 +7,7 @@ import MedicationTab from './components/medication/MedicationTab';
 import HabitsTab from './components/habits/HabitsTab';
 import TodoTab from './components/todo/TodoTab';
 import DiaryTab from './components/diary/DiaryTab';
+import CalendarTab from './components/calendar/CalendarTab';
 import HomeTab from './components/home/HomeTab';
 import AuthScreen from './components/auth/AuthScreen';
 import { setAccessToken, AUTH_LOGOUT_EVENT, tryRefresh } from './api';
@@ -87,7 +88,7 @@ export default function App() {
 
   const bottomNav = (
     <nav className="bottom-tabbar" data-active={activeTab}>
-      {(['home','dashboard','wellbeing','medication','habits','todo','diary'] as TabId[]).map(id => (
+      {(['home','dashboard','wellbeing','medication','habits','todo','diary','calendar'] as TabId[]).map(id => (
         <button key={id} className={`bottom-tab${activeTab === id ? ' active' : ''}`} onClick={() => go(id)}>
           <span className="bottom-tab-label" style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{id}</span>
         </button>
@@ -121,6 +122,7 @@ export default function App() {
                 <Route path="/habits"     element={<div className="hab-theme"><HabitsTab /></div>} />
                 <Route path="/todos"      element={<div className="todo-theme"><TodoTab /></div>} />
                 <Route path="/diary"      element={<div className="diary-theme"><DiaryTab /></div>} />
+                <Route path="/calendar"  element={<CalendarTab />} />
                 <Route path="*"           element={<Navigate to="/" replace />} />
               </Routes>
             </div>
