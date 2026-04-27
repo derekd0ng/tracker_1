@@ -82,7 +82,7 @@ function parseICS(text: string): CalendarEvent[] {
     if (!start) continue;
     const end = parseICSDate(dtend);
 
-    const description = [desc, loc].filter(Boolean).map(unescape).join(' · ') || undefined;
+    const description = [desc, loc].filter((x): x is string => x !== null).map(unescape).join(' · ') || undefined;
 
     events.push({
       id:          crypto.randomUUID(),
