@@ -4,12 +4,13 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { ensureTodosTable } from './db';
+import { ensureTodosTable, ensureDiaryTable } from './db';
 import authRouter       from './routes/auth';
 import medicationsRouter from './routes/medications';
 import habitsRouter     from './routes/habits';
 import wellbeingRouter  from './routes/wellbeing';
 import todosRouter      from './routes/todos';
+import diaryRouter      from './routes/diary';
 import telegramRouter, { registerBotCommands } from './routes/telegram';
 import { startMedicationReminders } from './jobs/medicationReminders';
 
@@ -41,6 +42,7 @@ app.use('/api/medications', medicationsRouter);
 app.use('/api/habits',      habitsRouter);
 app.use('/api/wellbeing',   wellbeingRouter);
 app.use('/api/todos',       todosRouter);
+app.use('/api/diary',       diaryRouter);
 app.use('/api/telegram',    telegramRouter);
 
 // ── Health check ─────────────────────────────────────────────────────────────
@@ -51,6 +53,7 @@ const PORT = process.env.PORT ?? 3001;
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   await ensureTodosTable().catch(err => console.error('todos table init:', err));
+  await ensureDiaryTable().catch(err => console.error('diary table init:', err));
   startMedicationReminders();
   registerBotCommands();
 });

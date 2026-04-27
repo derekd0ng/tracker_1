@@ -15,6 +15,20 @@ pool.on('error', (err) => {
   console.error('Unexpected postgres pool error:', err);
 });
 
+export async function ensureDiaryTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS diary_entries (
+      id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date        DATE        NOT NULL,
+      free_text   TEXT        NOT NULL DEFAULT '',
+      prompts     JSONB       NOT NULL DEFAULT '{}',
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (user_id, date)
+    )
+  `);
+}
+
 export async function ensureTodosTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS todos (
