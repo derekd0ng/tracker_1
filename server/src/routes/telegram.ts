@@ -95,6 +95,69 @@ function localTime(d = new Date()) {
   return new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
 }
 
+function fmtDate(iso: string) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function fmt12(hhmm: string) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+}
+
+async function parseCalendarIntent(text: string, today: string): Promise<{
+  action: 'add' | 'list' | 'none';
+  title?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  description?: string;
+  rangeStart?: string;
+  rangeEnd?: string;
+} | null> {
+  try {
+    const prompt = `Today is ${today}. Determine if the following message is about calendar events.
+Return ONLY valid JSON:
+{
+  "action": "add" | "list" | "none",
+  "title": string | null,
+  "date": "YYYY-MM-DD" | null,
+  "startTime": "HH:MM" | null,
+  "endTime": "HH:MM" | null,
+  "description": string | null,
+  "rangeStart": "YYYY-MM-DD" | null,
+  "rangeEnd": "YYYY-MM-DD" | null
+}
+- "add" if the user wants to create/schedule an event or appointment
+- "list" if the user wants to see events (rangeStart/rangeEnd = date range to show; null = next 7 days)
+- "none" if it's a health update, to-do, or something else
+For relative dates ("tomorrow", "next Monday", "this week") resolve to absolute ISO dates from today.
+Use 24h HH:MM for times. title should be the clean event name only.
+Message: "${text}"`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] }),
+    });
+    const data = (await res.json()) as any;
+    const raw = data.content?.[0]?.text ?? '';
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    return JSON.parse(match[0]);
+  } catch { return null; }
+}
+
+async function getEvents(userId: string, from: string, to: string) {
+  const { rows } = await pool.query(
+    `SELECT title, date, start_time, end_time, description
+     FROM calendar_events
+     WHERE user_id = $1 AND date >= $2 AND date <= $3
+     ORDER BY date, start_time NULLS LAST`,
+    [userId, from, to],
+  );
+  return rows;
+}
+
 async function parseTodoIntent(text: string): Promise<{ action: 'add' | 'done' | 'none'; title?: string } | null> {
   try {
     const prompt = `Determine if the following message is a to-do action. Return ONLY valid JSON:
@@ -170,6 +233,8 @@ export async function registerBotCommands() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         commands: [
+          { command: 'events',    description: 'Upcoming events (today/tomorrow/week)' },
+          { command: 'event',     description: 'Add event: /event Dentist on 2026-05-01 at 14:00' },
           { command: 'todos',     description: 'List pending to-dos' },
           { command: 'todo',      description: 'Add a to-do: /todo buy groceries' },
           { command: 'done',      description: 'Mark to-do done: /done 2' },
@@ -259,16 +324,20 @@ router.post('/webhook', async (req: Request, res: Response) => {
       if (cmd === '/help') {
         await sendMessage(chatId,
           'Commands:\n' +
+          '/events — upcoming events (next 7 days)\n' +
+          '/events today — today\'s events\n' +
+          '/events tomorrow — tomorrow\'s events\n' +
+          '/event <title> on YYYY-MM-DD at HH:MM — add event\n\n' +
           '/todos — list pending to-dos\n' +
           '/todo <text> — add a new to-do\n' +
-          '/done <number> — mark to-do #N as done\n' +
+          '/done <number> — mark to-do #N as done\n\n' +
           '/meds — all pending medications for today\n' +
-          '/morning — pending morning meds\n' +
-          '/afternoon — pending afternoon meds\n' +
-          '/evening — pending evening meds\n' +
-          '/night — pending night meds\n\n' +
-          'Send any message or voice note to log well-being, or say\n' +
-          '"add to-do: buy groceries" to add a task.',
+          '/morning · /afternoon · /evening · /night — slot meds\n\n' +
+          'Or just send a message / voice note:\n' +
+          '• "Add event: dentist on Friday at 2pm"\n' +
+          '• "What\'s on my calendar tomorrow?"\n' +
+          '• "Add to-do: call the bank"\n' +
+          '• "Feel 7/10, slight headache" → logs well-being',
         );
         return;
       }
@@ -338,6 +407,76 @@ router.post('/webhook', async (req: Request, res: Response) => {
         return;
       }
 
+      if (cmd === '/events') {
+        const arg = text!.slice('/events'.length).trim(); // optional: "today" / "tomorrow" / date
+        let from = today, to = today;
+        if (!arg || arg === 'today') {
+          to = today;
+        } else if (arg === 'tomorrow') {
+          const d = new Date(today + 'T00:00:00'); d.setDate(d.getDate() + 1);
+          from = to = d.toISOString().slice(0, 10);
+        } else if (arg === 'week') {
+          const d = new Date(today + 'T00:00:00'); d.setDate(d.getDate() + 6);
+          to = d.toISOString().slice(0, 10);
+        } else {
+          // try to interpret as a date
+          const d = new Date(arg);
+          if (!isNaN(d.getTime())) { from = to = d.toISOString().slice(0, 10); }
+          else {
+            // default: next 7 days
+            const d2 = new Date(today + 'T00:00:00'); d2.setDate(d2.getDate() + 6);
+            to = d2.toISOString().slice(0, 10);
+          }
+        }
+        if (!arg || arg === 'week') {
+          const d = new Date(today + 'T00:00:00'); d.setDate(d.getDate() + 6);
+          to = d.toISOString().slice(0, 10);
+        }
+        const events = await getEvents(userId, from, to);
+        if (events.length === 0) {
+          const label = from === to ? fmtDate(from) : `${fmtDate(from)} – ${fmtDate(to)}`;
+          await sendMessage(chatId, `📅 No events for ${label}.`);
+        } else {
+          let lastDate = '';
+          const lines: string[] = ['📅 Upcoming events:'];
+          for (const e of events) {
+            const ds = String(e.date).slice(0, 10);
+            if (ds !== lastDate) { lines.push(`\n${fmtDate(ds)}`); lastDate = ds; }
+            const time = e.start_time ? ` ${fmt12(String(e.start_time).slice(0, 5))}${e.end_time ? `–${fmt12(String(e.end_time).slice(0, 5))}` : ''}` : '';
+            lines.push(`• ${e.title}${time}${e.description ? ` — ${e.description}` : ''}`);
+          }
+          await sendMessage(chatId, lines.join('\n'));
+        }
+        return;
+      }
+
+      if (cmd === '/event') {
+        const arg = text!.slice('/event'.length).trim();
+        if (!arg) {
+          await sendMessage(chatId, 'Usage: /event <title> [on YYYY-MM-DD] [at HH:MM]\nExample: /event Dentist on 2026-04-30 at 14:00');
+          return;
+        }
+        // Quick parse: "Title on DATE at TIME"
+        let title = arg, eventDate = today, startTime: string | null = null;
+        const onMatch = arg.match(/^(.+?)\s+on\s+(\d{4}-\d{2}-\d{2})(.*)$/i);
+        if (onMatch) {
+          title = onMatch[1].trim();
+          eventDate = onMatch[2];
+          const atMatch = onMatch[3].match(/at\s+(\d{1,2}:\d{2})/i);
+          if (atMatch) startTime = atMatch[1].padStart(5, '0');
+        } else {
+          const atMatch = arg.match(/^(.+?)\s+at\s+(\d{1,2}:\d{2})(.*)$/i);
+          if (atMatch) { title = atMatch[1].trim(); startTime = atMatch[2].padStart(5, '0'); }
+        }
+        await pool.query(
+          `INSERT INTO calendar_events (user_id, title, date, start_time) VALUES ($1,$2,$3,$4)`,
+          [userId, title, eventDate, startTime],
+        );
+        const timeStr = startTime ? ` at ${fmt12(startTime)}` : '';
+        await sendMessage(chatId, `✅ Event added: "${title}" on ${fmtDate(eventDate)}${timeStr}`);
+        return;
+      }
+
       if (['/morning', '/afternoon', '/evening', '/night'].includes(cmd)) {
         const slot = cmd.slice(1);
         const meds = await getPendingMeds(userId, slot, today);
@@ -389,6 +528,40 @@ router.post('/webhook', async (req: Request, res: Response) => {
         await sendMessage(chatId, `✅ Marked done: "${match.title}"`);
       } else {
         await sendMessage(chatId, `Couldn't find a matching to-do for "${todoIntent.title}". Use /todos to see the list.`);
+      }
+      return;
+    }
+
+    // ── Check for calendar intent ──
+    const calIntent = await parseCalendarIntent(inputText, localDate());
+    if (calIntent?.action === 'add' && calIntent.title && calIntent.date) {
+      await pool.query(
+        `INSERT INTO calendar_events (user_id, title, date, start_time, end_time, description)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [userId, calIntent.title, calIntent.date, calIntent.startTime ?? null, calIntent.endTime ?? null, calIntent.description ?? null],
+      );
+      const timeStr = calIntent.startTime ? ` at ${fmt12(calIntent.startTime)}` : '';
+      await sendMessage(chatId, `✅ Event added: "${calIntent.title}" on ${fmtDate(calIntent.date)}${timeStr}`);
+      return;
+    }
+    if (calIntent?.action === 'list') {
+      const today2 = localDate();
+      const d7 = new Date(today2 + 'T00:00:00'); d7.setDate(d7.getDate() + 6);
+      const from = calIntent.rangeStart ?? today2;
+      const to   = calIntent.rangeEnd   ?? d7.toISOString().slice(0, 10);
+      const events = await getEvents(userId, from, to);
+      if (events.length === 0) {
+        await sendMessage(chatId, `📅 No events for ${fmtDate(from)}${from !== to ? ` – ${fmtDate(to)}` : ''}.`);
+      } else {
+        let lastDate = '';
+        const lines: string[] = ['📅 Events:'];
+        for (const e of events) {
+          const ds = String(e.date).slice(0, 10);
+          if (ds !== lastDate) { lines.push(`\n${fmtDate(ds)}`); lastDate = ds; }
+          const time = e.start_time ? ` ${fmt12(String(e.start_time).slice(0, 5))}` : '';
+          lines.push(`• ${e.title}${time}`);
+        }
+        await sendMessage(chatId, lines.join('\n'));
       }
       return;
     }
