@@ -178,15 +178,21 @@ export default function CalendarTab() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>();
   const [loading, setLoading]           = useState(true);
 
+  async function fetchEvents() {
+    setLoading(true);
+    try {
+      const data: CalendarEvent[] = await api.get('/api/calendar');
+      setEvents(data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  }
+
+  // Fetch on mount and whenever the page regains visibility
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const data: CalendarEvent[] = await api.get('/api/calendar');
-        setEvents(data);
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
-    })();
+    fetchEvents();
+    function onVisible() { if (document.visibilityState === 'visible') fetchEvents(); }
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
   function prevMonth() {
@@ -250,6 +256,11 @@ export default function CalendarTab() {
             onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.color = ACCENT; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
           >TODAY</button>
+          <button onClick={fetchEvents} title="Refresh"
+            style={{ fontSize:12, fontFamily:"'JetBrains Mono',monospace", padding:'3px 7px', background:'transparent', border:`1px solid #2a2a2a`, borderRadius:3, color:'#555', cursor:'pointer', lineHeight:1 }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.color = ACCENT; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
+          >↻</button>
         </div>
 
         <button onClick={nextMonth} disabled={year >= MAX_YEAR && month === 11}
