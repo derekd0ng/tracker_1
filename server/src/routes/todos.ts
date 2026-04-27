@@ -10,7 +10,7 @@ function rowToTodo(r: any) {
     id:        r.id,
     title:     r.title,
     done:      r.done,
-    dueDate:   r.due_date ? String(r.due_date).slice(0, 10) : undefined,
+    dueDate:   r.due_date ?? undefined,
     createdAt: r.created_at,
   };
 }
@@ -19,7 +19,8 @@ function rowToTodo(r: any) {
 router.get('/', async (req: AuthRequest, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM todos WHERE user_id = $1 ORDER BY created_at DESC',
+      `SELECT id, title, done, created_at, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date
+       FROM todos WHERE user_id = $1 ORDER BY created_at DESC`,
       [req.userId],
     );
     res.json(rows.map(rowToTodo));
@@ -38,7 +39,7 @@ router.post('/', async (req: AuthRequest, res) => {
       `INSERT INTO todos (id, user_id, title, done, due_date, created_at)
        VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, COALESCE($6, now()))
        ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, done = EXCLUDED.done, due_date = EXCLUDED.due_date, updated_at = now()
-       RETURNING *`,
+       RETURNING id, title, done, created_at, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date`,
       [id ?? null, req.userId, title, done, dueDate ?? null, createdAt ?? null],
     );
     res.json(rowToTodo(rows[0]));
@@ -61,7 +62,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     fields.push(`updated_at = now()`);
     vals.push(req.params.id, req.userId);
     const { rows } = await pool.query(
-      `UPDATE todos SET ${fields.join(', ')} WHERE id = $${idx} AND user_id = $${idx + 1} RETURNING *`,
+      `UPDATE todos SET ${fields.join(', ')} WHERE id = $${idx} AND user_id = $${idx + 1} RETURNING id, title, done, created_at, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date`,
       vals,
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' }) as any;
