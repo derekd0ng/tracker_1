@@ -690,16 +690,27 @@ function DiaryMini({ accent, hov }: { accent: string; hov: boolean }) {
 }
 
 function CalMini({ accent, hov }: { accent: string; hov: boolean }) {
-  const [events, setEvents] = useState<{ id: string; title: string; date: string; startTime?: string; color?: string }[]>([]);
+  const [events, setEvents] = useState<{ id: string; title: string; date: string; startTime?: string; endTime?: string; color?: string }[]>([]);
   const { fg, fgMuted } = C(hov);
 
   useEffect(() => {
     const d = new Date();
     const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     import('../../api').then(({ api }) =>
-      api.get<{ id: string; title: string; date: string; startTime?: string; color?: string }[]>(`/api/calendar?from=${todayStr}`)
+      api.get<{ id: string; title: string; date: string; startTime?: string; endTime?: string; color?: string }[]>(`/api/calendar?from=${todayStr}`)
         .then(data => {
-          const sorted = [...data].sort((a, b) =>
+          const now = new Date();
+          const nowTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+          const relevant = data.filter(e => {
+            if (e.date > todayStr) return true;
+            if (e.date < todayStr) return false;
+            // today: include all-day (no startTime), ongoing (endTime > now), or future (startTime >= now)
+            if (!e.startTime) return true;
+            if (e.startTime >= nowTime) return true;
+            if (e.endTime && e.endTime > nowTime) return true;
+            return false;
+          });
+          const sorted = relevant.sort((a, b) =>
             a.date.localeCompare(b.date) || (a.startTime ?? '99:99').localeCompare(b.startTime ?? '99:99')
           );
           setEvents(sorted.slice(0, 2));
