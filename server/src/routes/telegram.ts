@@ -469,12 +469,13 @@ router.post('/webhook', async (req: Request, res: Response) => {
           const atMatch = arg.match(/^(.+?)\s+at\s+(\d{1,2}:\d{2})(.*)$/i);
           if (atMatch) { title = atMatch[1].trim(); startTime = atMatch[2].padStart(5, '0'); }
         }
-        await pool.query(
-          `INSERT INTO calendar_events (user_id, title, date, start_time) VALUES ($1,$2,$3,$4)`,
+        const { rows: ins } = await pool.query(
+          `INSERT INTO calendar_events (user_id, title, date, start_time) VALUES ($1,$2,$3,$4) RETURNING date`,
           [userId, title, eventDate, startTime],
         );
+        const storedDate2 = ins[0] ? String(ins[0].date).slice(0, 10) : eventDate;
         const timeStr = startTime ? ` at ${fmt12(startTime)}` : '';
-        await sendMessage(chatId, `✅ Event added: "${title}" on ${fmtDate(eventDate)}${timeStr}`);
+        await sendMessage(chatId, `✅ Event added: "${title}" on ${fmtDate(storedDate2)}${timeStr}\n(stored date: ${storedDate2})`);
         return;
       }
 
@@ -511,13 +512,14 @@ router.post('/webhook', async (req: Request, res: Response) => {
     // ── Check for calendar intent first (more specific than todos) ──
     const calIntent = await parseCalendarIntent(inputText, localDate());
     if (calIntent?.action === 'add' && calIntent.title && calIntent.date) {
-      await pool.query(
+      const { rows: inserted } = await pool.query(
         `INSERT INTO calendar_events (user_id, title, date, start_time, end_time, description)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
+         VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, date`,
         [userId, calIntent.title, calIntent.date, calIntent.startTime ?? null, calIntent.endTime ?? null, calIntent.description ?? null],
       );
+      const storedDate = inserted[0] ? String(inserted[0].date).slice(0, 10) : calIntent.date;
       const timeStr = calIntent.startTime ? ` at ${fmt12(calIntent.startTime)}` : '';
-      await sendMessage(chatId, `✅ Event added: "${calIntent.title}" on ${fmtDate(calIntent.date)}${timeStr}`);
+      await sendMessage(chatId, `✅ Event added: "${calIntent.title}" on ${fmtDate(storedDate)}${timeStr}\n(stored date: ${storedDate})`);
       return;
     }
     if (calIntent?.action === 'list') {
