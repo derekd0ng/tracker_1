@@ -96,6 +96,33 @@ function parseICS(text: string): CalendarEvent[] {
   return events;
 }
 
+interface FeedEvent {
+  title: string; date: string;
+  startTime?: string; endTime?: string; description?: string; uid?: string;
+}
+
+function parseFeedICS(text: string): FeedEvent[] {
+  const unfolded = unfoldICS(text);
+  const events: FeedEvent[] = [];
+  const blocks = unfolded.split(/BEGIN:VEVENT/i);
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i];
+    const summary = getICSField(block, 'SUMMARY');
+    if (!summary) continue;
+    const dtstart = getICSField(block, 'DTSTART');
+    const dtend   = getICSField(block, 'DTEND');
+    const desc    = getICSField(block, 'DESCRIPTION');
+    const loc     = getICSField(block, 'LOCATION');
+    const uid     = getICSField(block, 'UID');
+    const start = parseICSDate(dtstart);
+    if (!start) continue;
+    const end = parseICSDate(dtend);
+    const description = [desc, loc].filter((x): x is string => x !== null).map(unescape).join(' · ') || undefined;
+    events.push({ title: unescape(summary), date: start.date, startTime: start.time, endTime: end?.time, description, uid: uid ?? undefined });
+  }
+  return events;
+}
+
 // ── ICS import preview modal ─────────────────────────────────────────────────
 
 function ICSImportModal({ events, onImport, onClose }: {
@@ -314,6 +341,7 @@ export default function CalendarTab() {
   const [feedError, setFeedError]         = useState('');
   const [feedInput, setFeedInput]         = useState('');
   const icsRef = useRef<HTMLInputElement>(null);
+  const feedSyncedAtRef = useRef<number>(0);
 
   async function fetchEvents() {
     setLoading(true);
@@ -342,28 +370,63 @@ export default function CalendarTab() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
+  // Browser-side ICS sync — fetches from client IP so network-restricted feeds work
+  async function clientSideSync(url: string) {
+    setFeedLoading(true); setFeedError('');
+    try {
+      const fetchUrl = url.replace(/^webcal:\/\//i, 'https://');
+      const resp = await fetch(fetchUrl);
+      if (!resp.ok) throw new Error(`Feed returned ${resp.status}`);
+      const ics = await resp.text();
+      if (!ics.includes('BEGIN:VCALENDAR')) throw new Error('Not a valid ICS feed');
+      const feedEvents = parseFeedICS(ics);
+      const data: { ok: boolean; lastSynced: string | null } =
+        await api.post('/api/calendar/feed/push', { feedUrl: url, events: feedEvents });
+      feedSyncedAtRef.current = Date.now();
+      setFeedLastSynced(data.lastSynced);
+      await fetchEvents();
+    } catch (err: any) {
+      const msg: string = err?.message ?? 'Sync failed';
+      setFeedError(
+        msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('networkerror')
+          ? 'Cannot reach calendar URL — make sure you are on the authorized network'
+          : msg,
+      );
+    } finally { setFeedLoading(false); }
+  }
+
+  // Auto-sync feed from browser: every hour while tab is open, and on tab focus after 55+ min
+  useEffect(() => {
+    if (!feedConnected) return;
+    const url = feedConnected;
+    const HOUR = 60 * 60 * 1000;
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') clientSideSync(url);
+    }, HOUR);
+    function onFeedVisible() {
+      if (document.visibilityState === 'visible' && Date.now() - feedSyncedAtRef.current > 55 * 60 * 1000)
+        clientSideSync(url);
+    }
+    document.addEventListener('visibilitychange', onFeedVisible);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onFeedVisible); };
+  }, [feedConnected]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function connectFeed() {
     if (!feedInput.trim()) return;
     setFeedLoading(true); setFeedError('');
     try {
-      const data: { ok: boolean; lastSynced: string | null } = await api.put('/api/calendar/feed', { url: feedInput.trim() });
+      await api.put('/api/calendar/feed', { url: feedInput.trim() });
       setFeedConnected(feedInput.trim());
-      setFeedLastSynced(data.lastSynced);
-      await fetchEvents();
     } catch (err: any) {
       setFeedError(err?.message ?? 'Failed to connect feed');
-    } finally { setFeedLoading(false); }
+      setFeedLoading(false);
+      return;
+    }
+    await clientSideSync(feedInput.trim());
   }
 
   async function syncFeedNow() {
-    setFeedLoading(true); setFeedError('');
-    try {
-      const data: { ok: boolean; lastSynced: string | null } = await api.post('/api/calendar/feed/sync', {});
-      setFeedLastSynced(data.lastSynced);
-      await fetchEvents();
-    } catch (err: any) {
-      setFeedError(err?.message ?? 'Sync failed');
-    } finally { setFeedLoading(false); }
+    if (feedConnected) await clientSideSync(feedConnected);
   }
 
   async function disconnectFeed() {

@@ -118,6 +118,49 @@ router.post('/feed/sync', async (req: AuthRequest, res) => {
   }
 });
 
+// POST /api/calendar/feed/push — browser fetched the ICS and sends parsed events
+router.post('/feed/push', async (req: AuthRequest, res) => {
+  try {
+    const { feedUrl, events } = req.body as {
+      feedUrl: string;
+      events: Array<{ title: string; date: string; startTime?: string; endTime?: string; description?: string; uid?: string }>;
+    };
+    if (!feedUrl) return res.status(400).json({ error: 'feedUrl required' }) as any;
+
+    const uids: string[] = [];
+    for (const ev of events) {
+      if (ev.uid) {
+        uids.push(ev.uid);
+        await pool.query(
+          `INSERT INTO calendar_events (user_id, title, date, start_time, end_time, description, ics_uid, ics_feed_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (user_id, ics_uid) WHERE ics_uid IS NOT NULL
+           DO UPDATE SET title=$2, date=$3, start_time=$4, end_time=$5, description=$6, updated_at=now()`,
+          [req.userId, ev.title, ev.date, ev.startTime ?? null, ev.endTime ?? null, ev.description ?? null, ev.uid, feedUrl],
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO calendar_events (user_id, title, date, start_time, end_time, description, ics_feed_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [req.userId, ev.title, ev.date, ev.startTime ?? null, ev.endTime ?? null, ev.description ?? null, feedUrl],
+        );
+      }
+    }
+    if (uids.length > 0) {
+      await pool.query(
+        `DELETE FROM calendar_events WHERE user_id=$1 AND ics_feed_url=$2 AND ics_uid IS NOT NULL AND NOT (ics_uid = ANY($3))`,
+        [req.userId, feedUrl, uids],
+      );
+    }
+    await pool.query(`UPDATE users SET ics_last_synced_at=now() WHERE id=$1`, [req.userId]);
+    const { rows } = await pool.query(`SELECT ics_last_synced_at AS last_synced FROM users WHERE id=$1`, [req.userId]);
+    res.json({ ok: true, lastSynced: rows[0]?.last_synced ?? null });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // PUT /api/calendar/:id
 router.put('/:id', async (req: AuthRequest, res) => {
   try {
