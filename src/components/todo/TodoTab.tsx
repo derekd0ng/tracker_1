@@ -29,6 +29,7 @@ export default function TodoTab() {
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
   const [dueInput, setDueInput] = useState('');
+  const [reminderInput, setReminderInput] = useState('');
   const [showDone, setShowDone] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -80,10 +81,12 @@ export default function TodoTab() {
       done: false,
       createdAt: new Date().toISOString(),
       dueDate: dueInput || undefined,
+      reminderTime: reminderInput || undefined,
     };
     setTodos(prev => [optimistic, ...prev]);
     setInput('');
     setDueInput('');
+    setReminderInput('');
     inputRef.current?.focus();
     try {
       const saved = await api.post<TodoItem>('/api/todos', {
@@ -91,6 +94,7 @@ export default function TodoTab() {
         title: optimistic.title,
         done: false,
         dueDate: optimistic.dueDate ?? null,
+        reminderTime: optimistic.reminderTime ?? null,
         createdAt: optimistic.createdAt,
       });
       setTodos(prev => prev.map(t => t.id === optimistic.id ? saved : t));
@@ -109,6 +113,17 @@ export default function TodoTab() {
     } catch (err) {
       console.error('toggle todo:', err);
       setTodos(prev => prev.map(t => t.id === id ? { ...t, done: item.done } : t));
+    }
+  }
+
+  async function patch(id: string, update: Partial<TodoItem>) {
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, ...update } : t));
+    try {
+      const saved = await api.patch<TodoItem>(`/api/todos/${id}`, update);
+      setTodos(prev => prev.map(t => t.id === id ? saved : t));
+    } catch (err) {
+      console.error('patch todo:', err);
+      load();
     }
   }
 
@@ -194,6 +209,20 @@ export default function TodoTab() {
           onFocus={e => (e.currentTarget.style.borderColor = ACCENT)}
           onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
         />
+        <input
+          type="time"
+          value={reminderInput}
+          onChange={e => setReminderInput(e.target.value)}
+          title="Reminder time"
+          style={{
+            background: 'var(--surface-alt)', border: '1px solid var(--border)',
+            borderRadius: 4, padding: '9px 10px', color: 'var(--text-secondary)',
+            fontSize: '0.8125rem', fontFamily: 'inherit', outline: 'none',
+            colorScheme: 'dark',
+          }}
+          onFocus={e => (e.currentTarget.style.borderColor = ACCENT)}
+          onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+        />
         <button
           onClick={addTodo}
           style={{
@@ -230,7 +259,7 @@ export default function TodoTab() {
               </div>
               <div>
                 {pending.map((t, i) => (
-                  <TodoRow key={t.id} item={t} onToggle={toggle} onRemove={remove} isLast={i === pending.length - 1} />
+                  <TodoRow key={t.id} item={t} onToggle={toggle} onRemove={remove} onPatch={patch} isLast={i === pending.length - 1} />
                 ))}
               </div>
             </div>
@@ -252,7 +281,7 @@ export default function TodoTab() {
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', transform: showDone ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>›</span>
               </button>
               {showDone && done.map((t, i) => (
-                <TodoRow key={t.id} item={t} onToggle={toggle} onRemove={remove} isLast={i === done.length - 1} />
+                <TodoRow key={t.id} item={t} onToggle={toggle} onRemove={remove} onPatch={patch} isLast={i === done.length - 1} />
               ))}
             </div>
           )}
@@ -262,11 +291,23 @@ export default function TodoTab() {
   );
 }
 
-function TodoRow({ item, onToggle, onRemove, isLast }: {
+function TodoRow({ item, onToggle, onRemove, onPatch, isLast }: {
   item: TodoItem; onToggle: (id: string) => void;
-  onRemove: (id: string) => void; isLast: boolean;
+  onRemove: (id: string) => void;
+  onPatch: (id: string, patch: Partial<TodoItem>) => void;
+  isLast: boolean;
 }) {
   const overdue = isOverdue(item);
+  const [editingReminder, setEditingReminder] = useState(false);
+  const [reminderDraft, setReminderDraft] = useState(item.reminderTime ?? '');
+
+  function commitReminder() {
+    setEditingReminder(false);
+    const val = reminderDraft || undefined;
+    if (val === item.reminderTime) return;
+    onPatch(item.id, { reminderTime: val ?? null as any });
+  }
+
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
@@ -301,6 +342,52 @@ function TodoRow({ item, onToggle, onRemove, isLast }: {
         }}>
           {overdue ? '⚠ ' : ''}{formatDue(item.dueDate)}
         </span>
+      )}
+      {/* Reminder time — click to edit, × to clear */}
+      {!item.done && (
+        editingReminder ? (
+          <input
+            type="time"
+            value={reminderDraft}
+            autoFocus
+            onChange={e => setReminderDraft(e.target.value)}
+            onBlur={commitReminder}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') commitReminder(); }}
+            style={{
+              background: 'var(--surface-alt)', border: `1px solid ${ACCENT}`,
+              borderRadius: 4, padding: '2px 6px', color: 'var(--text)',
+              fontSize: '0.75rem', fontFamily: 'inherit', outline: 'none',
+              colorScheme: 'dark', width: 90, flexShrink: 0,
+            }}
+          />
+        ) : item.reminderTime ? (
+          <span
+            onClick={() => { setReminderDraft(item.reminderTime ?? ''); setEditingReminder(true); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: '0.7rem', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace",
+              padding: '2px 7px', borderRadius: 4, cursor: 'pointer', flexShrink: 0,
+              color: ACCENT, background: 'rgba(129,140,248,0.08)', border: `1px solid rgba(129,140,248,0.25)`,
+            }}
+            title="Click to edit reminder time"
+          >
+            ⏰ {item.reminderTime}
+            <span
+              onClick={e => { e.stopPropagation(); onPatch(item.id, { reminderTime: null as any }); }}
+              style={{ marginLeft: 2, opacity: 0.6, lineHeight: 1 }}
+              title="Remove reminder"
+            >×</span>
+          </span>
+        ) : (
+          <span
+            onClick={() => { setReminderDraft(''); setEditingReminder(true); }}
+            style={{
+              fontSize: '0.65rem', color: 'var(--text-muted)', cursor: 'pointer',
+              padding: '2px 6px', borderRadius: 4, flexShrink: 0, opacity: 0.4,
+            }}
+            title="Set reminder time"
+          >⏰</span>
+        )
       )}
       <button
         onClick={() => onRemove(item.id)}

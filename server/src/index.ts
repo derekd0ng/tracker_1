@@ -15,6 +15,7 @@ import calendarRouter   from './routes/calendar';
 import telegramRouter, { registerBotCommands } from './routes/telegram';
 import { startMedicationReminders } from './jobs/medicationReminders';
 import { startCalendarFeedSync }    from './jobs/calendarFeedSync';
+import { startTodoReminders }       from './jobs/todoReminders';
 
 const app = express();
 
@@ -60,5 +61,6 @@ app.listen(PORT, async () => {
   await ensureCalendarTable().catch(err => console.error('calendar table init:', err));
   startMedicationReminders();
   startCalendarFeedSync();
+  startTodoReminders();
   registerBotCommands();
 });

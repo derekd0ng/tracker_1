@@ -63,13 +63,15 @@ export async function ensureDiaryTable() {
 export async function ensureTodosTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS todos (
-      id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      title       TEXT        NOT NULL,
-      done        BOOLEAN     NOT NULL DEFAULT false,
-      due_date    DATE,
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+      id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id       UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title         TEXT        NOT NULL,
+      done          BOOLEAN     NOT NULL DEFAULT false,
+      due_date      DATE,
+      reminder_time TIME,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
+  await pool.query(`ALTER TABLE todos ADD COLUMN IF NOT EXISTS reminder_time TIME`);
 }

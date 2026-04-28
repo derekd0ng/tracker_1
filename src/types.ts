@@ -86,6 +86,7 @@ export interface TodoItem {
   done: boolean;
   createdAt: string;
   dueDate?: string;
+  reminderTime?: string;
 }
 
 export type HabitType = 'boolean' | 'numeric';

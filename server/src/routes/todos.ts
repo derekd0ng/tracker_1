@@ -7,11 +7,12 @@ router.use(requireAuth);
 
 function rowToTodo(r: any) {
   return {
-    id:        r.id,
-    title:     r.title,
-    done:      r.done,
-    dueDate:   r.due_date ?? undefined,
-    createdAt: r.created_at,
+    id:           r.id,
+    title:        r.title,
+    done:         r.done,
+    dueDate:      r.due_date      ?? undefined,
+    reminderTime: r.reminder_time ?? undefined,
+    createdAt:    r.created_at,
   };
 }
 
@@ -19,7 +20,9 @@ function rowToTodo(r: any) {
 router.get('/', async (req: AuthRequest, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, title, done, created_at, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date
+      `SELECT id, title, done, created_at,
+              TO_CHAR(due_date,'YYYY-MM-DD') AS due_date,
+              TO_CHAR(reminder_time,'HH24:MI') AS reminder_time
        FROM todos WHERE user_id = $1 ORDER BY created_at DESC`,
       [req.userId],
     );
@@ -33,14 +36,14 @@ router.get('/', async (req: AuthRequest, res) => {
 // ── POST /api/todos ───────────────────────────────────────────────────────────
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const { id, title, done = false, dueDate, createdAt } = req.body;
+    const { id, title, done = false, dueDate, reminderTime, createdAt } = req.body;
     if (!title) return res.status(400).json({ error: 'title required' }) as any;
     const { rows } = await pool.query(
-      `INSERT INTO todos (id, user_id, title, done, due_date, created_at)
-       VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, COALESCE($6, now()))
-       ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, done = EXCLUDED.done, due_date = EXCLUDED.due_date, updated_at = now()
-       RETURNING id, title, done, created_at, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date`,
-      [id ?? null, req.userId, title, done, dueDate ?? null, createdAt ?? null],
+      `INSERT INTO todos (id, user_id, title, done, due_date, reminder_time, created_at)
+       VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, COALESCE($7, now()))
+       ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, done = EXCLUDED.done, due_date = EXCLUDED.due_date, reminder_time = EXCLUDED.reminder_time, updated_at = now()
+       RETURNING id, title, done, created_at, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date, TO_CHAR(reminder_time,'HH24:MI') AS reminder_time`,
+      [id ?? null, req.userId, title, done, dueDate ?? null, reminderTime ?? null, createdAt ?? null],
     );
     res.json(rowToTodo(rows[0]));
   } catch (err) {
@@ -55,14 +58,15 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     const fields: string[] = [];
     const vals: any[]      = [];
     let idx = 1;
-    if (req.body.done     !== undefined) { fields.push(`done = $${idx++}`);     vals.push(req.body.done); }
-    if (req.body.title    !== undefined) { fields.push(`title = $${idx++}`);    vals.push(req.body.title); }
-    if (req.body.dueDate  !== undefined) { fields.push(`due_date = $${idx++}`); vals.push(req.body.dueDate ?? null); }
+    if (req.body.done         !== undefined) { fields.push(`done = $${idx++}`);          vals.push(req.body.done); }
+    if (req.body.title        !== undefined) { fields.push(`title = $${idx++}`);         vals.push(req.body.title); }
+    if (req.body.dueDate      !== undefined) { fields.push(`due_date = $${idx++}`);      vals.push(req.body.dueDate ?? null); }
+    if (req.body.reminderTime !== undefined) { fields.push(`reminder_time = $${idx++}`); vals.push(req.body.reminderTime ?? null); }
     if (fields.length === 0) return res.status(400).json({ error: 'nothing to update' }) as any;
     fields.push(`updated_at = now()`);
     vals.push(req.params.id, req.userId);
     const { rows } = await pool.query(
-      `UPDATE todos SET ${fields.join(', ')} WHERE id = $${idx} AND user_id = $${idx + 1} RETURNING id, title, done, created_at, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date`,
+      `UPDATE todos SET ${fields.join(', ')} WHERE id = $${idx} AND user_id = $${idx + 1} RETURNING id, title, done, created_at, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date, TO_CHAR(reminder_time,'HH24:MI') AS reminder_time`,
       vals,
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' }) as any;
