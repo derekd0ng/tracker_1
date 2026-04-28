@@ -298,8 +298,26 @@ function TodoRow({ item, onToggle, onRemove, onPatch, isLast }: {
   isLast: boolean;
 }) {
   const overdue = isOverdue(item);
+  const [editingTitle, setEditingTitle]       = useState(false);
+  const [titleDraft, setTitleDraft]           = useState(item.title);
+  const [editingDue, setEditingDue]           = useState(false);
+  const [dueDraft, setDueDraft]               = useState(item.dueDate ?? '');
   const [editingReminder, setEditingReminder] = useState(false);
-  const [reminderDraft, setReminderDraft] = useState(item.reminderTime ?? '');
+  const [reminderDraft, setReminderDraft]     = useState(item.reminderTime ?? '');
+
+  function commitTitle() {
+    setEditingTitle(false);
+    const val = titleDraft.trim();
+    if (!val || val === item.title) { setTitleDraft(item.title); return; }
+    onPatch(item.id, { title: val });
+  }
+
+  function commitDue() {
+    setEditingDue(false);
+    const val = dueDraft || undefined;
+    if (val === item.dueDate) return;
+    onPatch(item.id, { dueDate: val ?? null as any });
+  }
 
   function commitReminder() {
     setEditingReminder(false);
@@ -307,6 +325,13 @@ function TodoRow({ item, onToggle, onRemove, onPatch, isLast }: {
     if (val === item.reminderTime) return;
     onPatch(item.id, { reminderTime: val ?? null as any });
   }
+
+  const inp: React.CSSProperties = {
+    background: 'var(--surface-alt)', border: `1px solid ${ACCENT}`,
+    borderRadius: 4, padding: '2px 6px', color: 'var(--text)',
+    fontSize: '0.875rem', fontFamily: 'inherit', outline: 'none',
+    colorScheme: 'dark', flexShrink: 0,
+  };
 
   return (
     <div style={{
@@ -324,25 +349,64 @@ function TodoRow({ item, onToggle, onRemove, onPatch, isLast }: {
           ? <IconCheckSquare size={20} color={ACCENT} />
           : <IconEmptySquare size={20} color="var(--border-hi)" />}
       </span>
-      <span style={{
-        flex: 1, fontSize: '0.9375rem', color: item.done ? 'var(--text-muted)' : 'var(--text)',
-        textDecoration: item.done ? 'line-through' : 'none',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>
-        {item.title}
-      </span>
-      {item.dueDate && (
-        <span style={{
-          fontSize: '0.7rem', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace",
-          padding: '2px 7px', borderRadius: 4,
-          color: overdue ? 'var(--danger)' : 'var(--text-muted)',
-          background: overdue ? 'rgba(248,113,113,0.1)' : 'var(--surface-alt)',
-          border: overdue ? '1px solid rgba(248,113,113,0.25)' : '1px solid var(--border)',
-          flexShrink: 0,
-        }}>
-          {overdue ? '⚠ ' : ''}{formatDue(item.dueDate)}
+
+      {/* Title — click to edit inline */}
+      {!item.done && editingTitle ? (
+        <input
+          autoFocus
+          value={titleDraft}
+          onChange={e => setTitleDraft(e.target.value)}
+          onBlur={commitTitle}
+          onKeyDown={e => { if (e.key === 'Enter') commitTitle(); if (e.key === 'Escape') { setTitleDraft(item.title); setEditingTitle(false); } }}
+          style={{ ...inp, flex: 1, minWidth: 0, fontSize: '0.9375rem' }}
+        />
+      ) : (
+        <span
+          onClick={() => { if (!item.done) { setTitleDraft(item.title); setEditingTitle(true); } }}
+          style={{
+            flex: 1, fontSize: '0.9375rem', color: item.done ? 'var(--text-muted)' : 'var(--text)',
+            textDecoration: item.done ? 'line-through' : 'none',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            cursor: item.done ? 'default' : 'text',
+          }}
+        >
+          {item.title}
         </span>
       )}
+
+      {/* Due date — click to edit inline */}
+      {!item.done && editingDue ? (
+        <input
+          type="date"
+          autoFocus
+          value={dueDraft}
+          onChange={e => setDueDraft(e.target.value)}
+          onBlur={commitDue}
+          onKeyDown={e => { if (e.key === 'Enter') commitDue(); if (e.key === 'Escape') { setDueDraft(item.dueDate ?? ''); setEditingDue(false); } }}
+          style={{ ...inp, width: 130 }}
+        />
+      ) : item.dueDate ? (
+        <span
+          onClick={() => { if (!item.done) { setDueDraft(item.dueDate ?? ''); setEditingDue(true); } }}
+          style={{
+            fontSize: '0.7rem', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace",
+            padding: '2px 7px', borderRadius: 4, cursor: item.done ? 'default' : 'pointer', flexShrink: 0,
+            color: overdue ? 'var(--danger)' : 'var(--text-muted)',
+            background: overdue ? 'rgba(248,113,113,0.1)' : 'var(--surface-alt)',
+            border: overdue ? '1px solid rgba(248,113,113,0.25)' : '1px solid var(--border)',
+          }}
+          title="Click to edit due date"
+        >
+          {overdue ? '⚠ ' : ''}{formatDue(item.dueDate)}
+          <span onClick={e => { e.stopPropagation(); onPatch(item.id, { dueDate: null as any }); }} style={{ marginLeft: 4, opacity: 0.5 }} title="Remove due date">×</span>
+        </span>
+      ) : !item.done ? (
+        <span
+          onClick={() => { setDueDraft(''); setEditingDue(true); }}
+          style={{ fontSize: '0.65rem', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, flexShrink: 0, opacity: 0.4 }}
+          title="Set due date"
+        >📅</span>
+      ) : null}
       {/* Reminder time — click to edit, × to clear */}
       {!item.done && (
         editingReminder ? (
