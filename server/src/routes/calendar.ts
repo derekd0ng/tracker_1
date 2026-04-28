@@ -72,18 +72,21 @@ router.get('/feed', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
 });
 
-// PUT /api/calendar/feed — save URL and trigger immediate sync
+// PUT /api/calendar/feed — save URL, then attempt immediate sync (non-blocking)
 router.put('/feed', async (req: AuthRequest, res) => {
   try {
     const { url } = req.body as { url?: string };
     if (!url) return res.status(400).json({ error: 'url required' }) as any;
     await pool.query(`UPDATE users SET ics_feed_url=$1 WHERE id=$2`, [url, req.userId]);
-    await syncUserFeed(req.userId!, url);
-    const { rows } = await pool.query(`SELECT ics_last_synced_at AS last_synced FROM users WHERE id=$1`, [req.userId]);
-    res.json({ ok: true, lastSynced: rows[0]?.last_synced ?? null });
+    // Respond immediately so "Connect" succeeds even if first sync is slow/fails
+    res.json({ ok: true, lastSynced: null });
+    // Background sync — errors are logged but don't affect the response
+    syncUserFeed(req.userId!, url).catch(err =>
+      console.error('[feed] initial sync failed for user', req.userId, err?.message),
+    );
   } catch (err: any) {
     console.error(err);
-    res.status(400).json({ error: err?.message ?? 'Sync failed' });
+    res.status(400).json({ error: err?.message ?? 'Failed to save feed URL' });
   }
 });
 

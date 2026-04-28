@@ -7,7 +7,14 @@ const TZ = process.env.REMINDER_TIMEZONE ?? 'UTC';
 export async function syncUserFeed(userId: string, feedUrl: string): Promise<void> {
   const url = feedUrl.replace(/^webcal:\/\//i, 'https://').replace(/^http:\/\//i, 'https://');
 
-  const resp = await fetch(url, { headers: { 'User-Agent': 'OctarineCalendar/1.0' } });
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), 15_000);
+  let resp: Response;
+  try {
+    resp = await fetch(url, { headers: { 'User-Agent': 'OctarineCalendar/1.0' }, signal: abort.signal });
+  } finally {
+    clearTimeout(timer);
+  }
   if (!resp.ok) throw new Error(`Feed returned ${resp.status}`);
   const ics = await resp.text();
   if (!ics.includes('BEGIN:VCALENDAR')) throw new Error('Not a valid ICS feed');
