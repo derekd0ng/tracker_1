@@ -306,6 +306,13 @@ export default function CalendarTab() {
   const [icsUrl, setIcsUrl]             = useState('');
   const [icsUrlLoading, setIcsUrlLoading] = useState(false);
   const [icsUrlError, setIcsUrlError]   = useState('');
+  const [showFeedPanel, setShowFeedPanel] = useState(false);
+  const [feedUrl, setFeedUrl]             = useState('');
+  const [feedConnected, setFeedConnected] = useState<string | null>(null);
+  const [feedLastSynced, setFeedLastSynced] = useState<string | null>(null);
+  const [feedLoading, setFeedLoading]     = useState(false);
+  const [feedError, setFeedError]         = useState('');
+  const [feedInput, setFeedInput]         = useState('');
   const icsRef = useRef<HTMLInputElement>(null);
 
   async function fetchEvents() {
@@ -317,13 +324,68 @@ export default function CalendarTab() {
     finally { setLoading(false); }
   }
 
+  async function fetchFeed() {
+    try {
+      const data: { url: string | null; lastSynced: string | null } = await api.get('/api/calendar/feed');
+      setFeedConnected(data.url);
+      setFeedLastSynced(data.lastSynced);
+      if (data.url) setFeedInput(data.url);
+    } catch {}
+  }
+
   // Fetch on mount and whenever the page regains visibility
   useEffect(() => {
     fetchEvents();
+    fetchFeed();
     function onVisible() { if (document.visibilityState === 'visible') fetchEvents(); }
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
+
+  async function connectFeed() {
+    if (!feedInput.trim()) return;
+    setFeedLoading(true); setFeedError('');
+    try {
+      const data: { ok: boolean; lastSynced: string | null } = await api.put('/api/calendar/feed', { url: feedInput.trim() });
+      setFeedConnected(feedInput.trim());
+      setFeedLastSynced(data.lastSynced);
+      await fetchEvents();
+    } catch (err: any) {
+      setFeedError(err?.message ?? 'Failed to connect feed');
+    } finally { setFeedLoading(false); }
+  }
+
+  async function syncFeedNow() {
+    setFeedLoading(true); setFeedError('');
+    try {
+      const data: { ok: boolean; lastSynced: string | null } = await api.post('/api/calendar/feed/sync', {});
+      setFeedLastSynced(data.lastSynced);
+      await fetchEvents();
+    } catch (err: any) {
+      setFeedError(err?.message ?? 'Sync failed');
+    } finally { setFeedLoading(false); }
+  }
+
+  async function disconnectFeed() {
+    setFeedLoading(true); setFeedError('');
+    try {
+      await api.delete('/api/calendar/feed');
+      setFeedConnected(null); setFeedLastSynced(null); setFeedInput('');
+      await fetchEvents();
+    } catch (err: any) {
+      setFeedError(err?.message ?? 'Failed to disconnect');
+    } finally { setFeedLoading(false); }
+  }
+
+  function fmtSynced(iso: string | null) {
+    if (!iso) return 'never';
+    const d = new Date(iso);
+    const diff = Math.floor((Date.now() - d.getTime()) / 60000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff/60)}h ago`;
+    return `${Math.floor(diff/1440)}d ago`;
+  }
 
   function prevMonth() {
     if (month === 0) { if (year <= MIN_YEAR) return; setYear(y => y-1); setMonth(11); }
@@ -446,6 +508,9 @@ export default function CalendarTab() {
           <button onClick={() => { setShowUrlInput(v => !v); setIcsUrlError(''); }} title="Import from ICS URL"
             style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:700, letterSpacing:'0.06em', padding:'3px 8px', background: showUrlInput ? ACCENT : 'transparent', border:`1px solid ${showUrlInput ? ACCENT : '#2a2a2a'}`, borderRadius:3, color: showUrlInput ? '#080808' : '#555', cursor:'pointer' }}
           >↑ URL</button>
+          <button onClick={() => { setShowFeedPanel(v => !v); setFeedError(''); }} title="Auto-sync calendar feed"
+            style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:700, letterSpacing:'0.06em', padding:'3px 8px', background: showFeedPanel ? ACCENT : 'transparent', border:`1px solid ${feedConnected ? ACCENT : showFeedPanel ? ACCENT : '#2a2a2a'}`, borderRadius:3, color: showFeedPanel ? '#080808' : feedConnected ? ACCENT : '#555', cursor:'pointer' }}
+          >{feedConnected ? '↺ Feed ●' : '↺ Feed'}</button>
           <input ref={icsRef} type="file" accept=".ics,text/calendar" style={{ display:'none' }} onChange={handleICSFile} />
         </div>
 
@@ -478,6 +543,45 @@ export default function CalendarTab() {
             {icsUrlLoading ? 'Fetching…' : 'Fetch'}
           </button>
           {icsUrlError && <span style={{ width:'100%', fontSize:11, color:'#f87171', fontFamily:"'JetBrains Mono',monospace" }}>✕ {icsUrlError}</span>}
+        </div>
+      )}
+
+      {/* ── Feed settings panel ── */}
+      {showFeedPanel && (
+        <div className="card" style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.1em', color:'#555', fontFamily:"'JetBrains Mono',monospace", textTransform:'uppercase' }}>
+            Auto-sync feed {feedConnected && <span style={{ color: ACCENT }}>● connected · synced {fmtSynced(feedLastSynced)}</span>}
+          </div>
+          <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+            <input
+              value={feedInput}
+              onChange={e => setFeedInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !feedConnected && connectFeed()}
+              placeholder="Paste webcal:// or https:// ICS link…"
+              disabled={!!feedConnected || feedLoading}
+              style={{ flex:1, minWidth:200, padding:'8px 11px', background:'#0d0d0d', border:`1px solid #2a2a2a`, borderRadius:4, color: feedConnected ? '#555' : '#e2e2e2', fontSize:13, fontFamily:'Space Grotesk,sans-serif', outline:'none', opacity: feedConnected ? 0.6 : 1 }}
+              onFocus={e => (e.target.style.borderColor = ACCENT)}
+              onBlur={e => (e.target.style.borderColor = '#2a2a2a')}
+            />
+            {feedConnected ? (
+              <>
+                <button onClick={syncFeedNow} disabled={feedLoading} style={{ padding:'8px 14px', background:'transparent', border:`1px solid ${ACCENT}`, borderRadius:4, color:ACCENT, fontSize:12, fontWeight:700, fontFamily:"'JetBrains Mono',monospace", cursor: feedLoading ? 'default' : 'pointer', opacity: feedLoading ? 0.6 : 1 }}>
+                  {feedLoading ? 'Syncing…' : 'Sync now'}
+                </button>
+                <button onClick={disconnectFeed} disabled={feedLoading} style={{ padding:'8px 14px', background:'transparent', border:'1px solid #2a2a2a', borderRadius:4, color:'#f87171', fontSize:12, fontWeight:700, fontFamily:"'JetBrains Mono',monospace", cursor: feedLoading ? 'default' : 'pointer' }}>
+                  Disconnect
+                </button>
+              </>
+            ) : (
+              <button onClick={connectFeed} disabled={feedLoading || !feedInput.trim()} style={{ padding:'8px 14px', background:ACCENT, border:'none', borderRadius:4, color:'#080808', fontSize:12, fontWeight:700, fontFamily:"'JetBrains Mono',monospace", cursor: feedLoading || !feedInput.trim() ? 'default' : 'pointer', opacity: feedLoading || !feedInput.trim() ? 0.6 : 1 }}>
+                {feedLoading ? 'Connecting…' : 'Connect'}
+              </button>
+            )}
+          </div>
+          {feedError && <span style={{ fontSize:11, color:'#f87171', fontFamily:"'JetBrains Mono',monospace" }}>✕ {feedError}</span>}
+          <div style={{ fontSize:10, color:'#383838', fontFamily:"'JetBrains Mono',monospace" }}>
+            Feed events sync automatically every day at 06:00. Manually remove individual events from the calendar tab.
+          </div>
         </div>
       )}
 

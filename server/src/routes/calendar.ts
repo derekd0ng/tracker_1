@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { syncUserFeed } from '../jobs/calendarFeedSync';
 
 const router = Router();
 router.use(requireAuth);
@@ -76,6 +77,61 @@ router.put('/:id', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/calendar/feed
+router.get('/feed', async (req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT ics_feed_url AS url, ics_last_synced_at AS last_synced FROM users WHERE id=$1`,
+      [req.userId],
+    );
+    const row = rows[0] ?? {};
+    res.json({ url: row.url ?? null, lastSynced: row.last_synced ?? null });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
+});
+
+// PUT /api/calendar/feed — save URL and trigger immediate sync
+router.put('/feed', async (req: AuthRequest, res) => {
+  try {
+    const { url } = req.body as { url?: string };
+    if (!url) return res.status(400).json({ error: 'url required' }) as any;
+    await pool.query(`UPDATE users SET ics_feed_url=$1 WHERE id=$2`, [url, req.userId]);
+    await syncUserFeed(req.userId!, url);
+    const { rows } = await pool.query(`SELECT ics_last_synced_at AS last_synced FROM users WHERE id=$1`, [req.userId]);
+    res.json({ ok: true, lastSynced: rows[0]?.last_synced ?? null });
+  } catch (err: any) {
+    console.error(err);
+    res.status(400).json({ error: err?.message ?? 'Sync failed' });
+  }
+});
+
+// DELETE /api/calendar/feed — disconnect and remove all feed events
+router.delete('/feed', async (req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(`SELECT ics_feed_url FROM users WHERE id=$1`, [req.userId]);
+    const feedUrl = rows[0]?.ics_feed_url;
+    if (feedUrl) {
+      await pool.query(`DELETE FROM calendar_events WHERE user_id=$1 AND ics_feed_url=$2`, [req.userId, feedUrl]);
+    }
+    await pool.query(`UPDATE users SET ics_feed_url=NULL, ics_last_synced_at=NULL WHERE id=$1`, [req.userId]);
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
+});
+
+// POST /api/calendar/feed/sync — manual sync now
+router.post('/feed/sync', async (req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(`SELECT ics_feed_url FROM users WHERE id=$1`, [req.userId]);
+    const feedUrl = rows[0]?.ics_feed_url;
+    if (!feedUrl) return res.status(400).json({ error: 'No feed configured' }) as any;
+    await syncUserFeed(req.userId!, feedUrl);
+    const { rows: r2 } = await pool.query(`SELECT ics_last_synced_at AS last_synced FROM users WHERE id=$1`, [req.userId]);
+    res.json({ ok: true, lastSynced: r2[0]?.last_synced ?? null });
+  } catch (err: any) {
+    console.error(err);
+    res.status(400).json({ error: err?.message ?? 'Sync failed' });
   }
 });
 

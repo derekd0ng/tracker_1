@@ -34,6 +34,16 @@ export async function ensureCalendarTable() {
     CREATE INDEX IF NOT EXISTS idx_calendar_events_user_date
     ON calendar_events (user_id, date)
   `);
+  // ICS feed columns (idempotent)
+  await pool.query(`ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS ics_uid      TEXT`);
+  await pool.query(`ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS ics_feed_url TEXT`);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_events_ics_uid
+    ON calendar_events (user_id, ics_uid)
+    WHERE ics_uid IS NOT NULL
+  `);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ics_feed_url      TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ics_last_synced_at TIMESTAMPTZ`);
 }
 
 export async function ensureDiaryTable() {
