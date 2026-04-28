@@ -60,26 +60,6 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// PUT /api/calendar/:id
-router.put('/:id', async (req: AuthRequest, res) => {
-  try {
-    const { title, date, startTime, endTime, description, color } = req.body;
-    if (!title || !date) return res.status(400).json({ error: 'title and date required' }) as any;
-    const { rows } = await pool.query(
-      `UPDATE calendar_events
-       SET title=$1, date=$2, start_time=$3, end_time=$4, description=$5, color=$6, updated_at=now()
-       WHERE id=$7 AND user_id=$8
-       RETURNING ${SELECT_COLS}`,
-      [title, date, startTime ?? null, endTime ?? null, description ?? null, color ?? null, req.params.id, req.userId],
-    );
-    if (rows.length === 0) return res.status(404).json({ error: 'Not found' }) as any;
-    res.json(rowToEvent(rows[0]));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 // GET /api/calendar/feed
 router.get('/feed', async (req: AuthRequest, res) => {
   try {
@@ -132,6 +112,26 @@ router.post('/feed/sync', async (req: AuthRequest, res) => {
   } catch (err: any) {
     console.error(err);
     res.status(400).json({ error: err?.message ?? 'Sync failed' });
+  }
+});
+
+// PUT /api/calendar/:id
+router.put('/:id', async (req: AuthRequest, res) => {
+  try {
+    const { title, date, startTime, endTime, description, color } = req.body;
+    if (!title || !date) return res.status(400).json({ error: 'title and date required' }) as any;
+    const { rows } = await pool.query(
+      `UPDATE calendar_events
+       SET title=$1, date=$2, start_time=$3, end_time=$4, description=$5, color=$6, updated_at=now()
+       WHERE id=$7 AND user_id=$8
+       RETURNING ${SELECT_COLS}`,
+      [title, date, startTime ?? null, endTime ?? null, description ?? null, color ?? null, req.params.id, req.userId],
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' }) as any;
+    res.json(rowToEvent(rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
