@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { api } from '../../api';
 import type { LabResult } from '../../types';
-import { IconLabs, IconPlus, IconX } from '../Icons';
+import { IconLabs, IconPlus, IconX, IconPencil } from '../Icons';
 import type { LabType } from '../../types';
 
 const ACCENT = '#fbbf24';
@@ -535,6 +535,8 @@ export default function LabsTab() {
   const [mergeGroups, setMergeGroups] = useState<MergeGroup[] | null>(null);
   const [merging, setMerging]         = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [editingId, setEditingId]       = useState<string | null>(null);
+  const [editDraft, setEditDraft]       = useState<ParsedRow | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -669,6 +671,33 @@ Rules:
   async function handleDelete(id: string) {
     await api.delete(`/api/labs/${id}`);
     setResults(prev => prev.filter(r => r.id !== id));
+  }
+
+  function handleEditStart(r: LabResult) {
+    setEditingId(r.id);
+    setEditDraft({
+      metricName: r.metricName,
+      date:       r.date,
+      value:      r.value    !== null ? String(r.value)    : '',
+      unit:       r.unit     ?? '',
+      refLow:     r.refLow   !== null ? String(r.refLow)   : '',
+      refHigh:    r.refHigh  !== null ? String(r.refHigh)  : '',
+      refText:    r.refText  ?? '',
+      labType:    r.labType,
+    });
+  }
+
+  function patchDraft(field: keyof ParsedRow, val: string) {
+    setEditDraft(d => d ? { ...d, [field]: val } : d);
+  }
+
+  async function handleEditSave(id: string) {
+    if (!editDraft) return;
+    const payload = rowToPayload(editDraft);
+    const updated = await api.patch<LabResult>(`/api/labs/${id}`, payload);
+    setResults(prev => prev.map(r => r.id === id ? updated : r));
+    setEditingId(null);
+    setEditDraft(null);
   }
 
   // ── Merge similar metrics ─────────────────────────────────────────────────────
@@ -872,57 +901,75 @@ ${JSON.stringify(uniquePairs)}`,
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['Metric', 'Type', 'Date', 'Result', 'Reference', 'Status', ''].map(h => (
+                  {['Metric', 'Type', 'Date', 'Result', 'Unit', 'Reference', 'Status', ''].map(h => (
                     <th key={h} style={th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {results.map(r => {
-                  const status = getStatus(r.value, r.refLow, r.refHigh);
+                  const editing = editingId === r.id && editDraft;
+                  const status  = getStatus(r.value, r.refLow, r.refHigh);
+                  const cellIn  = (field: keyof ParsedRow, w = 90) => (
+                    <input
+                      value={editDraft?.[field] ?? ''}
+                      onChange={e => patchDraft(field, e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleEditSave(r.id); if (e.key === 'Escape') { setEditingId(null); setEditDraft(null); } }}
+                      style={{ ...inputStyle, minWidth: w }}
+                    />
+                  );
                   return (
-                    <tr key={r.id}>
+                    <tr key={r.id} style={{ background: editing ? '#141414' : undefined }}>
                       <td style={td}>
-                        <span style={{ fontWeight: 600, color: '#e2e2e2' }}>{r.metricName}</span>
+                        {editing
+                          ? cellIn('metricName', 140)
+                          : <span style={{ fontWeight: 600, color: '#e2e2e2' }}>{r.metricName}</span>}
                       </td>
                       <td style={td}>
-                        <TypeBadge type={r.labType} />
+                        {editing ? (
+                          <select
+                            value={editDraft.labType}
+                            onChange={e => patchDraft('labType', e.target.value)}
+                            style={{ ...inputStyle, minWidth: 76, color: TYPE_COLOR[(editDraft.labType as LabType) ?? 'other'] }}
+                          >
+                            {LAB_TYPES.map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+                          </select>
+                        ) : <TypeBadge type={r.labType} />}
                       </td>
-                      <td style={{ ...td, color: '#888', fontVariantNumeric: 'tabular-nums' }}>
-                        {fmtDate(r.date)}
+                      <td style={td}>
+                        {editing ? cellIn('date', 100) : <span style={{ color: '#888' }}>{fmtDate(r.date)}</span>}
                       </td>
                       <td style={{ ...td, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-                        {r.value !== null ? r.value : '—'}
-                        {r.unit && <span style={{ color: '#666', fontWeight: 400, marginLeft: 4 }}>{r.unit}</span>}
-                      </td>
-                      <td style={{ ...td, color: '#777', fontSize: 12 }}>
-                        {fmtRefRange(r)}
+                        {editing ? cellIn('value', 70) : (r.value !== null ? r.value : '—')}
                       </td>
                       <td style={td}>
-                        {status !== 'unknown' && (
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
-                            color: STATUS_COLOR[status],
-                          }}>
-                            <span style={{
-                              width: 6, height: 6, borderRadius: '50%',
-                              background: STATUS_COLOR[status], display: 'inline-block',
-                            }} />
+                        {editing ? cellIn('unit', 70) : (r.unit && <span style={{ color: '#666', fontSize: 12 }}>{r.unit}</span>)}
+                      </td>
+                      <td style={{ ...td, color: '#777', fontSize: 12 }}>
+                        {editing
+                          ? <div style={{ display: 'flex', gap: 4 }}>{cellIn('refLow', 54)}<span style={{ color: '#555', alignSelf: 'center' }}>–</span>{cellIn('refHigh', 54)}</div>
+                          : fmtRefRange(r)}
+                      </td>
+                      <td style={td}>
+                        {!editing && status !== 'unknown' && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: STATUS_COLOR[status] }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[status], display: 'inline-block' }} />
                             {STATUS_LABEL[status]}
                           </span>
                         )}
                       </td>
-                      <td style={{ ...td, paddingRight: 0 }}>
-                        <button
-                          onClick={() => handleDelete(r.id)}
-                          style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '2px 4px' }}
-                          onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-                          onMouseLeave={e => (e.currentTarget.style.color = '#444')}
-                          title="Delete"
-                        >
-                          <IconX size={13} />
-                        </button>
+                      <td style={{ ...td, paddingRight: 0, whiteSpace: 'nowrap' }}>
+                        {editing ? (
+                          <>
+                            <button onClick={() => handleEditSave(r.id)} style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '2px 4px' }} title="Save"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,8 6,11 13,4"/></svg></button>
+                            <button onClick={() => { setEditingId(null); setEditDraft(null); }} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: '2px 4px' }} title="Cancel"><IconX size={13} /></button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => handleEditStart(r)} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '2px 4px' }} onMouseEnter={e => (e.currentTarget.style.color = ACCENT)} onMouseLeave={e => (e.currentTarget.style.color = '#444')} title="Edit"><IconPencil size={13} /></button>
+                            <button onClick={() => handleDelete(r.id)} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '2px 4px' }} onMouseEnter={e => (e.currentTarget.style.color = '#f87171')} onMouseLeave={e => (e.currentTarget.style.color = '#444')} title="Delete"><IconX size={13} /></button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   );
