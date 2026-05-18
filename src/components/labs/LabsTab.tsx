@@ -538,6 +538,12 @@ export default function LabsTab() {
   const [editingId, setEditingId]       = useState<string | null>(null);
   const [editDraft, setEditDraft]       = useState<ParsedRow | null>(null);
   const [tokens, setTokens]             = useState({ input: 0, output: 0 });
+  const [search, setSearch]             = useState('');
+  const [filterTypes, setFilterTypes]   = useState<Set<LabType>>(new Set());
+  const [filterStatuses, setFilterStatuses] = useState<Set<Status>>(new Set());
+  const [dateFrom, setDateFrom]         = useState('');
+  const [dateTo, setDateTo]             = useState('');
+  const [sort, setSort]                 = useState<{ key: 'metricName' | 'date' | 'value' | 'labType'; dir: 'asc' | 'desc' }>({ key: 'date', dir: 'desc' });
   const fileRef = useRef<HTMLInputElement>(null);
 
   function addTokens(usage: any) {
@@ -825,6 +831,44 @@ ${JSON.stringify(uniquePairs)}`,
     setMergeGroups(null);
   }
 
+  // ── Filter + sort ─────────────────────────────────────────────────────────────
+
+  const displayedResults = results
+    .filter(r => {
+      if (search && !r.metricName.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterTypes.size > 0 && !filterTypes.has(r.labType)) return false;
+      if (filterStatuses.size > 0 && !filterStatuses.has(getStatus(r.value, r.refLow, r.refHigh))) return false;
+      if (dateFrom && r.date < dateFrom) return false;
+      if (dateTo   && r.date > dateTo)   return false;
+      return true;
+    })
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sort.key === 'metricName') cmp = a.metricName.localeCompare(b.metricName);
+      else if (sort.key === 'labType') cmp = a.labType.localeCompare(b.labType);
+      else if (sort.key === 'date')   cmp = a.date.localeCompare(b.date);
+      else if (sort.key === 'value')  cmp = (a.value ?? -Infinity) - (b.value ?? -Infinity);
+      return sort.dir === 'asc' ? cmp : -cmp;
+    });
+
+  const hasFilters = search || filterTypes.size > 0 || filterStatuses.size > 0 || dateFrom || dateTo;
+
+  function toggleSort(key: typeof sort.key) {
+    setSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' });
+  }
+
+  function SortIcon({ k }: { k: typeof sort.key }) {
+    if (sort.key !== k) return <span style={{ color: '#333', marginLeft: 3 }}>↕</span>;
+    return <span style={{ color: ACCENT, marginLeft: 3 }}>{sort.dir === 'asc' ? '↑' : '↓'}</span>;
+  }
+
+  function toggleType(t: LabType) {
+    setFilterTypes(s => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
+  }
+  function toggleStatus(s: Status) {
+    setFilterStatuses(prev => { const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n; });
+  }
+
   // ── Group by metric for charts ────────────────────────────────────────────────
 
   const byMetric = results.reduce<Record<string, LabResult[]>>((acc, r) => {
@@ -908,6 +952,53 @@ ${JSON.stringify(uniquePairs)}`,
         </div>
       </div>
 
+      {/* Filter bar */}
+      {results.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 14 }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search metric…"
+            style={{ ...inputStyle, width: 160, padding: '5px 10px', fontSize: 12 }}
+          />
+          <div style={{ display: 'flex', gap: 4 }}>
+            {LAB_TYPES.map(t => (
+              <button key={t} onClick={() => toggleType(t)} style={{
+                padding: '4px 10px', borderRadius: 3, fontSize: 11, fontWeight: 700,
+                cursor: 'pointer', letterSpacing: '0.05em', textTransform: 'uppercase',
+                border: `1px solid ${filterTypes.has(t) ? TYPE_COLOR[t] : TYPE_COLOR[t] + '44'}`,
+                background: filterTypes.has(t) ? TYPE_COLOR[t] + '22' : 'transparent',
+                color: filterTypes.has(t) ? TYPE_COLOR[t] : '#555',
+              }}>{TYPE_LABEL[t]}</button>
+            ))}
+          </div>
+          <div style={{ width: 1, height: 18, background: '#2a2a2a' }} />
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['normal','high','low'] as Status[]).map(s => (
+              <button key={s} onClick={() => toggleStatus(s)} style={{
+                padding: '4px 10px', borderRadius: 3, fontSize: 11, fontWeight: 700,
+                cursor: 'pointer', letterSpacing: '0.05em', textTransform: 'uppercase',
+                border: `1px solid ${filterStatuses.has(s) ? STATUS_COLOR[s] : STATUS_COLOR[s] + '44'}`,
+                background: filterStatuses.has(s) ? STATUS_COLOR[s] + '22' : 'transparent',
+                color: filterStatuses.has(s) ? STATUS_COLOR[s] : '#555',
+              }}>{STATUS_LABEL[s]}</button>
+            ))}
+          </div>
+          <div style={{ width: 1, height: 18, background: '#2a2a2a' }} />
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            style={{ ...inputStyle, width: 130, padding: '5px 8px', fontSize: 12, colorScheme: 'dark' }} />
+          <span style={{ fontSize: 11, color: '#555' }}>–</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            style={{ ...inputStyle, width: 130, padding: '5px 8px', fontSize: 12, colorScheme: 'dark' }} />
+          {hasFilters && (
+            <button onClick={() => { setSearch(''); setFilterTypes(new Set()); setFilterStatuses(new Set()); setDateFrom(''); setDateTo(''); }}
+              style={{ padding: '4px 10px', background: 'transparent', border: '1px solid #2a2a2a', borderRadius: 3, color: '#666', fontSize: 11, cursor: 'pointer' }}>
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Results table */}
       {loading ? (
         <div style={{ color: '#555', fontSize: 13, textAlign: 'center', padding: '48px 0' }}>Loading…</div>
@@ -928,13 +1019,25 @@ ${JSON.stringify(uniquePairs)}`,
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['Metric', 'Type', 'Date', 'Result', 'Unit', 'Reference', 'Status', ''].map(h => (
-                    <th key={h} style={th}>{h}</th>
+                  {([
+                    { label: 'Metric',    k: 'metricName' },
+                    { label: 'Type',      k: 'labType' },
+                    { label: 'Date',      k: 'date' },
+                    { label: 'Result',    k: 'value' },
+                    { label: 'Unit',      k: null },
+                    { label: 'Reference', k: null },
+                    { label: 'Status',    k: null },
+                    { label: '',          k: null },
+                  ] as { label: string; k: typeof sort.key | null }[]).map(({ label, k }) => (
+                    <th key={label || '_actions'} style={{ ...th, cursor: k ? 'pointer' : 'default', userSelect: 'none' }}
+                      onClick={() => k && toggleSort(k)}>
+                      {label}{k && <SortIcon k={k} />}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {results.map(r => {
+                {displayedResults.map(r => {
                   const editing = editingId === r.id && editDraft;
                   const status  = getStatus(r.value, r.refLow, r.refHigh);
                   const cellIn  = (field: keyof ParsedRow, w = 90) => (
