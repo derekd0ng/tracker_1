@@ -5,7 +5,7 @@ import TelegramConnect from './TelegramConnect';
 import { exportData, exportAsXlsx, importData } from '../storage';
 import {
   IconHome, IconDashboard, IconWellbeing, IconMedications,
-  IconHabits, IconTodo, IconDiary, IconCalendar,
+  IconHabits, IconTodo, IconDiary, IconCalendar, IconLabs,
 } from './Icons';
 import { TAB_TO_PATH, pathToTab } from '../routes';
 
@@ -23,6 +23,7 @@ const TAB_ACCENT: Record<string, string> = {
   todo:       '#818cf8',
   diary:      '#e879f9',
   calendar:   '#c084fc',
+  labs:       '#fbbf24',
 };
 
 function ActiveIcon({ id, color }: { id: string; color: string }) {
@@ -36,6 +37,7 @@ function ActiveIcon({ id, color }: { id: string; color: string }) {
     case 'todo':       return <IconTodo {...s} />;
     case 'diary':      return <IconDiary {...s} />;
     case 'calendar':   return <IconCalendar {...s} />;
+    case 'labs':       return <IconLabs {...s} />;
     default:           return <IconHome {...s} />;
   }
 }
@@ -51,7 +53,8 @@ const NAV_TABS: { id: TabId; label: string }[] = [
   { id: 'habits',     label: 'Habits'      },
   { id: 'todo',       label: 'To-dos'      },
   { id: 'diary',      label: 'Diary'       },
-  { id: 'calendar',  label: 'Calendar'    },
+  { id: 'calendar',   label: 'Calendar'    },
+  { id: 'labs',       label: 'Lab Results' },
 ];
 
 export default function AppNav({ user, onLogout }: Props) {

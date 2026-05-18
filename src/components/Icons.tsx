@@ -299,3 +299,12 @@ export const IconChevron = ({ size = 16, color = 'currentColor', style }: IconPr
     <polyline points="6,4 10,8 6,12"/>
   </svg>
 );
+
+export const IconLabs = ({ size = 16, color = 'currentColor' }: IconProps) => (
+  <svg {...base(size, color)}>
+    <path d="M6 2v5.5L2.5 13.5a1.5 1.5 0 0 0 1.3 2h8.4a1.5 1.5 0 0 0 1.3-2L10 7.5V2"/>
+    <line x1="5" y1="2" x2="11" y2="2"/>
+    <circle cx="7" cy="11" r="0.7" fill={color} stroke="none"/>
+    <circle cx="9.5" cy="12.5" r="0.7" fill={color} stroke="none"/>
+  </svg>
+);

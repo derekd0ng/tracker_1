@@ -9,6 +9,7 @@ import TodoTab from './components/todo/TodoTab';
 import DiaryTab from './components/diary/DiaryTab';
 import CalendarTab from './components/calendar/CalendarTab';
 import HomeTab from './components/home/HomeTab';
+import LabsTab from './components/labs/LabsTab';
 import AuthScreen from './components/auth/AuthScreen';
 import { setAccessToken, AUTH_LOGOUT_EVENT, tryRefresh } from './api';
 import { initStorage } from './storage';
@@ -88,7 +89,7 @@ export default function App() {
 
   const bottomNav = (
     <nav className="bottom-tabbar" data-active={activeTab}>
-      {(['home','dashboard','wellbeing','medication','habits','todo','diary','calendar'] as TabId[]).map(id => (
+      {(['home','dashboard','wellbeing','medication','habits','todo','diary','calendar','labs'] as TabId[]).map(id => (
         <button key={id} className={`bottom-tab${activeTab === id ? ' active' : ''}`} onClick={() => go(id)}>
           <span className="bottom-tab-label" style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{id}</span>
         </button>
@@ -123,6 +124,7 @@ export default function App() {
                 <Route path="/todos"      element={<div className="todo-theme"><TodoTab /></div>} />
                 <Route path="/diary"      element={<div className="diary-theme"><DiaryTab /></div>} />
                 <Route path="/calendar"  element={<CalendarTab />} />
+                <Route path="/labs"       element={<LabsTab />} />
                 <Route path="*"           element={<Navigate to="/" replace />} />
               </Routes>
             </div>

@@ -1,0 +1,599 @@
+import { useState, useEffect, useRef } from 'react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceArea, ReferenceLine,
+} from 'recharts';
+import { api } from '../../api';
+import type { LabResult } from '../../types';
+import { IconLabs, IconPlus, IconX } from '../Icons';
+
+const ACCENT = '#fbbf24';
+
+// ── Status helpers ────────────────────────────────────────────────────────────
+
+type Status = 'normal' | 'high' | 'low' | 'unknown';
+
+function getStatus(value: number | null, refLow: number | null, refHigh: number | null): Status {
+  if (value === null) return 'unknown';
+  if (refHigh !== null && value > refHigh) return 'high';
+  if (refLow  !== null && value < refLow)  return 'low';
+  if (refLow !== null || refHigh !== null)  return 'normal';
+  return 'unknown';
+}
+
+const STATUS_COLOR: Record<Status, string> = {
+  normal:  '#34d399',
+  high:    '#f87171',
+  low:     '#fbbf24',
+  unknown: '#555',
+};
+const STATUS_LABEL: Record<Status, string> = {
+  normal:  'Normal',
+  high:    'High',
+  low:     'Low',
+  unknown: '—',
+};
+
+// ── Date formatter for charts ─────────────────────────────────────────────────
+
+function fmtDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function fmtRefRange(r: LabResult): string {
+  if (r.refText) return r.refText;
+  if (r.refLow !== null && r.refHigh !== null) return `${r.refLow}–${r.refHigh}`;
+  if (r.refLow  !== null) return `>${r.refLow}`;
+  if (r.refHigh !== null) return `<${r.refHigh}`;
+  return '—';
+}
+
+// ── ParsedRow — editable row in preview modal ─────────────────────────────────
+
+interface ParsedRow {
+  metricName: string;
+  date: string;
+  value: string;
+  unit: string;
+  refLow: string;
+  refHigh: string;
+  refText: string;
+}
+
+function parseToRow(raw: any): ParsedRow {
+  return {
+    metricName: raw.metric_name ?? '',
+    date:       raw.date        ?? '',
+    value:      raw.value       !== null && raw.value !== undefined ? String(raw.value) : '',
+    unit:       raw.unit        ?? '',
+    refLow:     raw.ref_low     !== null && raw.ref_low !== undefined  ? String(raw.ref_low)  : '',
+    refHigh:    raw.ref_high    !== null && raw.ref_high !== undefined ? String(raw.ref_high) : '',
+    refText:    raw.ref_text    ?? '',
+  };
+}
+
+function rowToPayload(row: ParsedRow) {
+  return {
+    metricName: row.metricName,
+    date:       row.date,
+    value:      row.value   !== '' ? parseFloat(row.value)   : null,
+    unit:       row.unit    || null,
+    refLow:     row.refLow  !== '' ? parseFloat(row.refLow)  : null,
+    refHigh:    row.refHigh !== '' ? parseFloat(row.refHigh) : null,
+    refText:    row.refText || null,
+  };
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const card: React.CSSProperties = {
+  background: '#121212',
+  border: `1px solid #1e1e1e`,
+  borderTop: `3px solid ${ACCENT}`,
+  borderRadius: 6,
+  padding: '20px 24px',
+};
+
+const inputStyle: React.CSSProperties = {
+  background: '#1a1a1a',
+  border: '1px solid #2a2a2a',
+  borderRadius: 4,
+  color: '#e2e2e2',
+  fontSize: 12,
+  padding: '3px 6px',
+  fontFamily: "'Space Grotesk', sans-serif",
+  width: '100%',
+  boxSizing: 'border-box',
+};
+
+const th: React.CSSProperties = {
+  textAlign: 'left',
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  color: '#555',
+  paddingBottom: 8,
+  paddingRight: 12,
+  whiteSpace: 'nowrap',
+};
+
+const td: React.CSSProperties = {
+  paddingTop: 8,
+  paddingBottom: 8,
+  paddingRight: 12,
+  fontSize: 13,
+  color: '#e2e2e2',
+  verticalAlign: 'middle',
+  borderTop: '1px solid #1e1e1e',
+};
+
+// ── Preview modal ─────────────────────────────────────────────────────────────
+
+function PreviewModal({
+  rows, onSave, onClose,
+}: {
+  rows: ParsedRow[];
+  onSave: (rows: ParsedRow[]) => void;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<ParsedRow[]>(rows);
+  const [saving, setSaving] = useState(false);
+
+  function update(i: number, field: keyof ParsedRow, val: string) {
+    setData(d => d.map((r, idx) => idx === i ? { ...r, [field]: val } : r));
+  }
+
+  function remove(i: number) {
+    setData(d => d.filter((_, idx) => idx !== i));
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    await onSave(data);
+    setSaving(false);
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 500,
+      background: 'rgba(0,0,0,0.75)',
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+      padding: '40px 16px', overflowY: 'auto',
+    }}>
+      <div style={{
+        background: '#0f0f0f', border: '1px solid #2a2a2a', borderRadius: 8,
+        width: '100%', maxWidth: 900, padding: '28px 28px 24px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 16, color: ACCENT, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>
+              Review parsed results
+            </h2>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#666' }}>
+              {data.length} result{data.length !== 1 ? 's' : ''} found — edit before saving
+            </p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 4 }}>
+            <IconX size={18} />
+          </button>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr>
+                {['Metric', 'Date', 'Value', 'Unit', 'Ref Low', 'Ref High', 'Ref Text', ''].map(h => (
+                  <th key={h} style={{ ...th, fontSize: 10 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row, i) => (
+                <tr key={i}>
+                  {(['metricName','date','value','unit','refLow','refHigh','refText'] as (keyof ParsedRow)[]).map(f => (
+                    <td key={f} style={{ paddingRight: 6, paddingTop: 4, paddingBottom: 4, borderTop: '1px solid #1a1a1a' }}>
+                      <input
+                        value={row[f]}
+                        onChange={e => update(i, f, e.target.value)}
+                        style={{ ...inputStyle, minWidth: f === 'metricName' ? 130 : f === 'refText' ? 90 : 70 }}
+                      />
+                    </td>
+                  ))}
+                  <td style={{ paddingTop: 4, paddingBottom: 4, borderTop: '1px solid #1a1a1a' }}>
+                    <button
+                      onClick={() => remove(i)}
+                      style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: 4 }}
+                      title="Remove row"
+                    >
+                      <IconX size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {data.length === 0 && (
+          <p style={{ textAlign: 'center', color: '#555', fontSize: 13, padding: '20px 0' }}>
+            All rows removed.
+          </p>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{
+            padding: '8px 18px', background: 'transparent', border: '1px solid #2a2a2a',
+            color: '#999', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || data.length === 0}
+            style={{
+              padding: '8px 20px', background: ACCENT, border: 'none',
+              color: '#080808', borderRadius: 4, cursor: saving ? 'wait' : 'pointer',
+              fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+              opacity: data.length === 0 ? 0.4 : 1,
+            }}
+          >
+            {saving ? 'Saving…' : `Save ${data.length} result${data.length !== 1 ? 's' : ''}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Metric chart ──────────────────────────────────────────────────────────────
+
+function MetricChart({ metricName, results }: { metricName: string; results: LabResult[] }) {
+  const sorted = [...results].sort((a, b) => a.date.localeCompare(b.date));
+  const unit     = sorted.find(r => r.unit)?.unit ?? '';
+  const refLow   = sorted.find(r => r.refLow  !== null)?.refLow  ?? null;
+  const refHigh  = sorted.find(r => r.refHigh !== null)?.refHigh ?? null;
+
+  const values = sorted.map(r => r.value).filter((v): v is number => v !== null);
+  const minVal  = values.length ? Math.min(...values) : 0;
+  const maxVal  = values.length ? Math.max(...values) : 1;
+  const margin  = (maxVal - minVal) * 0.3 || 1;
+
+  const yMin = Math.min(minVal - margin, refLow  ?? minVal - margin);
+  const yMax = Math.max(maxVal + margin, refHigh ?? maxVal + margin);
+
+  const data = sorted.map(r => ({ date: fmtDate(r.date), value: r.value, rawDate: r.date }));
+
+  const dotColor = (val: number | null) => STATUS_COLOR[getStatus(val, refLow, refHigh)];
+
+  return (
+    <div style={{ ...card, minWidth: 0 }}>
+      <div style={{ marginBottom: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: ACCENT, fontFamily: "'Space Grotesk', sans-serif" }}>
+          {metricName}
+        </span>
+        {unit && <span style={{ fontSize: 11, color: '#555', marginLeft: 6 }}>{unit}</span>}
+        {(refLow !== null || refHigh !== null) && (
+          <span style={{ fontSize: 11, color: '#666', marginLeft: 10 }}>
+            ref: {refLow !== null ? refLow : ''}
+            {refLow !== null && refHigh !== null ? '–' : ''}
+            {refHigh !== null ? refHigh : ''}
+          </span>
+        )}
+      </div>
+      <ResponsiveContainer width="100%" height={180}>
+        <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+          <CartesianGrid stroke="#1e1e1e" vertical={false} />
+          <XAxis dataKey="date" tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} />
+          <YAxis
+            domain={[yMin, yMax]}
+            tick={{ fill: '#555', fontSize: 10 }}
+            axisLine={false} tickLine={false}
+            width={40}
+          />
+          <Tooltip
+            contentStyle={{ background: '#0f0f0f', border: '1px solid #2a2a2a', borderRadius: 4, fontSize: 12 }}
+            labelStyle={{ color: '#999' }}
+            itemStyle={{ color: ACCENT }}
+            formatter={(val: any) => [`${val}${unit ? ' ' + unit : ''}`, metricName]}
+          />
+          {/* Reference range shaded band */}
+          {refLow !== null && refHigh !== null && (
+            <ReferenceArea y1={refLow} y2={refHigh} fill="#34d39918" />
+          )}
+          {refLow  !== null && refHigh === null && (
+            <ReferenceLine y={refLow}  stroke="#34d39955" strokeDasharray="4 3" />
+          )}
+          {refHigh !== null && refLow  === null && (
+            <ReferenceLine y={refHigh} stroke="#34d39955" strokeDasharray="4 3" />
+          )}
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke={ACCENT}
+            strokeWidth={2}
+            dot={(props: any) => {
+              const { cx, cy, payload } = props;
+              const color = dotColor(payload.value);
+              return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={color} stroke="#0d0d0d" strokeWidth={2} />;
+            }}
+            activeDot={{ r: 5, fill: ACCENT }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function LabsTab() {
+  const [results, setResults]         = useState<LabResult[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [parsing, setParsing]         = useState(false);
+  const [parseError, setParseError]   = useState<string | null>(null);
+  const [preview, setPreview]         = useState<ParsedRow[] | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    api.get<LabResult[]>('/api/labs')
+      .then(data => { setResults(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  // ── PDF import ───────────────────────────────────────────────────────────────
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      setParseError('VITE_ANTHROPIC_API_KEY not set — add it to .env.local');
+      return;
+    }
+
+    setParsing(true);
+    setParseError(null);
+
+    try {
+      const buf    = await file.arrayBuffer();
+      const bytes  = new Uint8Array(buf);
+      let binary   = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const b64 = btoa(binary);
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2000,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: { type: 'base64', media_type: 'application/pdf', data: b64 },
+              },
+              {
+                type: 'text',
+                text: `Extract all laboratory test results from this document. Return ONLY a valid JSON array — no markdown, no explanation.
+
+Each element must have exactly these fields:
+- "metric_name": string — the test/analyte name (e.g. "Hemoglobin", "Glucose")
+- "date": string — test date as YYYY-MM-DD (use collection date; fall back to report date)
+- "value": number or null — the numeric result
+- "unit": string or null — unit such as "g/dL", "mmol/L", "×10⁹/L"
+- "ref_low": number or null — lower bound of the normal reference range
+- "ref_high": number or null — upper bound of the normal reference range
+- "ref_text": string or null — reference range exactly as printed (e.g. "3.9–6.1", "<5.0")
+
+Rules:
+• "<X" → ref_high=X, ref_low=null
+• ">X" → ref_low=X, ref_high=null
+• "X–Y" → ref_low=X, ref_high=Y
+• Include every individual test metric; skip summary or section headers
+• Return [] if no results found`,
+              },
+            ],
+          }],
+        }),
+      });
+
+      const json = await res.json();
+      if (json.error) throw new Error(json.error.message);
+
+      const text: string = json.content?.[0]?.text ?? '[]';
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error('No JSON array found in response');
+
+      const parsed: any[] = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(parsed)) throw new Error('Response is not an array');
+
+      if (parsed.length === 0) {
+        setParseError('No lab results found in the PDF. Make sure it contains a laboratory results table.');
+      } else {
+        setPreview(parsed.map(parseToRow));
+      }
+    } catch (err: any) {
+      setParseError(err.message ?? 'Failed to parse PDF');
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  // ── Save confirmed results ───────────────────────────────────────────────────
+
+  async function handleSave(rows: ParsedRow[]) {
+    const payload = rows.map(rowToPayload).filter(r => r.metricName && r.date);
+    const saved = await api.post<LabResult[]>('/api/labs', payload);
+    setResults(prev => [...saved, ...prev].sort((a, b) => b.date.localeCompare(a.date)));
+    setPreview(null);
+  }
+
+  async function handleDelete(id: string) {
+    await api.delete(`/api/labs/${id}`);
+    setResults(prev => prev.filter(r => r.id !== id));
+  }
+
+  // ── Group by metric for charts ────────────────────────────────────────────────
+
+  const byMetric = results.reduce<Record<string, LabResult[]>>((acc, r) => {
+    (acc[r.metricName] ??= []).push(r);
+    return acc;
+  }, {});
+
+  const chartMetrics = Object.entries(byMetric)
+    .filter(([, list]) => list.length >= 2)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 0 60px' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <IconLabs size={20} color={ACCENT} />
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: ACCENT, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '-0.02em' }}>
+            Lab Results
+          </h1>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {parseError && (
+            <span style={{ fontSize: 12, color: '#f87171', maxWidth: 280 }}>{parseError}</span>
+          )}
+          <button
+            onClick={() => { setParseError(null); fileRef.current?.click(); }}
+            disabled={parsing}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '8px 16px', background: ACCENT, border: 'none',
+              color: '#080808', borderRadius: 4, cursor: parsing ? 'wait' : 'pointer',
+              fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+            }}
+          >
+            <IconPlus size={14} color="#080808" />
+            {parsing ? 'Parsing…' : 'Import PDF'}
+          </button>
+          <input ref={fileRef} type="file" accept=".pdf,application/pdf" style={{ display: 'none' }} onChange={handleFile} />
+        </div>
+      </div>
+
+      {/* Results table */}
+      {loading ? (
+        <div style={{ color: '#555', fontSize: 13, textAlign: 'center', padding: '48px 0' }}>Loading…</div>
+      ) : results.length === 0 ? (
+        <div style={{
+          ...card, textAlign: 'center', padding: '48px 24px',
+          border: '1px dashed #2a2a2a', borderTop: `3px solid ${ACCENT}`,
+        }}>
+          <IconLabs size={32} color="#333" />
+          <p style={{ margin: '16px 0 6px', fontSize: 14, color: '#555' }}>No lab results yet</p>
+          <p style={{ margin: 0, fontSize: 12, color: '#3a3a3a' }}>
+            Import a PDF lab report — Claude will extract the metrics automatically
+          </p>
+        </div>
+      ) : (
+        <div style={card}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {['Metric', 'Date', 'Result', 'Reference', 'Status', ''].map(h => (
+                    <th key={h} style={th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {results.map(r => {
+                  const status = getStatus(r.value, r.refLow, r.refHigh);
+                  return (
+                    <tr key={r.id}>
+                      <td style={td}>
+                        <span style={{ fontWeight: 600, color: '#e2e2e2' }}>{r.metricName}</span>
+                      </td>
+                      <td style={{ ...td, color: '#888', fontVariantNumeric: 'tabular-nums' }}>
+                        {fmtDate(r.date)}
+                      </td>
+                      <td style={{ ...td, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                        {r.value !== null ? r.value : '—'}
+                        {r.unit && <span style={{ color: '#666', fontWeight: 400, marginLeft: 4 }}>{r.unit}</span>}
+                      </td>
+                      <td style={{ ...td, color: '#777', fontSize: 12 }}>
+                        {fmtRefRange(r)}
+                      </td>
+                      <td style={td}>
+                        {status !== 'unknown' && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                            color: STATUS_COLOR[status],
+                          }}>
+                            <span style={{
+                              width: 6, height: 6, borderRadius: '50%',
+                              background: STATUS_COLOR[status], display: 'inline-block',
+                            }} />
+                            {STATUS_LABEL[status]}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ ...td, paddingRight: 0 }}>
+                        <button
+                          onClick={() => handleDelete(r.id)}
+                          style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '2px 4px' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+                          onMouseLeave={e => (e.currentTarget.style.color = '#444')}
+                          title="Delete"
+                        >
+                          <IconX size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Trend charts */}
+      {chartMetrics.length > 0 && (
+        <div style={{ marginTop: 28 }}>
+          <h2 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#555' }}>
+            Trends
+          </h2>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 16,
+          }}>
+            {chartMetrics.map(([name, list]) => (
+              <MetricChart key={name} metricName={name} results={list} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Preview modal */}
+      {preview && (
+        <PreviewModal
+          rows={preview}
+          onSave={handleSave}
+          onClose={() => setPreview(null)}
+        />
+      )}
+    </div>
+  );
+}

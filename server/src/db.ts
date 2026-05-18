@@ -60,6 +60,27 @@ export async function ensureDiaryTable() {
   `);
 }
 
+export async function ensureLabsTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS lab_results (
+      id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      metric_name TEXT        NOT NULL,
+      date        DATE        NOT NULL,
+      value       NUMERIC,
+      unit        TEXT,
+      ref_low     NUMERIC,
+      ref_high    NUMERIC,
+      ref_text    TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_lab_results_user_date
+    ON lab_results (user_id, date DESC)
+  `);
+}
+
 export async function ensureTodosTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS todos (
