@@ -377,7 +377,7 @@ export default function LabsTab() {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 2000,
+          max_tokens: 4096,
           messages: [{
             role: 'user',
             content: [
@@ -414,8 +414,19 @@ Rules:
       if (json.error) throw new Error(json.error.message);
 
       const text: string = json.content?.[0]?.text ?? '';
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error(`No JSON array in response. Model said: "${text.slice(0, 200)}"`);
+      // Match a complete array, or salvage a truncated one by closing it
+      let jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        const start = text.indexOf('[');
+        if (start !== -1) {
+          // Response was cut off — drop the last incomplete object and close the array
+          const partial = text.slice(start);
+          const lastComma = partial.lastIndexOf('},');
+          const salvaged = lastComma !== -1 ? partial.slice(0, lastComma + 1) + ']' : null;
+          if (salvaged) jsonMatch = [salvaged];
+        }
+      }
+      if (!jsonMatch) throw new Error(`Could not extract results. Model said: "${text.slice(0, 200)}"`);
 
       const parsed: any[] = JSON.parse(jsonMatch[0]);
       if (!Array.isArray(parsed)) throw new Error('Response is not an array');
