@@ -534,6 +534,7 @@ export default function LabsTab() {
   const [preview, setPreview]         = useState<ParsedRow[] | null>(null);
   const [mergeGroups, setMergeGroups] = useState<MergeGroup[] | null>(null);
   const [merging, setMerging]         = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -806,6 +807,19 @@ ${JSON.stringify(uniquePairs)}`,
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {parseError && (
             <span style={{ fontSize: 12, color: '#f87171', maxWidth: 280 }}>{parseError}</span>
+          )}
+          {results.length > 0 && (
+            confirmClear ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, color: '#f87171' }}>Clear all?</span>
+                <button onClick={async () => { await api.delete('/api/labs'); setResults([]); setConfirmClear(false); }} style={{ padding: '4px 10px', background: '#f87171', border: 'none', borderRadius: 3, color: '#080808', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif" }}>Yes</button>
+                <button onClick={() => setConfirmClear(false)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid #333', borderRadius: 3, color: '#999', fontSize: 12, cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif" }}>No</button>
+              </span>
+            ) : (
+              <button onClick={() => setConfirmClear(true)} style={{ padding: '8px 14px', background: 'transparent', border: '1px solid #f8717144', color: '#f87171', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk',sans-serif" }}>
+                Clear All
+              </button>
+            )
           )}
           {results.length > 0 && (
             <button

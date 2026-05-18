@@ -131,6 +131,17 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// DELETE /api/labs  — clear all results for this user
+router.delete('/', async (req: AuthRequest, res) => {
+  try {
+    await pool.query('DELETE FROM lab_results WHERE user_id = $1', [req.userId]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // DELETE /api/labs/:id
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {
