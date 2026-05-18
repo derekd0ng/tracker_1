@@ -486,6 +486,7 @@ export default function LabsTab() {
   const [results, setResults]         = useState<LabResult[]>([]);
   const [loading, setLoading]         = useState(true);
   const [parsing, setParsing]         = useState(false);
+  const [parseProgress, setParseProgress] = useState('');
   const [parseError, setParseError]   = useState<string | null>(null);
   const [preview, setPreview]         = useState<ParsedRow[] | null>(null);
   const [mergeGroups, setMergeGroups] = useState<MergeGroup[] | null>(null);
@@ -500,49 +501,35 @@ export default function LabsTab() {
 
   // ── PDF import ───────────────────────────────────────────────────────────────
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  async function parseSingleFile(file: File, apiKey: string): Promise<ParsedRow[]> {
+    const buf    = await file.arrayBuffer();
+    const bytes  = new Uint8Array(buf);
+    let binary   = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const b64 = btoa(binary);
 
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      setParseError('VITE_ANTHROPIC_API_KEY not set — add it to .env.local');
-      return;
-    }
-
-    setParsing(true);
-    setParseError(null);
-
-    try {
-      const buf    = await file.arrayBuffer();
-      const bytes  = new Uint8Array(buf);
-      let binary   = '';
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      const b64 = btoa(binary);
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'pdfs-2024-09-25',
-          'content-type': 'application/json',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 4096,
-          messages: [{
-            role: 'user',
-            content: [
-              {
-                type: 'document',
-                source: { type: 'base64', media_type: 'application/pdf', data: b64 },
-              },
-              {
-                type: 'text',
-                text: `Extract all laboratory test results from this document. Return ONLY a valid JSON array — no markdown, no explanation.
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'pdfs-2024-09-25',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4096,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'application/pdf', data: b64 },
+            },
+            {
+              type: 'text',
+              text: `Extract all laboratory test results from this document. Return ONLY a valid JSON array — no markdown, no explanation.
 
 Each element must have exactly these fields:
 - "metric_name": string — the test/analyte name in English (e.g. "Hemoglobin", "Glucose"). Always translate to English regardless of the document language.
@@ -559,42 +546,69 @@ Rules:
 • "X–Y" → ref_low=X, ref_high=Y
 • Include every individual test metric; skip summary or section headers
 • Return [] if no results found`,
-              },
-            ],
-          }],
-        }),
-      });
+            },
+          ],
+        }],
+      }),
+    });
 
-      const json = await res.json();
-      if (json.error) throw new Error(json.error.message);
+    const json = await res.json();
+    if (json.error) throw new Error(`${file.name}: ${json.error.message}`);
 
-      const text: string = json.content?.[0]?.text ?? '';
-      // Match a complete array, or salvage a truncated one by closing it
-      let jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        const start = text.indexOf('[');
-        if (start !== -1) {
-          // Response was cut off — drop the last incomplete object and close the array
-          const partial = text.slice(start);
-          const lastComma = partial.lastIndexOf('},');
-          const salvaged = lastComma !== -1 ? partial.slice(0, lastComma + 1) + ']' : null;
-          if (salvaged) jsonMatch = [salvaged];
-        }
+    const text: string = json.content?.[0]?.text ?? '';
+    let jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      const start = text.indexOf('[');
+      if (start !== -1) {
+        const partial = text.slice(start);
+        const lastComma = partial.lastIndexOf('},');
+        const salvaged = lastComma !== -1 ? partial.slice(0, lastComma + 1) + ']' : null;
+        if (salvaged) jsonMatch = [salvaged];
       }
-      if (!jsonMatch) throw new Error(`Could not extract results. Model said: "${text.slice(0, 200)}"`);
+    }
+    if (!jsonMatch) throw new Error(`${file.name}: could not extract results`);
 
-      const parsed: any[] = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed)) throw new Error('Response is not an array');
+    const parsed: any[] = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed)) throw new Error(`${file.name}: unexpected response format`);
+    return parsed.map(parseToRow);
+  }
 
-      if (parsed.length === 0) {
-        setParseError('No lab results found in the PDF. Make sure it contains a laboratory results table.');
-      } else {
-        setPreview(parsed.map(parseToRow));
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (files.length === 0) return;
+
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      setParseError('VITE_ANTHROPIC_API_KEY not set — add it to .env.local');
+      return;
+    }
+
+    setParsing(true);
+    setParseError(null);
+    setParseProgress(files.length > 1 ? `Parsing 1 of ${files.length}…` : 'Parsing…');
+
+    const allRows: ParsedRow[] = [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      if (files.length > 1) setParseProgress(`Parsing ${i + 1} of ${files.length}…`);
+      try {
+        const rows = await parseSingleFile(files[i], apiKey);
+        allRows.push(...rows);
+      } catch (err: any) {
+        errors.push(err.message ?? files[i].name);
       }
-    } catch (err: any) {
-      setParseError(err.message ?? 'Failed to parse PDF');
-    } finally {
-      setParsing(false);
+    }
+
+    setParsing(false);
+    setParseProgress('');
+
+    if (allRows.length === 0) {
+      setParseError(errors.length ? errors.join(' · ') : 'No lab results found in the selected files.');
+    } else {
+      if (errors.length) setParseError(`Partial import — failed: ${errors.join(', ')}`);
+      setPreview(allRows);
     }
   }
 
@@ -758,9 +772,9 @@ ${JSON.stringify(uniqueNames)}`,
             }}
           >
             <IconPlus size={14} color="#080808" />
-            {parsing ? 'Parsing…' : 'Import PDF'}
+            {parsing ? parseProgress || 'Parsing…' : 'Import PDFs'}
           </button>
-          <input ref={fileRef} type="file" accept=".pdf,application/pdf" style={{ display: 'none' }} onChange={handleFile} />
+          <input ref={fileRef} type="file" accept=".pdf,application/pdf" multiple style={{ display: 'none' }} onChange={handleFile} />
         </div>
       </div>
 
