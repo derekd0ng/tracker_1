@@ -67,6 +67,23 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
+// POST /api/labs/merge — rename a set of metric names to a single canonical name
+router.post('/merge', async (req: AuthRequest, res) => {
+  try {
+    const { from, to }: { from: string[]; to: string } = req.body;
+    if (!Array.isArray(from) || !from.length || !to)
+      return res.status(400).json({ error: 'from (array) and to (string) required' }) as any;
+    await pool.query(
+      `UPDATE lab_results SET metric_name = $1 WHERE user_id = $2 AND metric_name = ANY($3)`,
+      [to, req.userId, from],
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // PATCH /api/labs/:id
 router.patch('/:id', async (req: AuthRequest, res) => {
   try {

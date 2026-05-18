@@ -129,6 +129,159 @@ const td: React.CSSProperties = {
   borderTop: '1px solid #1e1e1e',
 };
 
+// ── Merge modal ───────────────────────────────────────────────────────────────
+
+interface MergeGroup {
+  names: string[];
+  canonical: string;
+  enabled: boolean;
+  counts: Record<string, number>;
+}
+
+function MergeModal({
+  groups: initial,
+  onApply,
+  onClose,
+}: {
+  groups: MergeGroup[];
+  onApply: (groups: MergeGroup[]) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [groups, setGroups] = useState<MergeGroup[]>(initial);
+  const [applying, setApplying] = useState(false);
+
+  function toggle(i: number) {
+    setGroups(g => g.map((gr, idx) => idx === i ? { ...gr, enabled: !gr.enabled } : gr));
+  }
+  function setCanonical(i: number, val: string) {
+    setGroups(g => g.map((gr, idx) => idx === i ? { ...gr, canonical: val } : gr));
+  }
+
+  const activeCount = groups.filter(g => g.enabled).length;
+
+  async function handleApply() {
+    setApplying(true);
+    await onApply(groups.filter(g => g.enabled));
+    setApplying(false);
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 500,
+      background: 'rgba(0,0,0,0.75)',
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+      padding: '40px 16px', overflowY: 'auto',
+    }}>
+      <div style={{
+        background: '#0f0f0f', border: '1px solid #2a2a2a', borderRadius: 8,
+        width: '100%', maxWidth: 640, padding: '28px 28px 24px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <h2 style={{ margin: 0, fontSize: 16, color: ACCENT, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>
+            Merge similar metrics
+          </h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 4 }}>
+            <IconX size={18} />
+          </button>
+        </div>
+        <p style={{ margin: '0 0 20px', fontSize: 12, color: '#666' }}>
+          {groups.length} group{groups.length !== 1 ? 's' : ''} found. Toggle off any you don't want to merge, then set the canonical name.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {groups.map((g, i) => (
+            <div key={i} style={{
+              background: g.enabled ? '#131313' : '#0c0c0c',
+              border: `1px solid ${g.enabled ? '#2a2a2a' : '#1a1a1a'}`,
+              borderRadius: 6, padding: '14px 16px',
+              opacity: g.enabled ? 1 : 0.5,
+              transition: 'all 0.15s',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                {/* Toggle */}
+                <button
+                  onClick={() => toggle(i)}
+                  style={{
+                    marginTop: 2, flexShrink: 0,
+                    width: 18, height: 18, borderRadius: 3,
+                    background: g.enabled ? ACCENT : 'transparent',
+                    border: `1.5px solid ${g.enabled ? ACCENT : '#444'}`,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  {g.enabled && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <polyline points="2,5 4,7 8,3" stroke="#080808" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Variant chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {g.names.map(n => (
+                      <span key={n} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '3px 8px', borderRadius: 3,
+                        background: '#1e1e1e', border: '1px solid #2a2a2a',
+                        fontSize: 12, color: '#ccc',
+                      }}>
+                        {n}
+                        <span style={{ fontSize: 10, color: '#555' }}>×{g.counts[n] ?? 0}</span>
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Canonical name */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 10, color: '#555', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                      Merge as
+                    </span>
+                    <input
+                      value={g.canonical}
+                      onChange={e => setCanonical(i, e.target.value)}
+                      disabled={!g.enabled}
+                      style={{
+                        ...inputStyle,
+                        maxWidth: 260,
+                        color: ACCENT,
+                        borderColor: g.enabled ? '#333' : '#1e1e1e',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{
+            padding: '8px 18px', background: 'transparent', border: '1px solid #2a2a2a',
+            color: '#999', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            Cancel
+          </button>
+          <button
+            onClick={handleApply}
+            disabled={applying || activeCount === 0}
+            style={{
+              padding: '8px 20px', background: ACCENT, border: 'none',
+              color: '#080808', borderRadius: 4,
+              cursor: applying || activeCount === 0 ? 'default' : 'pointer',
+              fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+              opacity: activeCount === 0 ? 0.4 : 1,
+            }}
+          >
+            {applying ? 'Applying…' : `Apply ${activeCount} merge${activeCount !== 1 ? 's' : ''}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Preview modal ─────────────────────────────────────────────────────────────
 
 function PreviewModal({
@@ -335,6 +488,8 @@ export default function LabsTab() {
   const [parsing, setParsing]         = useState(false);
   const [parseError, setParseError]   = useState<string | null>(null);
   const [preview, setPreview]         = useState<ParsedRow[] | null>(null);
+  const [mergeGroups, setMergeGroups] = useState<MergeGroup[] | null>(null);
+  const [merging, setMerging]         = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -457,6 +612,99 @@ Rules:
     setResults(prev => prev.filter(r => r.id !== id));
   }
 
+  // ── Merge similar metrics ─────────────────────────────────────────────────────
+
+  async function handleMergeOpen() {
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (!apiKey) { setParseError('VITE_ANTHROPIC_API_KEY not set'); return; }
+
+    const uniqueNames = [...new Set(results.map(r => r.metricName))];
+    if (uniqueNames.length < 2) { setParseError('Not enough distinct metrics to merge.'); return; }
+
+    setMerging(true);
+    setParseError(null);
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1024,
+          messages: [{
+            role: 'user',
+            content: `You are a medical laboratory expert. Given this list of lab test metric names, identify groups of names that refer to the SAME measurement but differ in spelling, capitalisation, abbreviation, or are medical synonyms.
+
+Examples of what to group:
+- "absolute" and "Absolute" (capitalisation)
+- "WBC", "White Blood Cells", "Leukocytes" (synonyms/abbreviations)
+- "Hgb" and "Hemoglobin" (abbreviation vs full name)
+- "Relative %", "Relative", "Percentage" (synonyms)
+- "PLT" and "Platelets"
+
+Return ONLY a valid JSON array — no markdown, no explanation. Each element:
+- "names": array of the variant names from the input list that are the same metric
+- "canonical": the best standard English medical name for this metric
+
+Only include groups with 2+ names. Return [] if no duplicates found.
+
+Metric names:
+${JSON.stringify(uniqueNames)}`,
+          }],
+        }),
+      });
+
+      const json = await res.json();
+      if (json.error) throw new Error(json.error.message);
+      const text: string = json.content?.[0]?.text ?? '[]';
+      const match = text.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('Unexpected response from AI');
+      const raw: { names: string[]; canonical: string }[] = JSON.parse(match[0]);
+
+      if (raw.length === 0) {
+        setParseError('No similar metrics found — all names look distinct.');
+        return;
+      }
+
+      // Count occurrences per name from current results
+      const countMap: Record<string, number> = {};
+      results.forEach(r => { countMap[r.metricName] = (countMap[r.metricName] ?? 0) + 1; });
+
+      // Auto-pick canonical = variant with highest count; fall back to AI suggestion
+      const groups: MergeGroup[] = raw.map(g => {
+        const sortedByCount = [...g.names].sort((a, b) => (countMap[b] ?? 0) - (countMap[a] ?? 0));
+        return {
+          names: g.names,
+          canonical: sortedByCount[0] ?? g.canonical,
+          enabled: true,
+          counts: Object.fromEntries(g.names.map(n => [n, countMap[n] ?? 0])),
+        };
+      });
+
+      setMergeGroups(groups);
+    } catch (err: any) {
+      setParseError(err.message ?? 'Failed to find similar metrics');
+    } finally {
+      setMerging(false);
+    }
+  }
+
+  async function handleMergeApply(groups: MergeGroup[]) {
+    for (const g of groups) {
+      const others = g.names.filter(n => n !== g.canonical);
+      if (others.length === 0) continue;
+      await api.post('/api/labs/merge', { from: g.names, to: g.canonical });
+    }
+    // Refresh the full list so charts rebuild correctly
+    const updated = await api.get<LabResult[]>('/api/labs');
+    setResults(updated);
+    setMergeGroups(null);
+  }
+
   // ── Group by metric for charts ────────────────────────────────────────────────
 
   const byMetric = results.reduce<Record<string, LabResult[]>>((acc, r) => {
@@ -484,6 +732,20 @@ Rules:
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {parseError && (
             <span style={{ fontSize: 12, color: '#f87171', maxWidth: 280 }}>{parseError}</span>
+          )}
+          {results.length > 0 && (
+            <button
+              onClick={handleMergeOpen}
+              disabled={merging}
+              style={{
+                padding: '8px 14px', background: 'transparent',
+                border: `1px solid ${ACCENT}44`, color: ACCENT,
+                borderRadius: 4, cursor: merging ? 'wait' : 'pointer',
+                fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif",
+              }}
+            >
+              {merging ? 'Scanning…' : 'Merge Similar'}
+            </button>
           )}
           <button
             onClick={() => { setParseError(null); fileRef.current?.click(); }}
@@ -596,6 +858,15 @@ Rules:
             ))}
           </div>
         </div>
+      )}
+
+      {/* Merge modal */}
+      {mergeGroups && (
+        <MergeModal
+          groups={mergeGroups}
+          onApply={handleMergeApply}
+          onClose={() => setMergeGroups(null)}
+        />
       )}
 
       {/* Preview modal */}
