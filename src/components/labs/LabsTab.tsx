@@ -390,7 +390,7 @@ export default function LabsTab() {
                 text: `Extract all laboratory test results from this document. Return ONLY a valid JSON array — no markdown, no explanation.
 
 Each element must have exactly these fields:
-- "metric_name": string — the test/analyte name (e.g. "Hemoglobin", "Glucose")
+- "metric_name": string — the test/analyte name in English (e.g. "Hemoglobin", "Glucose"). Always translate to English regardless of the document language.
 - "date": string — test date as YYYY-MM-DD (use collection date; fall back to report date)
 - "value": number or null — the numeric result
 - "unit": string or null — unit such as "g/dL", "mmol/L", "×10⁹/L"
