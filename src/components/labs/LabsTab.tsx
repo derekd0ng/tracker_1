@@ -728,7 +728,7 @@ Rules:
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 1024,
+          max_tokens: 2048,
           messages: [{
             role: 'user',
             content: `You are a medical laboratory expert. Given this list of lab test metrics (each with a name and lab type), identify groups of entries that refer to the SAME measurement, have the SAME lab_type, but differ in spelling, capitalisation, abbreviation, or are medical synonyms.
@@ -757,7 +757,16 @@ ${JSON.stringify(uniquePairs)}`,
       const json = await res.json();
       if (json.error) throw new Error(json.error.message);
       const text: string = json.content?.[0]?.text ?? '[]';
-      const match = text.match(/\[[\s\S]*\]/);
+      let match = text.match(/\[[\s\S]*\]/);
+      if (!match) {
+        const start = text.indexOf('[');
+        if (start !== -1) {
+          const partial = text.slice(start);
+          const lastComma = partial.lastIndexOf('},');
+          const salvaged = lastComma !== -1 ? partial.slice(0, lastComma + 1) + ']' : null;
+          if (salvaged) match = [salvaged];
+        }
+      }
       if (!match) throw new Error('Unexpected response from AI');
       const raw: { names: string[]; canonical: string; lab_type: string }[] = JSON.parse(match[0]);
 
