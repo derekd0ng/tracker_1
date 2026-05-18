@@ -537,7 +537,13 @@ export default function LabsTab() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [editingId, setEditingId]       = useState<string | null>(null);
   const [editDraft, setEditDraft]       = useState<ParsedRow | null>(null);
+  const [tokens, setTokens]             = useState({ input: 0, output: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function addTokens(usage: any) {
+    if (!usage) return;
+    setTokens(t => ({ input: t.input + (usage.input_tokens ?? 0), output: t.output + (usage.output_tokens ?? 0) }));
+  }
 
   useEffect(() => {
     api.get<LabResult[]>('/api/labs')
@@ -547,7 +553,7 @@ export default function LabsTab() {
 
   // ── PDF import ───────────────────────────────────────────────────────────────
 
-  async function parseSingleFile(file: File, apiKey: string): Promise<ParsedRow[]> {
+  async function parseSingleFile(file: File, apiKey: string): Promise<{ rows: ParsedRow[]; usage: any }> {
     const buf    = await file.arrayBuffer();
     const bytes  = new Uint8Array(buf);
     let binary   = '';
@@ -617,7 +623,7 @@ Rules:
 
     const parsed: any[] = JSON.parse(jsonMatch[0]);
     if (!Array.isArray(parsed)) throw new Error(`${file.name}: unexpected response format`);
-    return parsed.map(parseToRow);
+    return { rows: parsed.map(parseToRow), usage: json.usage };
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -641,8 +647,9 @@ Rules:
     for (let i = 0; i < files.length; i++) {
       if (files.length > 1) setParseProgress(`Parsing ${i + 1} of ${files.length}…`);
       try {
-        const rows = await parseSingleFile(files[i], apiKey);
+        const { rows, usage } = await parseSingleFile(files[i], apiKey);
         allRows.push(...rows);
+        addTokens(usage);
       } catch (err: any) {
         errors.push(err.message ?? files[i].name);
       }
@@ -756,6 +763,7 @@ ${JSON.stringify(uniquePairs)}`,
 
       const json = await res.json();
       if (json.error) throw new Error(json.error.message);
+      addTokens(json.usage);
       const text: string = json.content?.[0]?.text ?? '[]';
       let match = text.match(/\[[\s\S]*\]/);
       if (!match) {
@@ -843,6 +851,16 @@ ${JSON.stringify(uniquePairs)}`,
           </h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {(tokens.input > 0 || tokens.output > 0) && (() => {
+            const cost = (tokens.input * 3 + tokens.output * 15) / 1_000_000;
+            const total = tokens.input + tokens.output;
+            const fmt = (n: number) => n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
+            return (
+              <span title={`Input: ${tokens.input.toLocaleString()} · Output: ${tokens.output.toLocaleString()}`} style={{ fontSize: 11, color: '#555', fontFamily: "'JetBrains Mono', monospace", cursor: 'default' }}>
+                ~${cost < 0.01 ? cost.toFixed(4) : cost.toFixed(3)} · {fmt(total)} tok
+              </span>
+            );
+          })()}
           {parseError && (
             <span style={{ fontSize: 12, color: '#f87171', maxWidth: 280 }}>{parseError}</span>
           )}
