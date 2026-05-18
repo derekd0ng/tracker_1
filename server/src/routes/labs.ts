@@ -10,21 +10,23 @@ function rowToLab(r: any) {
     id:         r.id,
     metricName: r.metric_name,
     date:       r.date,
-    value:      r.value  !== null && r.value  !== undefined ? parseFloat(r.value)  : null,
-    unit:       r.unit   ?? null,
+    value:      r.value    !== null && r.value    !== undefined ? parseFloat(r.value)    : null,
+    unit:       r.unit     ?? null,
     refLow:     r.ref_low  !== null && r.ref_low  !== undefined ? parseFloat(r.ref_low)  : null,
     refHigh:    r.ref_high !== null && r.ref_high !== undefined ? parseFloat(r.ref_high) : null,
     refText:    r.ref_text ?? null,
+    labType:    r.lab_type ?? 'other',
   };
 }
+
+const SEL = `id, metric_name, TO_CHAR(date,'YYYY-MM-DD') AS date,
+             value, unit, ref_low, ref_high, ref_text, lab_type`;
 
 // GET /api/labs
 router.get('/', async (req: AuthRequest, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, metric_name, TO_CHAR(date,'YYYY-MM-DD') AS date,
-              value, unit, ref_low, ref_high, ref_text
-       FROM lab_results WHERE user_id = $1 ORDER BY date DESC, metric_name`,
+      `SELECT ${SEL} FROM lab_results WHERE user_id = $1 ORDER BY date DESC, metric_name`,
       [req.userId],
     );
     res.json(rows.map(rowToLab));
@@ -44,9 +46,9 @@ router.post('/', async (req: AuthRequest, res) => {
     const inserted = [];
     for (const item of items) {
       const { rows } = await pool.query(
-        `INSERT INTO lab_results (user_id, metric_name, date, value, unit, ref_low, ref_high, ref_text)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         RETURNING id, metric_name, TO_CHAR(date,'YYYY-MM-DD') AS date, value, unit, ref_low, ref_high, ref_text`,
+        `INSERT INTO lab_results (user_id, metric_name, date, value, unit, ref_low, ref_high, ref_text, lab_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING ${SEL}`,
         [
           req.userId,
           item.metricName,
@@ -56,6 +58,7 @@ router.post('/', async (req: AuthRequest, res) => {
           item.refLow  ?? null,
           item.refHigh ?? null,
           item.refText ?? null,
+          item.labType ?? 'other',
         ],
       );
       inserted.push(rowToLab(rows[0]));
@@ -67,16 +70,25 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/labs/merge — rename a set of metric names to a single canonical name
+// POST /api/labs/merge — rename metric names within a specific lab type
 router.post('/merge', async (req: AuthRequest, res) => {
   try {
-    const { from, to }: { from: string[]; to: string } = req.body;
+    const { from, to, labType }: { from: string[]; to: string; labType?: string } = req.body;
     if (!Array.isArray(from) || !from.length || !to)
       return res.status(400).json({ error: 'from (array) and to (string) required' }) as any;
-    await pool.query(
-      `UPDATE lab_results SET metric_name = $1 WHERE user_id = $2 AND metric_name = ANY($3)`,
-      [to, req.userId, from],
-    );
+
+    if (labType) {
+      await pool.query(
+        `UPDATE lab_results SET metric_name = $1
+         WHERE user_id = $2 AND metric_name = ANY($3) AND lab_type = $4`,
+        [to, req.userId, from, labType],
+      );
+    } else {
+      await pool.query(
+        `UPDATE lab_results SET metric_name = $1 WHERE user_id = $2 AND metric_name = ANY($3)`,
+        [to, req.userId, from],
+      );
+    }
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -87,7 +99,7 @@ router.post('/merge', async (req: AuthRequest, res) => {
 // PATCH /api/labs/:id
 router.patch('/:id', async (req: AuthRequest, res) => {
   try {
-    const { metricName, date, value, unit, refLow, refHigh, refText } = req.body;
+    const { metricName, date, value, unit, refLow, refHigh, refText, labType } = req.body;
     const { rows } = await pool.query(
       `UPDATE lab_results SET
          metric_name = COALESCE($1, metric_name),
@@ -96,9 +108,10 @@ router.patch('/:id', async (req: AuthRequest, res) => {
          unit        = $4,
          ref_low     = $5,
          ref_high    = $6,
-         ref_text    = $7
-       WHERE id = $8 AND user_id = $9
-       RETURNING id, metric_name, TO_CHAR(date,'YYYY-MM-DD') AS date, value, unit, ref_low, ref_high, ref_text`,
+         ref_text    = $7,
+         lab_type    = COALESCE($8, lab_type)
+       WHERE id = $9 AND user_id = $10
+       RETURNING ${SEL}`,
       [
         metricName ?? null, date ?? null,
         value   !== undefined ? value   : null,
@@ -106,6 +119,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
         refLow  !== undefined ? refLow  : null,
         refHigh !== undefined ? refHigh : null,
         refText !== undefined ? refText : null,
+        labType ?? null,
         req.params.id, req.userId,
       ],
     );

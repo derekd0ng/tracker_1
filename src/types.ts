@@ -63,6 +63,8 @@ export interface MedicationLog {
 
 export type TabId = 'dashboard' | 'wellbeing' | 'medication' | 'habits' | 'todo' | 'diary' | 'home' | 'calendar' | 'labs';
 
+export type LabType = 'blood' | 'urine' | 'stool' | 'other';
+
 export interface LabResult {
   id: string;
   metricName: string;
@@ -72,6 +74,7 @@ export interface LabResult {
   refLow: number | null;
   refHigh: number | null;
   refText: string | null;
+  labType: LabType;
 }
 
 export interface CalendarEvent {

@@ -6,8 +6,36 @@ import {
 import { api } from '../../api';
 import type { LabResult } from '../../types';
 import { IconLabs, IconPlus, IconX } from '../Icons';
+import type { LabType } from '../../types';
 
 const ACCENT = '#fbbf24';
+
+const LAB_TYPES: LabType[] = ['blood', 'urine', 'stool', 'other'];
+const TYPE_COLOR: Record<LabType, string> = {
+  blood: '#f87171',
+  urine: '#60a5fa',
+  stool: '#a78bfa',
+  other: '#6b7280',
+};
+const TYPE_LABEL: Record<LabType, string> = {
+  blood: 'Blood',
+  urine: 'Urine',
+  stool: 'Stool',
+  other: 'Other',
+};
+
+function TypeBadge({ type }: { type: string }) {
+  const t = (LAB_TYPES.includes(type as LabType) ? type : 'other') as LabType;
+  return (
+    <span style={{
+      display: 'inline-block', padding: '1px 7px', borderRadius: 3,
+      fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+      background: TYPE_COLOR[t] + '22', color: TYPE_COLOR[t], border: `1px solid ${TYPE_COLOR[t]}44`,
+    }}>
+      {TYPE_LABEL[t]}
+    </span>
+  );
+}
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -59,17 +87,19 @@ interface ParsedRow {
   refLow: string;
   refHigh: string;
   refText: string;
+  labType: string;
 }
 
 function parseToRow(raw: any): ParsedRow {
   return {
     metricName: raw.metric_name ?? '',
     date:       raw.date        ?? '',
-    value:      raw.value       !== null && raw.value !== undefined ? String(raw.value) : '',
+    value:      raw.value    !== null && raw.value    !== undefined ? String(raw.value)    : '',
     unit:       raw.unit        ?? '',
-    refLow:     raw.ref_low     !== null && raw.ref_low !== undefined  ? String(raw.ref_low)  : '',
-    refHigh:    raw.ref_high    !== null && raw.ref_high !== undefined ? String(raw.ref_high) : '',
+    refLow:     raw.ref_low  !== null && raw.ref_low  !== undefined ? String(raw.ref_low)  : '',
+    refHigh:    raw.ref_high !== null && raw.ref_high !== undefined ? String(raw.ref_high) : '',
     refText:    raw.ref_text    ?? '',
+    labType:    LAB_TYPES.includes(raw.lab_type) ? raw.lab_type : 'other',
   };
 }
 
@@ -82,6 +112,7 @@ function rowToPayload(row: ParsedRow) {
     refLow:     row.refLow  !== '' ? parseFloat(row.refLow)  : null,
     refHigh:    row.refHigh !== '' ? parseFloat(row.refHigh) : null,
     refText:    row.refText || null,
+    labType:    row.labType || 'other',
   };
 }
 
@@ -136,6 +167,7 @@ interface MergeGroup {
   canonical: string;
   enabled: boolean;
   counts: Record<string, number>;
+  labType: string;
 }
 
 function MergeModal({
@@ -185,7 +217,7 @@ function MergeModal({
           </button>
         </div>
         <p style={{ margin: '0 0 20px', fontSize: 12, color: '#666' }}>
-          {groups.length} group{groups.length !== 1 ? 's' : ''} found. Toggle off any you don't want to merge, then set the canonical name.
+          {groups.length} group{groups.length !== 1 ? 's' : ''} found within the same lab type. Toggle off any you don't want to merge, then set the canonical name.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -217,8 +249,9 @@ function MergeModal({
                 </button>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Variant chips */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                  {/* Variant chips + type badge */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10, alignItems: 'center' }}>
+                    <TypeBadge type={g.labType} />
                     {g.names.map(n => (
                       <span key={n} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -337,7 +370,7 @@ function PreviewModal({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr>
-                {['Metric', 'Date', 'Value', 'Unit', 'Ref Low', 'Ref High', 'Ref Text', ''].map(h => (
+                {['Metric', 'Date', 'Value', 'Unit', 'Ref Low', 'Ref High', 'Ref Text', 'Type', ''].map(h => (
                   <th key={h} style={{ ...th, fontSize: 10 }}>{h}</th>
                 ))}
               </tr>
@@ -354,6 +387,15 @@ function PreviewModal({
                       />
                     </td>
                   ))}
+                  <td style={{ paddingRight: 6, paddingTop: 4, paddingBottom: 4, borderTop: '1px solid #1a1a1a' }}>
+                    <select
+                      value={row.labType}
+                      onChange={e => update(i, 'labType', e.target.value)}
+                      style={{ ...inputStyle, minWidth: 76, color: TYPE_COLOR[(row.labType as LabType) ?? 'other'] }}
+                    >
+                      {LAB_TYPES.map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+                    </select>
+                  </td>
                   <td style={{ paddingTop: 4, paddingBottom: 4, borderTop: '1px solid #1a1a1a' }}>
                     <button
                       onClick={() => remove(i)}
@@ -403,7 +445,7 @@ function PreviewModal({
 
 // ── Metric chart ──────────────────────────────────────────────────────────────
 
-function MetricChart({ metricName, results }: { metricName: string; results: LabResult[] }) {
+function MetricChart({ metricName, labType, results }: { metricName: string; labType: string; results: LabResult[] }) {
   const sorted = [...results].sort((a, b) => a.date.localeCompare(b.date));
   const unit     = sorted.find(r => r.unit)?.unit ?? '';
   const refLow   = sorted.find(r => r.refLow  !== null)?.refLow  ?? null;
@@ -423,11 +465,12 @@ function MetricChart({ metricName, results }: { metricName: string; results: Lab
 
   return (
     <div style={{ ...card, minWidth: 0 }}>
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: ACCENT, fontFamily: "'Space Grotesk', sans-serif" }}>
           {metricName}
         </span>
-        {unit && <span style={{ fontSize: 11, color: '#555', marginLeft: 6 }}>{unit}</span>}
+        <TypeBadge type={labType} />
+        {unit && <span style={{ fontSize: 11, color: '#555' }}>{unit}</span>}
         {(refLow !== null || refHigh !== null) && (
           <span style={{ fontSize: 11, color: '#666', marginLeft: 10 }}>
             ref: {refLow !== null ? refLow : ''}
@@ -539,6 +582,7 @@ Each element must have exactly these fields:
 - "ref_low": number or null — lower bound of the normal reference range
 - "ref_high": number or null — upper bound of the normal reference range
 - "ref_text": string or null — reference range exactly as printed (e.g. "3.9–6.1", "<5.0")
+- "lab_type": one of "blood", "urine", "stool", or "other" — infer from the document title, section headers, or the metric itself (e.g. Hemoglobin → blood, Creatinine in a urine panel → urine)
 
 Rules:
 • "<X" → ref_high=X, ref_low=null
@@ -632,8 +676,14 @@ Rules:
     const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
     if (!apiKey) { setParseError('VITE_ANTHROPIC_API_KEY not set'); return; }
 
-    const uniqueNames = [...new Set(results.map(r => r.metricName))];
-    if (uniqueNames.length < 2) { setParseError('Not enough distinct metrics to merge.'); return; }
+    // Unique (name, type) pairs — metrics of different lab types are never merged
+    const seen = new Set<string>();
+    const uniquePairs: { name: string; type: string }[] = [];
+    results.forEach(r => {
+      const key = `${r.metricName}||${r.labType}`;
+      if (!seen.has(key)) { seen.add(key); uniquePairs.push({ name: r.metricName, type: r.labType }); }
+    });
+    if (uniquePairs.length < 2) { setParseError('Not enough distinct metrics to merge.'); return; }
 
     setMerging(true);
     setParseError(null);
@@ -651,23 +701,25 @@ Rules:
           max_tokens: 1024,
           messages: [{
             role: 'user',
-            content: `You are a medical laboratory expert. Given this list of lab test metric names, identify groups of names that refer to the SAME measurement but differ in spelling, capitalisation, abbreviation, or are medical synonyms.
+            content: `You are a medical laboratory expert. Given this list of lab test metrics (each with a name and lab type), identify groups of entries that refer to the SAME measurement, have the SAME lab_type, but differ in spelling, capitalisation, abbreviation, or are medical synonyms.
 
-Examples of what to group:
-- "absolute" and "Absolute" (capitalisation)
-- "WBC", "White Blood Cells", "Leukocytes" (synonyms/abbreviations)
-- "Hgb" and "Hemoglobin" (abbreviation vs full name)
-- "Relative %", "Relative", "Percentage" (synonyms)
-- "PLT" and "Platelets"
+IMPORTANT: Never group metrics that have different lab_type values — "Glucose" in blood and "Glucose" in urine are separate measurements.
+
+Examples of what to group (same type only):
+- "absolute" and "Absolute" with type "blood" (capitalisation)
+- "WBC", "White Blood Cells", "Leukocytes" all with type "blood"
+- "Hgb" and "Hemoglobin" with type "blood"
+- "Relative %", "Relative", "Percentage" with the same type
 
 Return ONLY a valid JSON array — no markdown, no explanation. Each element:
-- "names": array of the variant names from the input list that are the same metric
-- "canonical": the best standard English medical name for this metric
+- "names": array of the variant metric names (strings only, not objects)
+- "canonical": the best standard English medical name
+- "lab_type": the shared lab type of this group
 
 Only include groups with 2+ names. Return [] if no duplicates found.
 
-Metric names:
-${JSON.stringify(uniqueNames)}`,
+Metrics (name + type):
+${JSON.stringify(uniquePairs)}`,
           }],
         }),
       });
@@ -677,25 +729,32 @@ ${JSON.stringify(uniqueNames)}`,
       const text: string = json.content?.[0]?.text ?? '[]';
       const match = text.match(/\[[\s\S]*\]/);
       if (!match) throw new Error('Unexpected response from AI');
-      const raw: { names: string[]; canonical: string }[] = JSON.parse(match[0]);
+      const raw: { names: string[]; canonical: string; lab_type: string }[] = JSON.parse(match[0]);
 
       if (raw.length === 0) {
         setParseError('No similar metrics found — all names look distinct.');
         return;
       }
 
-      // Count occurrences per name from current results
+      // Count occurrences per (name, type) key
       const countMap: Record<string, number> = {};
-      results.forEach(r => { countMap[r.metricName] = (countMap[r.metricName] ?? 0) + 1; });
+      results.forEach(r => {
+        const key = `${r.metricName}||${r.labType}`;
+        countMap[key] = (countMap[key] ?? 0) + 1;
+      });
 
       // Auto-pick canonical = variant with highest count; fall back to AI suggestion
       const groups: MergeGroup[] = raw.map(g => {
-        const sortedByCount = [...g.names].sort((a, b) => (countMap[b] ?? 0) - (countMap[a] ?? 0));
+        const labType = g.lab_type ?? 'other';
+        const sortedByCount = [...g.names].sort(
+          (a, b) => (countMap[`${b}||${labType}`] ?? 0) - (countMap[`${a}||${labType}`] ?? 0)
+        );
         return {
           names: g.names,
           canonical: sortedByCount[0] ?? g.canonical,
           enabled: true,
-          counts: Object.fromEntries(g.names.map(n => [n, countMap[n] ?? 0])),
+          labType,
+          counts: Object.fromEntries(g.names.map(n => [n, countMap[`${n}||${labType}`] ?? 0])),
         };
       });
 
@@ -711,7 +770,7 @@ ${JSON.stringify(uniqueNames)}`,
     for (const g of groups) {
       const others = g.names.filter(n => n !== g.canonical);
       if (others.length === 0) continue;
-      await api.post('/api/labs/merge', { from: g.names, to: g.canonical });
+      await api.post('/api/labs/merge', { from: g.names, to: g.canonical, labType: g.labType });
     }
     // Refresh the full list so charts rebuild correctly
     const updated = await api.get<LabResult[]>('/api/labs');
@@ -722,7 +781,8 @@ ${JSON.stringify(uniqueNames)}`,
   // ── Group by metric for charts ────────────────────────────────────────────────
 
   const byMetric = results.reduce<Record<string, LabResult[]>>((acc, r) => {
-    (acc[r.metricName] ??= []).push(r);
+    const key = `${r.metricName}||${r.labType}`;
+    (acc[key] ??= []).push(r);
     return acc;
   }, {});
 
@@ -798,7 +858,7 @@ ${JSON.stringify(uniqueNames)}`,
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['Metric', 'Date', 'Result', 'Reference', 'Status', ''].map(h => (
+                  {['Metric', 'Type', 'Date', 'Result', 'Reference', 'Status', ''].map(h => (
                     <th key={h} style={th}>{h}</th>
                   ))}
                 </tr>
@@ -810,6 +870,9 @@ ${JSON.stringify(uniqueNames)}`,
                     <tr key={r.id}>
                       <td style={td}>
                         <span style={{ fontWeight: 600, color: '#e2e2e2' }}>{r.metricName}</span>
+                      </td>
+                      <td style={td}>
+                        <TypeBadge type={r.labType} />
                       </td>
                       <td style={{ ...td, color: '#888', fontVariantNumeric: 'tabular-nums' }}>
                         {fmtDate(r.date)}
@@ -867,9 +930,10 @@ ${JSON.stringify(uniqueNames)}`,
             gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
             gap: 16,
           }}>
-            {chartMetrics.map(([name, list]) => (
-              <MetricChart key={name} metricName={name} results={list} />
-            ))}
+            {chartMetrics.map(([key, list]) => {
+              const [metricName, labType] = key.split('||');
+              return <MetricChart key={key} metricName={metricName} labType={labType} results={list} />;
+            })}
           </div>
         </div>
       )}
