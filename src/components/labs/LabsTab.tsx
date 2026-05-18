@@ -371,11 +371,12 @@ export default function LabsTab() {
         headers: {
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'pdfs-2024-09-25',
           'content-type': 'application/json',
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: 'claude-sonnet-4-6',
           max_tokens: 2000,
           messages: [{
             role: 'user',
@@ -412,9 +413,9 @@ Rules:
       const json = await res.json();
       if (json.error) throw new Error(json.error.message);
 
-      const text: string = json.content?.[0]?.text ?? '[]';
+      const text: string = json.content?.[0]?.text ?? '';
       const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error('No JSON array found in response');
+      if (!jsonMatch) throw new Error(`No JSON array in response. Model said: "${text.slice(0, 200)}"`);
 
       const parsed: any[] = JSON.parse(jsonMatch[0]);
       if (!Array.isArray(parsed)) throw new Error('Response is not an array');
