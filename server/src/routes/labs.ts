@@ -10,17 +10,18 @@ function rowToLab(r: any) {
     id:         r.id,
     metricName: r.metric_name,
     date:       r.date,
-    value:      r.value    !== null && r.value    !== undefined ? parseFloat(r.value)    : null,
-    unit:       r.unit     ?? null,
-    refLow:     r.ref_low  !== null && r.ref_low  !== undefined ? parseFloat(r.ref_low)  : null,
-    refHigh:    r.ref_high !== null && r.ref_high !== undefined ? parseFloat(r.ref_high) : null,
-    refText:    r.ref_text ?? null,
-    labType:    r.lab_type ?? 'other',
+    value:      r.value     !== null && r.value     !== undefined ? parseFloat(r.value)    : null,
+    valueText:  r.value_text ?? null,
+    unit:       r.unit      ?? null,
+    refLow:     r.ref_low   !== null && r.ref_low   !== undefined ? parseFloat(r.ref_low)  : null,
+    refHigh:    r.ref_high  !== null && r.ref_high  !== undefined ? parseFloat(r.ref_high) : null,
+    refText:    r.ref_text  ?? null,
+    labType:    r.lab_type  ?? 'other',
   };
 }
 
 const SEL = `id, metric_name, TO_CHAR(date,'YYYY-MM-DD') AS date,
-             value, unit, ref_low, ref_high, ref_text, lab_type`;
+             value, value_text, unit, ref_low, ref_high, ref_text, lab_type`;
 
 // GET /api/labs
 router.get('/', async (req: AuthRequest, res) => {
@@ -46,19 +47,20 @@ router.post('/', async (req: AuthRequest, res) => {
     const inserted = [];
     for (const item of items) {
       const { rows } = await pool.query(
-        `INSERT INTO lab_results (user_id, metric_name, date, value, unit, ref_low, ref_high, ref_text, lab_type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO lab_results (user_id, metric_name, date, value, value_text, unit, ref_low, ref_high, ref_text, lab_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING ${SEL}`,
         [
           req.userId,
           item.metricName,
           item.date,
-          item.value   ?? null,
-          item.unit    ?? null,
-          item.refLow  ?? null,
-          item.refHigh ?? null,
-          item.refText ?? null,
-          item.labType ?? 'other',
+          item.value     ?? null,
+          item.valueText ?? null,
+          item.unit      ?? null,
+          item.refLow    ?? null,
+          item.refHigh   ?? null,
+          item.refText   ?? null,
+          item.labType   ?? 'other',
         ],
       );
       inserted.push(rowToLab(rows[0]));
@@ -99,26 +101,28 @@ router.post('/merge', async (req: AuthRequest, res) => {
 // PATCH /api/labs/:id
 router.patch('/:id', async (req: AuthRequest, res) => {
   try {
-    const { metricName, date, value, unit, refLow, refHigh, refText, labType } = req.body;
+    const { metricName, date, value, valueText, unit, refLow, refHigh, refText, labType } = req.body;
     const { rows } = await pool.query(
       `UPDATE lab_results SET
          metric_name = COALESCE($1, metric_name),
          date        = COALESCE($2::date, date),
          value       = $3,
-         unit        = $4,
-         ref_low     = $5,
-         ref_high    = $6,
-         ref_text    = $7,
-         lab_type    = COALESCE($8, lab_type)
-       WHERE id = $9 AND user_id = $10
+         value_text  = $4,
+         unit        = $5,
+         ref_low     = $6,
+         ref_high    = $7,
+         ref_text    = $8,
+         lab_type    = COALESCE($9, lab_type)
+       WHERE id = $10 AND user_id = $11
        RETURNING ${SEL}`,
       [
         metricName ?? null, date ?? null,
-        value   !== undefined ? value   : null,
-        unit    !== undefined ? unit    : null,
-        refLow  !== undefined ? refLow  : null,
-        refHigh !== undefined ? refHigh : null,
-        refText !== undefined ? refText : null,
+        value     !== undefined ? value     : null,
+        valueText !== undefined ? valueText : null,
+        unit      !== undefined ? unit      : null,
+        refLow    !== undefined ? refLow    : null,
+        refHigh   !== undefined ? refHigh   : null,
+        refText   !== undefined ? refText   : null,
         labType ?? null,
         req.params.id, req.userId,
       ],

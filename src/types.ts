@@ -70,6 +70,7 @@ export interface LabResult {
   metricName: string;
   date: string;        // YYYY-MM-DD
   value: number | null;
+  valueText: string | null;  // qualitative result e.g. "Positive", "Negative"
   unit: string | null;
   refLow: number | null;
   refHigh: number | null;

@@ -79,7 +79,8 @@ export async function ensureLabsTable() {
     CREATE INDEX IF NOT EXISTS idx_lab_results_user_date
     ON lab_results (user_id, date DESC)
   `);
-  await pool.query(`ALTER TABLE lab_results ADD COLUMN IF NOT EXISTS lab_type TEXT NOT NULL DEFAULT 'other'`);
+  await pool.query(`ALTER TABLE lab_results ADD COLUMN IF NOT EXISTS lab_type   TEXT NOT NULL DEFAULT 'other'`);
+  await pool.query(`ALTER TABLE lab_results ADD COLUMN IF NOT EXISTS value_text TEXT`);
 }
 
 export async function ensureTodosTable() {

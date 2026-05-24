@@ -82,7 +82,7 @@ function fmtRefRange(r: LabResult): string {
 interface ParsedRow {
   metricName: string;
   date: string;
-  value: string;
+  value: string;      // numeric string OR qualitative text (e.g. "Positive")
   unit: string;
   refLow: string;
   refHigh: string;
@@ -91,10 +91,12 @@ interface ParsedRow {
 }
 
 function parseToRow(raw: any): ParsedRow {
+  // Merge value_text into the value string field for unified editing
+  const rawVal = raw.value !== null && raw.value !== undefined ? String(raw.value) : '';
   return {
     metricName: raw.metric_name ?? '',
     date:       raw.date        ?? '',
-    value:      raw.value    !== null && raw.value    !== undefined ? String(raw.value)    : '',
+    value:      rawVal || raw.value_text || '',
     unit:       raw.unit        ?? '',
     refLow:     raw.ref_low  !== null && raw.ref_low  !== undefined ? String(raw.ref_low)  : '',
     refHigh:    raw.ref_high !== null && raw.ref_high !== undefined ? String(raw.ref_high) : '',
@@ -104,10 +106,13 @@ function parseToRow(raw: any): ParsedRow {
 }
 
 function rowToPayload(row: ParsedRow) {
+  const num = row.value !== '' ? parseFloat(row.value) : NaN;
+  const isNumeric = row.value !== '' && !isNaN(num);
   return {
     metricName: row.metricName,
     date:       row.date,
-    value:      row.value   !== '' ? parseFloat(row.value)   : null,
+    value:      isNumeric ? num : null,
+    valueText:  !isNumeric && row.value !== '' ? row.value : null,
     unit:       row.unit    || null,
     refLow:     row.refLow  !== '' ? parseFloat(row.refLow)  : null,
     refHigh:    row.refHigh !== '' ? parseFloat(row.refHigh) : null,
@@ -510,6 +515,7 @@ function MetricChart({ metricName, labType, results }: { metricName: string; lab
             dataKey="value"
             stroke={ACCENT}
             strokeWidth={2}
+            connectNulls
             dot={(props: any) => {
               const { cx, cy, payload } = props;
               const color = dotColor(payload.value);
@@ -592,7 +598,7 @@ export default function LabsTab() {
 Each element must have exactly these fields:
 - "metric_name": string — the test/analyte name in English (e.g. "Hemoglobin", "Glucose"). Always translate to English regardless of the document language.
 - "date": string — test date as YYYY-MM-DD (use collection date; fall back to report date)
-- "value": number or null — the numeric result
+- "value": number, string, or null — the result; use a number for numeric results (e.g. 5.4), a string for qualitative results (e.g. "Positive", "Negative", "Reactive", "Not detected")
 - "unit": string or null — unit such as "g/dL", "mmol/L", "×10⁹/L"
 - "ref_low": number or null — lower bound of the normal reference range
 - "ref_high": number or null — upper bound of the normal reference range
@@ -691,7 +697,7 @@ Rules:
     setEditDraft({
       metricName: r.metricName,
       date:       r.date,
-      value:      r.value    !== null ? String(r.value)    : '',
+      value:      r.value !== null ? String(r.value) : (r.valueText ?? ''),
       unit:       r.unit     ?? '',
       refLow:     r.refLow   !== null ? String(r.refLow)   : '',
       refHigh:    r.refHigh  !== null ? String(r.refHigh)  : '',
@@ -878,7 +884,7 @@ ${JSON.stringify(uniquePairs)}`,
   }, {});
 
   const chartMetrics = Object.entries(byMetric)
-    .filter(([, list]) => list.length >= 2)
+    .filter(([, list]) => list.filter(r => r.value !== null).length >= 2)
     .sort(([a], [b]) => a.localeCompare(b));
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -999,6 +1005,25 @@ ${JSON.stringify(uniquePairs)}`,
         </div>
       )}
 
+      {/* Trend charts */}
+      {chartMetrics.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <h2 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#555' }}>
+            Trends
+          </h2>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 16,
+          }}>
+            {chartMetrics.map(([key, list]) => {
+              const [metricName, labType] = key.split('||');
+              return <MetricChart key={key} metricName={metricName} labType={labType} results={list} />;
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Results table */}
       {loading ? (
         <div style={{ color: '#555', fontSize: 13, textAlign: 'center', padding: '48px 0' }}>Loading…</div>
@@ -1040,6 +1065,8 @@ ${JSON.stringify(uniquePairs)}`,
                 {displayedResults.map(r => {
                   const editing = editingId === r.id && editDraft;
                   const status  = getStatus(r.value, r.refLow, r.refHigh);
+                  const displayVal = r.value !== null ? r.value : (r.valueText ?? null);
+                  const isText = r.value === null && r.valueText !== null;
                   const cellIn  = (field: keyof ParsedRow, w = 90) => (
                     <input
                       value={editDraft?.[field] ?? ''}
@@ -1069,8 +1096,8 @@ ${JSON.stringify(uniquePairs)}`,
                       <td style={td}>
                         {editing ? cellIn('date', 100) : <span style={{ color: '#888' }}>{fmtDate(r.date)}</span>}
                       </td>
-                      <td style={{ ...td, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-                        {editing ? cellIn('value', 70) : (r.value !== null ? r.value : '—')}
+                      <td style={{ ...td, fontVariantNumeric: 'tabular-nums', fontWeight: isText ? 400 : 600, fontStyle: isText ? 'italic' : undefined }}>
+                        {editing ? cellIn('value', 90) : (displayVal !== null ? displayVal : '—')}
                       </td>
                       <td style={td}>
                         {editing ? cellIn('unit', 70) : (r.unit && <span style={{ color: '#666', fontSize: 12 }}>{r.unit}</span>)}
@@ -1106,25 +1133,6 @@ ${JSON.stringify(uniquePairs)}`,
                 })}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* Trend charts */}
-      {chartMetrics.length > 0 && (
-        <div style={{ marginTop: 28 }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#555' }}>
-            Trends
-          </h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 16,
-          }}>
-            {chartMetrics.map(([key, list]) => {
-              const [metricName, labType] = key.split('||');
-              return <MetricChart key={key} metricName={metricName} labType={labType} results={list} />;
-            })}
           </div>
         </div>
       )}
