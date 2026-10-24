@@ -183,7 +183,12 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
   const activeMeds = medications.filter(m => {
     if (m.startDate && m.startDate > date) return false;
     if (isCompletedByDate(m, date)) return false;
-    if (!m.durationDays && !m.active) return false;
+    if (!m.active) {
+      if (!m.durationDays) return false;
+      // Inactive with a duration: either a finished course (shown per isCompletedByDate above)
+      // or one switched off manually — keep that only on days that already have logs.
+      if (!isCompleted(m) && !logs.some(l => l.medicationId === m.id)) return false;
+    }
     return true;
   });
 
