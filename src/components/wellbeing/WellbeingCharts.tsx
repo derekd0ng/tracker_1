@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 import type { WellbeingEntry } from '../../types';
@@ -106,6 +107,11 @@ function weeklyAvg(values: (number | null | undefined)[]): string | null {
   const clean = values.filter((v): v is number => v != null);
   if (clean.length === 0) return null;
   return (clean.reduce((s, v) => s + v, 0) / clean.length).toFixed(1);
+}
+
+function avgLine(avg: string | null, color: string, key?: string) {
+  if (avg === null) return null;
+  return <ReferenceLine key={key} y={Number(avg)} stroke={color} strokeDasharray="6 4" strokeOpacity={0.7} strokeWidth={1.25} ifOverflow="extendDomain" />;
 }
 
 type ChartId = 'feel' | 'sleep' | 'hr' | 'bp' | 'spo2' | 'symptoms';
@@ -346,6 +352,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                 <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} labelFormatter={tooltipLabel} />
                 <Area type="monotone" dataKey="feelBand" fill={C.feel} fillOpacity={0.18} stroke="none" legendType="none" connectNulls />
                 <Line type="monotone" dataKey="feel" name="Feel" stroke={C.feel} strokeWidth={2} dot={{ r: 3, fill: C.feel }} connectNulls />
+                {avgLine(weeklyAvg(chartVitalData.map(d => d.feel)), C.feel)}
               </ComposedChart>
             </ResponsiveContainer>
           </>
@@ -361,6 +368,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                 <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={tickStyle} />
                 <Tooltip contentStyle={tooltipStyle} labelFormatter={tooltipLabel} />
                 <Line type="monotone" dataKey="sleep" name="Sleep" stroke={C.sleep} strokeWidth={2} dot={{ r: 3, fill: C.sleep }} connectNulls />
+                {avgLine(weeklyAvg(chartSleepData.map(d => d.sleep)), C.sleep)}
               </ComposedChart>
             </ResponsiveContainer>
           </>
@@ -377,6 +385,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                 <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} labelFormatter={tooltipLabel} />
                 <Area type="monotone" dataKey="hrBand" fill={C.hr} fillOpacity={0.18} stroke="none" legendType="none" connectNulls />
                 <Line type="monotone" dataKey="hr" name="Heart Rate" stroke={C.hr} strokeWidth={2} dot={{ r: 3, fill: C.hr }} connectNulls />
+                {avgLine(weeklyAvg(chartVitalData.map(d => d.hr)), C.hr)}
               </ComposedChart>
             </ResponsiveContainer>
           </>
@@ -405,6 +414,8 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                 <Area type="monotone" dataKey="diaBand" fill={C.bpDia} fillOpacity={0.18} stroke="none" legendType="none" connectNulls />
                 <Line type="monotone" dataKey="sys" name="Systolic" stroke={C.bpSys} strokeWidth={2} dot={{ r: 3, fill: C.bpSys }} connectNulls />
                 <Line type="monotone" dataKey="dia" name="Diastolic" stroke={C.bpDia} strokeWidth={2} strokeDasharray="4 2" dot={{ r: 3, fill: C.bpDia }} connectNulls />
+                {avgLine(weeklyAvg(chartVitalData.map(d => d.sys)), C.bpSys, 'sysAvg')}
+                {avgLine(weeklyAvg(chartVitalData.map(d => d.dia)), C.bpDia, 'diaAvg')}
               </ComposedChart>
             </ResponsiveContainer>
           </>
@@ -421,6 +432,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                 <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} labelFormatter={tooltipLabel} />
                 <Area type="monotone" dataKey="spo2Band" fill={C.spo2} fillOpacity={0.32} stroke="none" legendType="none" connectNulls />
                 <Line type="monotone" dataKey="spo2" name="SpO₂" stroke={C.spo2} strokeWidth={2} dot={{ r: 3, fill: C.spo2 }} connectNulls />
+                {avgLine(weeklyAvg(chartVitalData.map(d => d.spo2)), C.spo2)}
               </ComposedChart>
             </ResponsiveContainer>
           </>
@@ -459,6 +471,10 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
                     <Line key={name} type="monotone" dataKey={name} stroke={color} strokeWidth={2} dot={{ r: 3 }} connectNulls hide={hidden} />,
                   ];
                 })}
+                {avgLine(
+                  weeklyAvg(chartSymptomData.flatMap(d => chartSymptoms.map(n => d[n] as number | null))),
+                  'var(--text-muted)',
+                )}
               </ComposedChart>
             </ResponsiveContainer>
           </>
