@@ -300,22 +300,19 @@ export default function MedicationTab() {
                           {med.prescribingDoctor && (
                             <span className="meta-tag">Dr. {med.prescribingDoctor}</span>
                           )}
-                          <span
-                            className="meta-tag"
-                            style={{
-                              cursor: 'pointer',
-                              background: med.active ? 'var(--success-bg)' : 'var(--surface-alt)',
-                              borderColor: med.active ? 'var(--success)' : 'var(--border)',
-                              color: med.active ? 'var(--success)' : 'var(--text-muted)',
-                            }}
-                            onClick={() => handleToggleActive(med)}
-                            title="Click to toggle active status"
-                          >
-                            {med.active ? 'Active' : 'Inactive'}
-                          </span>
                         </div>
                       </div>
                       <div className="med-card-actions">
+                        <button
+                          className={`med-active-switch${med.active ? ' on' : ''}`}
+                          role="switch"
+                          aria-checked={med.active}
+                          onClick={() => handleToggleActive(med)}
+                          title={med.active ? 'Active — click to deactivate' : 'Inactive — click to activate'}
+                        >
+                          <span className="med-active-switch-track"><span className="med-active-switch-thumb" /></span>
+                          {med.active ? 'Active' : 'Inactive'}
+                        </button>
                         <button className="btn btn-ghost" onClick={() => { openEdit(med); setShowList(false); }}>Edit</button>
                         <button
                           className="btn btn-ghost"
