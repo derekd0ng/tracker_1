@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import type { WellbeingEntry } from '../../types';
 import { getChartOrder, saveChartOrder } from '../../storage';
+import DateNav, { todayDate } from '../DateNav';
 
 interface SleepPoint {
   date: string;   // YYYY-MM-DD
@@ -140,6 +141,7 @@ function ChartHeader({ title, avg, unit = '', handle, icon }: { title: string; a
 
 export default function WellbeingCharts({ entries, sleepData }: Props) {
   const [range, setRange] = useState<Range>(14);
+  const [endDate, setEndDate] = useState(todayDate);
   const [order, setOrder] = useState<ChartId[]>(() => {
     const saved = getChartOrder() as ChartId[] | null;
     if (saved && saved.length === DEFAULT_ORDER.length) return saved;
@@ -158,24 +160,21 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
   }
   const dragItem = useRef<ChartId | null>(null);
 
-  const todayStr = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }, []);
+  const isToday = endDate === todayDate();
 
   const cutoffStr = useMemo(() => {
-    if (range === 1) return todayStr;
-    const cutoff = new Date();
+    if (range === 1) return endDate;
+    const cutoff = new Date(endDate + 'T00:00:00');
     cutoff.setDate(cutoff.getDate() - range);
     const yyyy = cutoff.getFullYear();
     const mm = String(cutoff.getMonth() + 1).padStart(2, '0');
     const dd = String(cutoff.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
-  }, [range, todayStr]);
+  }, [range, endDate]);
 
   const filtered = useMemo(
-    () => entries.filter(e => e.date >= cutoffStr),
-    [entries, cutoffStr],
+    () => entries.filter(e => e.date >= cutoffStr && e.date <= endDate),
+    [entries, cutoffStr, endDate],
   );
 
   const grouped = useMemo(() => {
@@ -234,15 +233,15 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
   const sleepChartData = useMemo(() => {
     if (!sleepData) return [];
     return sleepData
-      .filter(d => d.date >= cutoffStr && d.value > 0)
+      .filter(d => d.date >= cutoffStr && d.date <= endDate && d.value > 0)
       .sort((a, b) => a.date.localeCompare(b.date))
       .map(d => ({ date: fmtDate(d.date), sleep: d.value }));
-  }, [sleepData, cutoffStr]);
+  }, [sleepData, cutoffStr, endDate]);
 
   // ── 1-day view: one point per entry on a time axis ────────────────────────
   const todayEntries = useMemo(
-    () => [...filtered].filter(e => e.date === todayStr).sort((a, b) => a.time.localeCompare(b.time)),
-    [filtered, todayStr],
+    () => [...filtered].filter(e => e.date === endDate).sort((a, b) => a.time.localeCompare(b.time)),
+    [filtered, endDate],
   );
 
   const oneDayVitalData = useMemo(() =>
@@ -496,6 +495,7 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
     <div className="charts-section">
       <div className="flex-between">
         <p className="section-title" style={{ marginBottom: 0 }}>Trends</p>
+        <DateNav date={endDate} onChange={setEndDate} />
         <div className="range-tabs">
           {RANGES.map(r => (
             <button key={r} className={`range-tab${range === r ? ' active' : ''}`} onClick={() => setRange(r)}>
@@ -507,7 +507,9 @@ export default function WellbeingCharts({ entries, sleepData }: Props) {
 
       {!anyVisible ? (
         <p className="chart-empty">
-          {range === 1 ? 'No entries today. Log an entry to see today\'s data.' : `No entries in the last ${range} days. Log an entry to start seeing trends.`}
+          {range === 1
+            ? (isToday ? 'No entries today. Log an entry to see today\'s data.' : 'No entries on this day.')
+            : (isToday ? `No entries in the last ${range} days. Log an entry to start seeing trends.` : `No entries in the ${range} days up to this date.`)}
         </p>
       ) : (
         <div className="chart-grid">

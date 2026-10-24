@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { Medication, MedicationLog, TimeOfDay } from '../../types';
 import { getMedLogs, getMedLogsForDate, toggleMedLog, skipMedLog, clearMedLog, moveMedLog, saveMedication } from '../../storage';
 import { TIMES_OF_DAY } from '../../types';
 import MedInfoModal from './MedInfoModal';
+import DateNav, { todayDate } from '../DateNav';
 import { IconMorning, IconAfternoon, IconEvening, IconNight, IconCheckSquare, IconSkipSquare, IconEmptySquare, IconSparkle } from '../Icons';
 
 interface Props {
@@ -23,20 +24,6 @@ const TIME_SLOT_ICONS: Record<TimeOfDay, React.ReactElement> = {
   evening:   <IconEvening size={18} />,
   night:     <IconNight size={18} />,
 };
-
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const DAY_LETTERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-function todayDate() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function formatDisplayDate(d: string) {
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
-    weekday: 'short', month: 'long', day: 'numeric', year: 'numeric',
-  });
-}
 
 function skippedDaysCount(medId: string, allLogs: MedicationLog[]) {
   return new Set(
@@ -64,43 +51,6 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
   const [sectionOverride, setSectionOverride] = useState<Map<TimeOfDay, boolean>>(new Map());
   const [moveMenuOpen, setMoveMenuOpen] = useState<{ medId: string; slot: TimeOfDay; top: number; right: number; entryKey: string } | null>(null);
   const [infoMed, setInfoMed] = useState<{ name: string; dose?: string } | null>(null);
-  const [showPicker, setShowPicker] = useState(false);
-  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
-  const [pickerMonth, setPickerMonth] = useState(new Date().getMonth());
-  const pickerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showPicker) return;
-    function handleOutside(e: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
-        setShowPicker(false);
-      }
-    }
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, [showPicker]);
-
-  function openPicker() {
-    const d = new Date(date + 'T00:00:00');
-    setPickerYear(d.getFullYear());
-    setPickerMonth(d.getMonth());
-    setShowPicker(true);
-  }
-
-  function shiftPickerMonth(delta: number) {
-    let m = pickerMonth + delta;
-    let y = pickerYear;
-    if (m < 0) { m = 11; y--; }
-    if (m > 11) { m = 0; y++; }
-    setPickerMonth(m);
-    setPickerYear(y);
-  }
-
-  function selectPickerDate(day: number) {
-    const d = `${pickerYear}-${String(pickerMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    changeDate(d);
-    setShowPicker(false);
-  }
 
   function refresh() {
     const newAllLogs = getMedLogs();
@@ -125,12 +75,6 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
     setDate(newDate);
     setLogs(getMedLogsForDate(newDate));
     setSectionOverride(new Map());
-  }
-
-  function shiftDate(days: number) {
-    const d = new Date(date + 'T00:00:00');
-    d.setDate(d.getDate() + days);
-    changeDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
   }
 
   function handleToggle(medicationId: string, timeOfDay: TimeOfDay) {
@@ -294,57 +238,7 @@ export default function DailyMedLog({ medications, onMedicationCompleted }: Prop
       {/* Header: title + date nav */}
       <div className="med-log-header">
         <h2 className="med-log-title">Medication Log</h2>
-        <div className="med-date-nav" ref={pickerRef}>
-          <button className="med-date-btn" onClick={() => shiftDate(-1)}>‹</button>
-          <button className="med-date-label" onClick={openPicker}>
-            {formatDisplayDate(date)}
-          </button>
-          <button className="med-date-btn" onClick={() => shiftDate(1)}>›</button>
-          {showPicker && (() => {
-            const daysInMonth = new Date(pickerYear, pickerMonth + 1, 0).getDate();
-            const firstDow = new Date(pickerYear, pickerMonth, 1).getDay();
-            const today = todayDate();
-            const cells: (number | null)[] = [];
-            for (let i = 0; i < firstDow; i++) cells.push(null);
-            for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-            while (cells.length % 7 !== 0) cells.push(null);
-            return (
-              <div className="date-picker-dropdown">
-                <div className="date-picker-header">
-                  <button className="date-picker-nav" onClick={() => shiftPickerMonth(-1)}>‹</button>
-                  <span className="date-picker-month-label">{MONTHS[pickerMonth]} {pickerYear}</span>
-                  <button className="date-picker-nav" onClick={() => shiftPickerMonth(1)}>›</button>
-                </div>
-                <div className="date-picker-grid">
-                  {DAY_LETTERS.map(l => (
-                    <span key={l} className="date-picker-dow">{l}</span>
-                  ))}
-                  {cells.map((day, i) => {
-                    if (day === null) return <span key={`e${i}`} />;
-                    const cellDate = `${pickerYear}-${String(pickerMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const isToday = cellDate === today;
-                    const isSelected = cellDate === date;
-                    return (
-                      <button
-                        key={cellDate}
-                        className={`date-picker-cell${isSelected ? ' selected' : isToday ? ' today' : ''}`}
-                        onClick={() => selectPickerDate(day)}
-                      >
-                        {day}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  className="date-picker-today-btn"
-                  onClick={() => { changeDate(today); setShowPicker(false); }}
-                >
-                  Today
-                </button>
-              </div>
-            );
-          })()}
-        </div>
+        <DateNav date={date} onChange={changeDate} />
       </div>
 
       {/* Empty state */}
